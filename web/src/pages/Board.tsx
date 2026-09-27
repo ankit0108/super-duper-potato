@@ -144,7 +144,7 @@ export function Board() {
         </Section>
       )}
 
-      <Section id="sec-today" title="Today's picks" count={todayCount} hint="Ranked best first · press j / k to move, Enter to open">
+      <Section id="sec-today" title="Today's picks" count={todayCount} hint={<>Ranked best first<span className="hidden lg:inline"> · press j / k to move, Enter to open</span></>}>
         {todayCount === 0 ? (
           <Empty icon={<Sparkles className="size-7" />} title={deliveredToday ? "All of today's picks are handled" : "Today's picks haven't arrived yet"}>
             {deliveredToday ? "Nice. Anything else still open is under This week." : "They arrive by about 6am. You can also ask for any topic on the Requests page."}

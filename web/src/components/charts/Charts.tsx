@@ -344,17 +344,18 @@ export function Sparkline({ values, width = 96, height = 28 }: { values: number[
 export function StatTile({ label, value, delta, deltaGood, trend, hint }: { label: string; value: string; delta?: string | null; deltaGood?: boolean | null; trend?: number[]; hint?: string }) {
   return (
     <div className="rounded-2xl border border-border bg-surface p-3.5">
-      <div className="text-[12.5px] text-muted">{label}</div>
-      <div className="mt-1 flex items-end justify-between gap-2">
-        <div>
-          <div className="text-2xl font-semibold tracking-tight">{value}</div>
-          {delta && (
-            <div className={cx("text-[12px] font-medium", deltaGood == null ? "text-muted" : deltaGood ? "text-ok" : "text-bad")}>{delta}</div>
-          )}
-          {hint && !delta && <div className="text-[12px] text-muted">{hint}</div>}
-        </div>
-        {trend && trend.length > 1 && <Sparkline values={trend} />}
+      {/* The sparkline shares the label's row, so the value and delta keep the tile's full width on phones. */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 text-[12.5px] text-muted">{label}</div>
+        {trend && trend.length > 1 && (
+          <span className="shrink-0">
+            <Sparkline values={trend} width={64} height={22} />
+          </span>
+        )}
       </div>
+      <div className="mt-1 text-2xl font-semibold tracking-tight whitespace-nowrap tabular-nums">{value}</div>
+      {delta && <div className={cx("text-[12px] font-medium", deltaGood == null ? "text-muted" : deltaGood ? "text-ok" : "text-bad")}>{delta}</div>}
+      {hint && !delta && <div className="text-[12px] text-muted">{hint}</div>}
     </div>
   );
 }

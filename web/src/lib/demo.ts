@@ -77,13 +77,12 @@ export function rebaseDemo(desk: DeskState, now = new Date()): DeskState {
   return shift(desk) as DeskState;
 }
 
+/** Like the pipeline: an interview draft uses only what was said in the answers, nothing added. */
 function draftFromAnswers(card: Card): Card["draft"] {
   const answers = (card.answers ?? []).map((a) => a.answer.trim()).filter(Boolean);
-  const hook = card.hooks?.[0]?.text ?? card.title;
-  const body = answers.join("\n\n");
-  if (card.format === "x_thread") return { text: "", posts: [hook, ...answers].slice(0, 5) };
-  if (card.platform === "x") return { text: `${answers[0] ?? hook}`.slice(0, 270), posts: [] };
-  return { text: `${hook}\n\n${body}\n\nThat's the part the demos skip.`, posts: [] };
+  if (card.format === "x_thread") return { text: "", posts: answers.slice(0, 5) };
+  if (card.platform === "x") return { text: (answers[0] ?? "").slice(0, 270), posts: [] };
+  return { text: answers.join("\n\n"), posts: [] };
 }
 
 function rewriteText(card: Card, chips: string[], note: string): Card["draft"] {

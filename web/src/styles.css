@@ -145,6 +145,15 @@ dialog::backdrop {
   }
 }
 
+/* Grids default to one shrinkable column. An implicit `auto` track grows to fit its widest unbreakable line
+   (a truncated label, a URL), pushing cards past the screen edge. In the base layer, so any grid-cols-*
+   utility still wins. */
+@layer base {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* The draft editor: comfortable reading width, preserved line breaks. */
 .draft-text {
   white-space: pre-wrap;

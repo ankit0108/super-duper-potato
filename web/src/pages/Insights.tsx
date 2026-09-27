@@ -89,7 +89,7 @@ function Overview({ view }: { view: DeskState }) {
         {(["linkedin", "x"] as const).map((p) => {
           const { last, before } = latestEdit(p);
           const isCurrent = last && cur && last.week === cur.week;
-          const d = delta(val(last, p, "edit_ratio_median"), val(before, p, "edit_ratio_median"), (n) => pct(n), true, "the week before");
+          const d = delta(val(last, p, "edit_ratio_median"), val(before, p, "edit_ratio_median"), (n) => `${Math.round(n * 100)} pts`, true, "the week before");
           const series = weekly.map((w) => w[p]?.edit_ratio_median).filter((v): v is number => v != null);
           return (
             <StatTile

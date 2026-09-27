@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cx } from "./Button";
 
@@ -15,6 +15,7 @@ type Props = {
 /** Native <dialog>: focus trapping, Escape and the backdrop come from the browser. Bottom sheet on phones. */
 export function Dialog({ open, onClose, title, description, children, footer, wide }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -39,7 +40,7 @@ export function Dialog({ open, onClose, title, description, children, footer, wi
       onClick={(e) => {
         if (e.target === ref.current) onClose();
       }}
-      aria-labelledby="dialog-title"
+      aria-labelledby={titleId}
       className={cx(
         "m-0 mt-auto w-full max-w-none rounded-t-2xl border border-border bg-surface p-0 text-text shadow-2xl sm:m-auto sm:rounded-2xl",
         wide ? "sm:max-w-2xl" : "sm:max-w-lg",
@@ -49,7 +50,7 @@ export function Dialog({ open, onClose, title, description, children, footer, wi
         <div className="flex max-h-[85dvh] flex-col">
           <div className="flex items-start justify-between gap-3 border-b border-border px-5 pt-4 pb-3">
             <div>
-              <h2 id="dialog-title" className="text-base font-semibold">
+              <h2 id={titleId} className="text-base font-semibold">
                 {title}
               </h2>
               {description && <div className="mt-0.5 text-sm text-muted">{description}</div>}

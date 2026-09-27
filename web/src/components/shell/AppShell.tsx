@@ -181,14 +181,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         {mobileItems.map((it) => {
           const active = it.match(route.path);
           return (
-            <Link key={it.to} to={it.to} aria-current={active ? "page" : undefined} className={cx("relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium", active ? "text-accent" : "text-muted")}>
+            <Link key={it.to} to={it.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", active ? "text-accent" : "text-muted")}>
               {it.icon}
               {it.label}
               {!!it.count && <span className="absolute top-1 left-1/2 ml-2 rounded-full bg-accent px-1 text-[10px] font-semibold text-accent-fg">{it.count}</span>}
             </Link>
           );
         })}
-        <button type="button" onClick={() => setMore(true)} className={cx("flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium", moreActive ? "text-accent" : "text-muted")}>
+        <button type="button" onClick={() => setMore(true)} className={cx("flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", moreActive ? "text-accent" : "text-muted")}>
           <MoreHorizontal className="size-5" />
           More
         </button>

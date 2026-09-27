@@ -338,7 +338,8 @@ function CardView({ card }: { card: Card }) {
       </div>
 
       {editable && (
-        <div className="fixed inset-x-0 bottom-[calc(3.6rem+env(safe-area-inset-bottom))] z-20 border-t border-border bg-surface/95 px-3 py-2 backdrop-blur lg:static lg:mt-6 lg:rounded-2xl lg:border lg:px-4 lg:py-3">
+        // On phones the bar sits directly on the bottom nav (a 3.5rem row plus the safe area).
+        <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-border bg-surface px-3 py-2 lg:static lg:mt-6 lg:rounded-2xl lg:border lg:px-4 lg:py-3">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2">
             <Button variant="primary" icon={<Send className="size-4" />} onClick={() => setPosting(true)} disabled={!text.trim() || !!card.work}>
               Posted
@@ -359,6 +360,8 @@ function CardView({ card }: { card: Card }) {
           {card.format === "x_thread" && <p className="mx-auto mt-1 max-w-6xl text-xs text-muted">Open X posts the first post; add the rest as replies to it, using each post's copy button.</p>}
         </div>
       )}
+
+      {editable && <div aria-hidden className="h-28 lg:hidden" />}
 
       <PostedDialog
         open={posting}

@@ -203,7 +203,7 @@ function ReviewQueue({ posts }: { posts: Post[] }) {
               {snippet && <p className="text-[13px] text-muted">Screenshot text: “{snippet}”</p>}
               <p className="mt-1 text-[13px]">{fields.map((f) => `${f.label}: ${num(m[f.key] as number)}`).join(" · ")}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Select aria-label="Which post" value={choice[m.id] ?? m.post_id ?? ""} onChange={(e) => setChoice((c) => ({ ...c, [m.id]: e.target.value }))} className="h-9 max-w-md flex-1">
+                <Select aria-label="Which post" value={choice[m.id] ?? m.post_id ?? ""} onChange={(e) => setChoice((c) => ({ ...c, [m.id]: e.target.value }))} className="h-9 w-full min-w-0 sm:w-auto sm:max-w-md sm:flex-1">
                   <option value="">Choose the post…</option>
                   {posts.slice(0, 40).map((p) => (
                     <option key={p.id} value={p.id}>

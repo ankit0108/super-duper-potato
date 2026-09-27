@@ -123,7 +123,7 @@ function VolumeSection({ settings }: { settings: S }) {
         })}
       </div>
       <div className="mt-5 border-t border-border pt-4">
-        <Field label="Deliver from (Melbourne time)" htmlFor="earliest" hint="The morning run delivers on or after this time. The schedule itself runs at about 5:40am AEDT / 4:40am AEST.">
+        <Field label="Deliver from (Melbourne time)" htmlFor="earliest" hint="The morning run delivers on or after this time. The schedule runs at about 5:10am AEDT / 4:10am AEST, with a catch-up run about 90 minutes later.">
           <Input id="earliest" type="time" value={v.earliest} onChange={(e) => setV({ ...v, earliest: e.target.value })} className="w-32" />
         </Field>
       </div>
