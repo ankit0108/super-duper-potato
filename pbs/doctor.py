@@ -41,6 +41,11 @@ def run_doctor(ctx: Ctx, probe_llm: bool = True, probe_sources: bool = True) -> 
                          "is the fallback when Gemini's free quota runs out, and it doesn't train on your inputs."))
     checks.append(_check("Secret: PBS_BLOCKLIST", "ok" if ctx.blocklist else "warn",
                          f"{len(ctx.blocklist)} terms" if ctx.blocklist else "Empty: the employer/client check can't run."))
+    public = env.get("PBS_DATA_PUBLIC")
+    if public in ("0", "1"):
+        checks.append(_check("Data repo private", "ok" if public == "0" else "fail",
+                             None if public == "0" else "It's public: anyone can read your drafts, answers and "
+                             "stances. Make it private in the repo's Settings → General."))
     chans = notify.configured()
     checks.append(_check("Notifications", "ok" if chans else "skip",
                          ", ".join(chans) if chans else "Optional: set PBS_NTFY_TOPIC or Telegram secrets."))

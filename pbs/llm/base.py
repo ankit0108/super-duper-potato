@@ -89,12 +89,71 @@ class LLMError(Exception):
         return f"{self.kind} ({detail})" if detail else self.kind
 
 
-def rotates(exc: LLMError, quota_per_model: bool) -> bool:
-    """Whether a provider's next model should answer instead: the model is gone, or (when quotas and capacity
-    are per model) it is out of quota, rate limited or overloaded, which says nothing about the next one."""
-    if exc.model_gone:
-        return True
-    return quota_per_model and (exc.quota or exc.rate_limited or (exc.status or 0) >= 500)
+class ModelCycle:
+    """The models one provider can answer with, in order of preference, and what this run learned about them.
+
+    A call tries each usable model at most once, starting from the one that last answered and wrapping around.
+    A retired model is dropped; with per-model quotas (Gemini, Groq), a model out of its daily quota is skipped
+    for the rest of the run and an overloaded or rate-limited one hands the call to the next. Grounded (search)
+    calls hand over the same way but change nothing for later calls: a search quota says nothing about drafting.
+    """
+
+    def __init__(self, provider: str, models: list[str], quota_per_model: bool):
+        self.provider = provider
+        self.models = list(models)
+        self.quota_per_model = quota_per_model
+        self.idx = 0
+        self.dead: set[str] = set()
+        self.spent: set[str] = set()
+
+    @property
+    def current(self) -> str | None:
+        return self.models[self.idx] if self.idx < len(self.models) else None
+
+    def usable(self) -> list[str]:
+        n = len(self.models)
+        order = [self.models[(self.idx + k) % n] for k in range(n)]
+        return [m for m in order if m not in self.dead and m not in self.spent]
+
+    def run(self, req: LLMRequest, attempt: Any, rediscover: Any = None) -> LLMResponse:
+        from .. import log
+
+        tried: set[str] = set()
+        transient: LLMError | None = None
+        last: LLMError | None = None
+        while True:
+            pending = [m for m in self.usable() if m not in tried]
+            if not pending and self.dead and rediscover is not None:
+                self.models.extend(m for m in rediscover() if m not in self.models)
+                pending = [m for m in self.usable() if m not in tried]
+            if not pending:
+                break
+            model = pending[0]
+            tried.add(model)
+            try:
+                resp = attempt(model)
+            except LLMError as exc:
+                last = exc
+                if exc.model_gone:
+                    self.dead.add(model)
+                elif not self.quota_per_model:
+                    raise
+                elif exc.quota and not req.grounding:
+                    self.spent.add(model)
+                elif exc.quota or exc.rate_limited or (exc.status or 0) >= 500:
+                    transient = exc
+                else:
+                    raise
+                log.info(f"llm: {self.provider} {model}: {exc.public()}; trying the next model")
+                continue
+            if not req.grounding:
+                self.idx = self.models.index(model)
+            return resp
+        if transient is not None:
+            raise transient
+        if last is not None:
+            raise last
+        raise LLMError("no model left to try", code="no_model", fatal_for_provider=True, model_gone=True)
 
 
 class BudgetExhausted(Exception):
@@ -139,6 +198,13 @@ class Provider(Protocol):
 
 _FENCE_RE = re.compile(r"```(?:json|JSON)?\s*(.*?)```", re.DOTALL)
 _TRAILING_COMMA_RE = re.compile(r",\s*([}\]])")
+
+
+def json_rows(data: Any, key: str) -> list[dict[str, Any]]:
+    """The list of objects a reply carries under `key`. Models asked for {"items": [...]} sometimes answer with
+    the bare list, so both shapes are accepted; anything that isn't an object is dropped."""
+    rows = data.get(key) if isinstance(data, dict) else data
+    return [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else []
 
 
 def extract_json(text: str) -> Any:

@@ -38,6 +38,9 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The data scripts authenticate with PBS_DATA_TOKEN; a persisted workflow token would be sent instead.
+          persist-credentials: false
 
       - uses: actions/setup-python@v6
         with:

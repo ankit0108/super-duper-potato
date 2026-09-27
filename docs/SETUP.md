@@ -3,7 +3,8 @@
 You need a GitHub account and a Google account (for a free Gemini API key). Everything below is free.
 
 The design in one line: **this repo holds code and stays public; a new private repo holds your data.** The
-pipeline refuses to store personal data in a public repo.
+pipeline refuses to store personal data in this public code repo, and if the data repo is ever made public, every
+run warns and the desk shows a red alert.
 
 > Replace `<you>` with your GitHub username and `<repo>` with this repo's name (for example
 > `ankit0108/super-duper-potato`).

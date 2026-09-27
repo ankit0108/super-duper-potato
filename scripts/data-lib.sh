@@ -1,6 +1,13 @@
-# Turn git/GitHub failures into an error that says exactly what to fix. Sourced by the data scripts.
+# Shared by the data scripts: git without the workspace's credentials, and errors that say what to fix.
 # Reads PBS_TOKEN_NAME (the secret that holds the token) and PBS_TARGET_REPO (owner/name), when known.
 # shellcheck shell=bash
+
+# actions/checkout leaves the workflow's own token in the workspace's git config
+# (http.https://github.com/.extraheader). Git run from the workspace sends that header instead of the data
+# token in the URL, so a private data repo answers 404 "Repository not found". The empty value clears it.
+data_git() {
+  git -c "http.https://github.com/.extraheader=" "$@"
+}
 
 is_access_failure() {
   case "$1" in

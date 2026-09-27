@@ -38,6 +38,10 @@ def warnings(ctx: Ctx) -> list[dict[str, Any]]:
         out.append({"level": "error", "code": "llm_failing", "at": max(q["last_error_at"] for q in failing),
                     "message": f"No model has answered today, so new cards arrive as briefs. {detail}. "
                                "Run the doctor from System for details."})
+    if os.environ.get("PBS_DATA_PUBLIC") == "1":
+        out.append({"level": "error", "code": "data_public", "at": now,
+                    "message": "Your data repo is public, so anyone can read your drafts, answers, stances and "
+                               "profile. Make it private: the repo's Settings → General → Change visibility."})
     if not ctx.blocklist:
         out.append({"level": "warn", "code": "no_blocklist", "at": now,
                     "message": "The PBS_BLOCKLIST secret is empty, so the employer and client check can't run. Add "

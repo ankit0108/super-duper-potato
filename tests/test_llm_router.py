@@ -167,3 +167,11 @@ def test_routes_skip_providers_that_no_longer_exist(store):
     s.llm.routes["draft"] = ["retired", "a", "b"]
     r = Router(s, store, providers={"a": FakeProvider("a"), "b": FakeProvider("b")}, sleep=lambda s: None)
     assert r.chain("draft") == ["a", "b"]
+
+
+def test_json_rows_accepts_the_wrapped_and_the_bare_list_shapes():
+    from pbs.llm.base import json_rows
+
+    assert json_rows({"items": [{"id": 1}, "junk"]}, "items") == [{"id": 1}]
+    assert json_rows([{"id": 2}], "items") == [{"id": 2}]
+    assert json_rows({"other": []}, "items") == [] and json_rows(None, "items") == [] and json_rows("x", "items") == []

@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from . import guardrails, ids, log, prompting, textutil, timeutil
 from .context import Ctx
-from .llm.base import BudgetExhausted, LLMRequest, LLMResponse, why_unavailable
+from .llm.base import BudgetExhausted, LLMRequest, LLMResponse, json_rows, why_unavailable
 from .style import Style, render_examples, render_rules, style_for
 
 PLATFORM_LABEL = {"linkedin": "LinkedIn", "x": "X"}
@@ -473,11 +473,11 @@ def ask_questions(ctx: Ctx, card: dict[str, Any], n: int = 3) -> dict[str, Any]:
 
 
 def _questions_schema(data: Any) -> dict[str, Any]:
-    qs = [q for q in (data or {}).get("questions", []) if isinstance(q, dict) and str(q.get("q", "")).strip()]
+    qs = [q for q in json_rows(data, "questions") if str(q.get("q", "")).strip()]
     if not qs:
         raise ValueError("no questions returned")
     return {"questions": [{"q": clean_text(str(q["q"])), "why": clean_text(str(q.get("why") or ""))} for q in qs],
-            "angle": (data or {}).get("angle")}
+            "angle": data.get("angle") if isinstance(data, dict) else None}
 
 
 def draft_from_answers(ctx: Ctx, card: dict[str, Any]) -> dict[str, Any]:
