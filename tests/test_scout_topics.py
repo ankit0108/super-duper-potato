@@ -77,3 +77,19 @@ def test_a_seed_whose_address_changes_gets_a_fresh_start(store):
     assert row["active"] and not row.get("paused_reason") and row["consecutive_failures"] == 0
     assert not row.get("etag") and not row.get("last_error")
     assert not store.get("sources", "reddit-machinelearning")["active"]  # his own pause stays
+
+
+def test_translation_survives_a_bare_list_reply(make_ctx):
+    # Gemini Flash-Lite answered the translation with a bare list on the first live run, which crashed topics.
+    from conftest import fake_providers
+
+    def bare(req, data):
+        items = data if isinstance(data, list) else data.get("items", [])
+        return [{"id": it.get("id"), "title_en": f"(EN) {it.get('title', '')}", "summary_en": ""} for it in items]
+
+    ctx = make_ctx(providers=fake_providers(translate=bare))
+    run_scouts(ctx)
+    build_topics(ctx)
+    hi = ctx.store.select("items", "lang = 'hi'")
+    assert hi and all(i["title_en"].startswith("(EN)") for i in hi)
+    assert ctx.store.count("topics") > 0

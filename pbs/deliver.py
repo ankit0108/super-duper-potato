@@ -8,7 +8,7 @@ from typing import Any
 
 from . import bandit, draft, ids, log, prompting, textutil, timeutil
 from .context import Ctx
-from .llm.base import BudgetExhausted, LLMRequest, why_unavailable
+from .llm.base import BudgetExhausted, LLMRequest, json_rows, why_unavailable
 from .rank import Candidate, allocate, build_candidates, build_memory, interview_bank
 from .scout.scouting import run_scouts
 from .topics import build_topics
@@ -243,7 +243,7 @@ def _evergreen_proposals(ctx: Ctx) -> list[dict[str, Any]]:
     except (BudgetExhausted, ValueError) as exc:
         log.info(f"weekly batch: proposals unavailable ({type(exc).__name__}); using the interview bank")
         return []
-    return [t for t in (data or {}).get("topics", []) if isinstance(t, dict) and t.get("title")]
+    return [t for t in json_rows(data, "topics") if t.get("title")]
 
 
 def _create_interview(ctx: Ctx, platform: str, prop: dict[str, Any], key: str) -> dict[str, Any]:

@@ -197,7 +197,8 @@ class Router:
                     self.usage.provider_errors[name] = exc.public()
                     self._record(name, error=str(exc)[:300], count=False)
                     if exc.quota:
-                        self._mark_exhausted(name, str(exc))
+                        if not req.grounding:  # a search quota says nothing about the provider's other calls
+                            self._mark_exhausted(name, str(exc))
                         break
                     if exc.fatal_for_provider or exc.model_gone:
                         self._disable(name, exc)

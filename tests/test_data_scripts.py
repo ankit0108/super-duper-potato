@@ -88,16 +88,20 @@ GITHUB_403 = ("remote: Write access to repository not granted.\n"
               "fatal: unable to access 'https://github.com/ankit/pbs-data.git/': The requested URL returned error: 403")
 
 
-def fake_tools(tmp_path: Path, git_fail: dict[str, str] | None = None, http_code: str = "200") -> dict[str, str]:
+def fake_tools(tmp_path: Path, git_fail: dict[str, str] | None = None, http_code: str = "200",
+               api_code: str = "404") -> dict[str, str]:
     """Put stand-ins for git (failing the given subcommands with GitHub's messages) and curl on PATH."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(exist_ok=True)
     real_git = shutil.which("git")
     cases = "".join(f'  {sub}) printf "%s\\n" {json.dumps(msg)} >&2; exit 128 ;;\n'
                     for sub, msg in (git_fail or {}).items())
-    (bin_dir / "git").write_text(f'#!/usr/bin/env bash\nfor a in "$@"; do case "$a" in\n{cases}'
+    log = tmp_path / "git-calls.log"
+    (bin_dir / "git").write_text(f'#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> {log}\nfor a in "$@"; do case "$a" in\n{cases}'
                                  f'  ls-remote) exit 0 ;;\nesac; done\nexec {real_git} "$@"\n')
-    (bin_dir / "curl").write_text(f'#!/usr/bin/env bash\ncat >/dev/null\nprintf "{http_code}"\n')
+    # The push check answers `http_code`; the anonymous visibility check (api.github.com) answers `api_code`.
+    (bin_dir / "curl").write_text(f'#!/usr/bin/env bash\ncase "$*" in *api.github.com*) printf "{api_code}"; exit 0 ;; esac\n'
+                                  f'cat >/dev/null\nprintf "{http_code}"\n')
     for f in bin_dir.iterdir():
         f.chmod(0o755)
     e = dict(os.environ)
@@ -156,3 +160,22 @@ def test_push_refused_for_access_fails_at_once_with_the_fix(tmp_path):
     assert out.returncode == 1
     assert "PBS_DATA_TOKEN can read ankit/pbs-data but can't push to it (HTTP 403)" in out.stdout
     assert "rebasing" not in out.stdout and "attempt" not in out.stdout
+
+
+def test_git_checks_clear_the_workspace_credentials(tmp_path):
+    # actions/checkout leaves the workflow's token in the workspace's git config; git would send it instead of
+    # PBS_DATA_TOKEN, and a private data repo answers 404 (the first live runs). Every data git call clears it.
+    e = fake_tools(tmp_path, http_code="200")
+    out = run_script("data-checkout.sh", e, tmp_path)
+    assert out.returncode == 0, out.stdout + out.stderr
+    calls = (tmp_path / "git-calls.log").read_text().splitlines()
+    ls_remote = [c for c in calls if " ls-remote " in f" {c} "]
+    assert ls_remote and all(c.startswith("-c http.https://github.com/.extraheader= ") for c in ls_remote)
+
+
+def test_a_public_data_repo_is_flagged_for_the_run_and_the_desk(tmp_path):
+    e = fake_tools(tmp_path, api_code="200")
+    e["GITHUB_ENV"] = str(tmp_path / "github.env")
+    out = run_script("data-checkout.sh", e, tmp_path)
+    assert out.returncode == 0 and "::warning::ankit/pbs-data is public" in out.stdout
+    assert (tmp_path / "github.env").read_text() == "PBS_DATA_PUBLIC=1\n"

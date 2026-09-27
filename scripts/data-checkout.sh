@@ -8,8 +8,8 @@ set -euo pipefail
 
 DIR="${PBS_DATA_DIR:-.pbs-data}"
 SCRIPTS="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=scripts/git-errors.sh
-. "$SCRIPTS/git-errors.sh"
+# shellcheck source=scripts/data-lib.sh
+. "$SCRIPTS/data-lib.sh"
 
 GITHUB_REPO=""
 if [ -n "${PBS_DATA_URL:-}" ]; then
@@ -45,7 +45,7 @@ ERR="$(mktemp)"
 trap 'rm -f "$ERR"' EXIT
 # Without --exit-code, ls-remote succeeds with no output when the repo is readable but the branch is new;
 # any failure means the repo couldn't be read at all, which must not be mistaken for "no data yet".
-if ! REFS="$(git ls-remote --heads "$URL" "$BRANCH" 2>"$ERR")"; then
+if ! REFS="$(data_git ls-remote --heads "$URL" "$BRANCH" 2>"$ERR")"; then
   explain_git_failure read "$(cat "$ERR")"
   exit 1
 fi
@@ -62,8 +62,20 @@ if [ -n "$GITHUB_REPO" ]; then
   esac
 fi
 
+if [ -n "${PBS_DATA_REPO:-}" ]; then
+  # Anyone can read a public repo without a token. Say so loudly: it holds drafts, answers, stances and profile.
+  VIS="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "https://api.github.com/repos/${PBS_DATA_REPO}" 2>/dev/null || true)"
+  case "$VIS" in
+    200) echo "::warning::${PBS_DATA_REPO} is public: anyone can read your drafts, answers, stances and profile. Make it private (repo Settings → General → Change visibility); the pipeline works the same."
+         PUBLIC=1 ;;
+    404) PUBLIC=0 ;;
+    *) PUBLIC="" ;;
+  esac
+  if [ -n "$PUBLIC" ] && [ -n "${GITHUB_ENV:-}" ]; then echo "PBS_DATA_PUBLIC=${PUBLIC}" >> "$GITHUB_ENV"; fi
+fi
+
 if [ -n "$REFS" ]; then
-  git clone -q --depth 1 --branch "$BRANCH" "$URL" "$DIR"
+  data_git clone -q --depth 1 --branch "$BRANCH" "$URL" "$DIR"
   echo "Data checked out (${BRANCH})."
 else
   echo "No '${BRANCH}' branch yet: starting fresh state."

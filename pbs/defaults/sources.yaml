@@ -50,7 +50,7 @@ affairs:
   - {id: the-hindu-national, name: The Hindu (National), kind: rss, url: "https://www.thehindu.com/news/national/feeder/default.rss", tier: india}
   - {id: indian-express-india, name: "Google News: Indian Express", kind: gnews, query: 'site:indianexpress.com India when:1d', hl: en-IN, gl: IN, ceid: "IN:en", tier: india}
   - {id: ht-india, name: Hindustan Times (India), kind: rss, url: "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml", tier: india}
-  - {id: theprint, name: ThePrint, kind: rss, url: "https://theprint.in/feed/", tier: india}
+  - {id: theprint, name: "Google News: ThePrint", kind: gnews, query: 'site:theprint.in when:1d', hl: en-IN, gl: IN, ceid: "IN:en", tier: india}
   - {id: livemint-economy, name: Mint (Economy), kind: rss, url: "https://www.livemint.com/rss/economy", tier: india}
   - {id: pib-releases, name: "Google News: PIB releases", kind: gnews, query: 'site:pib.gov.in when:2d', hl: en-IN, gl: IN, ceid: "IN:en", tier: india, best_effort: true}
   - {id: gnews-india-nation, name: "Google News: India", kind: gnews, topic: NATION, hl: en-IN, gl: IN, ceid: "IN:en", tier: india}

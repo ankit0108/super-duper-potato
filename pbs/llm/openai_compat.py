@@ -9,9 +9,8 @@ from typing import Any
 
 import httpx
 
-from .. import log
 from ..settings import ProviderSpec
-from .base import LLMError, LLMRequest, LLMResponse, read_json, rotates
+from .base import LLMError, LLMRequest, LLMResponse, ModelCycle, read_json
 
 _GONE_CODES = {"model_not_found", "model_decommissioned", "model_not_available", "invalid_model"}
 _GONE_WORDS = ("decommissioned", "does not exist", "no longer supported", "no longer available", "not a valid model",
@@ -23,7 +22,8 @@ class OpenAICompatProvider:
         self.name = name
         self.spec = spec
         self._client = client
-        self._idx = 0
+        models = list(dict.fromkeys(m for m in [spec.model, *spec.fallback_models] if m))
+        self._cycle = ModelCycle(name, models, spec.quota_per_model)
         self._dropped: set[str] = set()  # optional request fields this provider rejected
 
     def _key(self) -> str:
@@ -34,28 +34,14 @@ class OpenAICompatProvider:
 
     @property
     def models(self) -> list[str]:
-        out: list[str] = []
-        for m in [self.spec.model, *self.spec.fallback_models]:
-            if m and m not in out:
-                out.append(m)
-        return out
+        return self._cycle.models
 
     @property
     def current_model(self) -> str | None:
-        return self.models[self._idx] if self._idx < len(self.models) else None
+        return self._cycle.current
 
     def generate(self, req: LLMRequest) -> LLMResponse:
-        while True:
-            model = self.current_model
-            if model is None:
-                raise LLMError("no model left to try", code="no_model", fatal_for_provider=True, model_gone=True)
-            try:
-                return self._generate(model, req)
-            except LLMError as exc:
-                if not rotates(exc, self.spec.quota_per_model) or self._idx + 1 >= len(self.models):
-                    raise
-                self._idx += 1
-                log.info(f"llm: {self.name} {model}: {exc.public()}; switching to {self.current_model}")
+        return self._cycle.run(req, lambda model: self._generate(model, req))
 
     def _body(self, model: str, req: LLMRequest) -> dict[str, Any]:
         if req.images:

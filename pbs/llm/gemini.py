@@ -17,7 +17,7 @@ import httpx
 
 from .. import log
 from ..settings import ProviderSpec
-from .base import LLMError, LLMRequest, LLMResponse, read_json, rotates
+from .base import LLMError, LLMRequest, LLMResponse, ModelCycle, read_json
 
 API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 MAX_AUTO_MODELS = 4
@@ -67,8 +67,7 @@ class GeminiProvider:
         self.name = name
         self.spec = spec
         self._client = client
-        self._models: list[str] | None = None
-        self._idx = 0
+        self._cycle: ModelCycle | None = None
         self._discovered: set[str] = set()
         self._no_thinking_config = False
 
@@ -96,19 +95,18 @@ class GeminiProvider:
     # -- model resolution -------------------------------------------------------------------------
     @property
     def current_model(self) -> str | None:
-        models = self._models or []
-        return models[self._idx] if self._idx < len(models) else None
+        return self._cycle.current if self._cycle else None
 
     def resolve(self) -> list[str]:
         """The models this run will try, in order (discovers `auto:` entries on first use)."""
-        if self._models is None:
+        if self._cycle is None:
             models: list[str] = []
             for entry in [self.spec.model, *self.spec.fallback_models]:
                 for m in (self._discover(family_of(entry)) if entry.startswith("auto:") else [entry]):
                     if m not in models:
                         models.append(m)
-            self._models = models
-        return self._models
+            self._cycle = ModelCycle(self.name, models, self.spec.quota_per_model)
+        return self._cycle.models
 
     def _discover(self, family: str) -> list[str]:
         if family in self._discovered:
@@ -129,33 +127,15 @@ class GeminiProvider:
         log.info(f"llm: {self.name} found {len(found)} {family} model(s): {', '.join(found) or 'none'}")
         return found or [_LATEST_ALIAS.get(family, "gemini-flash-latest")]
 
-    def _advance(self, model: str, exc: LLMError) -> bool:
-        """Move to the next model after `exc`; False when there is none."""
-        models = self.resolve()
-        if self._idx + 1 >= len(models) and exc.model_gone:
-            # A pinned model was retired: look for current models of the same family, once per run.
-            for m in self._discover(family_of(models[self._idx] if models else self.spec.model)):
-                if m not in models:
-                    models.append(m)
-        if self._idx + 1 >= len(models):
-            return False
-        self._idx += 1
-        log.info(f"llm: {self.name} {model}: {exc.public()}; switching to {models[self._idx]}")
-        return True
+    def _rediscover(self) -> list[str]:
+        """A pinned model was retired: look for current models of the same family, once per run."""
+        return self._discover(family_of(self.spec.model))
 
     # -- generation -------------------------------------------------------------------------------
     def generate(self, req: LLMRequest) -> LLMResponse:
         self.resolve()
-        while True:
-            model = self.current_model
-            if model is None:
-                raise LLMError("no Gemini model left to try", code="no_model", fatal_for_provider=True,
-                               model_gone=True)
-            try:
-                return self._generate(model, req)
-            except LLMError as exc:
-                if not (rotates(exc, self.spec.quota_per_model) and self._advance(model, exc)):
-                    raise
+        assert self._cycle is not None
+        return self._cycle.run(req, lambda model: self._generate(model, req), rediscover=self._rediscover)
 
     def _body(self, model: str, req: LLMRequest) -> dict[str, Any]:
         parts: list[dict] = [{"text": req.prompt}]

@@ -21,7 +21,7 @@ import yaml
 from . import guardrails, log, prompting, textutil, timeutil
 from .bandit import ArmState, arm_id
 from .context import Ctx
-from .llm.base import BudgetExhausted, LLMRequest
+from .llm.base import BudgetExhausted, LLMRequest, json_rows
 from .topics import topic_text
 
 ANGLE_POTENTIAL_DEFAULT = 3
@@ -187,9 +187,9 @@ def triage(ctx: Ctx, topics: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
         ctx.run.note("Triage used the deterministic fallback (model unavailable)")
         return {}
     out: dict[str, dict[str, Any]] = {}
-    for row in (data or {}).get("topics", []) if isinstance(data, dict) else []:
+    for row in json_rows(data, "topics"):
         t = ref.get(str(row.get("id")))
-        if t is not None and isinstance(row, dict):
+        if t is not None:
             out[t["id"]] = row
             ctx.store.update("topics", t["id"], triage=row)
     return out

@@ -145,3 +145,13 @@ def test_doctor_only_checks_and_never_delivers(tmp_path, monkeypatch, capsys):
     assert "doctor: ok   Model: gemini (fake-1)" in out and "doctor: warn Secret: PBS_BLOCKLIST" in out
     store = Store.open(tmp_path / "diag")
     assert store.count("doctor_reports") == 1 and store.count("deliveries") == 0 and store.count("cards") == 0
+
+
+def test_a_public_data_repo_shows_as_an_alert_and_a_failed_doctor_check(tmp_path, web, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "x")
+    monkeypatch.setenv("PBS_DATA_PUBLIC", "1")
+    out = _run(tmp_path, web, trigger="dispatch", hints={"doctor"})
+    desk = json.loads((tmp_path / "data" / "desk" / "desk.json").read_text())
+    assert "data_public" in {w["code"] for w in desk["warnings"]} and out["status"] in ("ok", "partial")
+    check = next(c for c in desk["doctor"]["checks"] if c["name"] == "Data repo private")
+    assert check["status"] == "fail"

@@ -9,7 +9,7 @@ from typing import Any
 import httpx
 import pytest
 
-from pbs.llm.base import LLMError, LLMRequest
+from pbs.llm.base import BudgetExhausted, LLMError, LLMRequest
 from pbs.llm.gemini import GeminiProvider, pick_models
 from pbs.llm.openai_compat import OpenAICompatProvider
 from pbs.settings import ProviderSpec
@@ -276,3 +276,55 @@ def test_an_overloaded_newest_model_hands_over_to_the_next_one():
     assert p.generate(REQ).model == "gemini-3.5-flash"
     assert p.generate(REQ).model == "gemini-3.5-flash"
     assert fake.generated == ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash"]
+
+
+def test_a_rate_limited_search_call_changes_nothing_for_later_calls():
+    limited = {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "message": "Resource has been exhausted."}}
+
+    def grounded_limited(body):
+        return (429, limited) if body.get("tools") else gemini_reply("{}", "gemini-3.6-flash")
+
+    fake = FakeGemini({"gemini-3.6-flash": grounded_limited,
+                       "gemini-3.5-flash": lambda body: gemini_reply("{}", "gemini-3.5-flash")})
+    p = gemini(fake)
+    search = LLMRequest(task="search", system="", prompt="latest", json_mode=False, grounding=True)
+    assert p.generate(search).model == "gemini-3.5-flash"
+    assert p.generate(REQ).model == "gemini-3.6-flash"  # drafting still starts with the newest model
+
+
+def test_every_model_busy_raises_a_retryable_error_and_the_next_call_starts_over():
+    busy = {"error": {"code": 503, "status": "UNAVAILABLE", "message": "The model is overloaded."}}
+    state = {"calls": 0}
+
+    def recovering(body):
+        state["calls"] += 1
+        return (503, busy) if state["calls"] == 1 else gemini_reply("{}", "gemini-3.6-flash")
+
+    fake = FakeGemini({"gemini-3.6-flash": recovering, "gemini-3.5-flash": (503, busy), "gemini-3-flash": (503, busy),
+                       "gemini-2.5-flash": (503, busy)})
+    p = gemini(fake)
+    with pytest.raises(LLMError) as err:
+        p.generate(REQ)
+    assert err.value.retryable and err.value.status == 503
+    assert fake.generated == ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash", "gemini-2.5-flash"]
+    assert p.generate(REQ).model == "gemini-3.6-flash"  # the router's retry finds the newest model back
+
+
+def test_a_search_quota_does_not_mark_the_provider_exhausted(store):
+    from pbs.llm.fake import FakeProvider
+    from pbs.llm.router import Router
+    from pbs.settings import load
+
+    s, _ = load({"llm": {"daily_cap": 10, "max_calls_per_run": 8,
+                         "providers": {"a": {"kind": "fake", "model": "a", "daily_limit": 5, "rpm": 1000,
+                                             "grounding": True}},
+                         "routes": {"draft": ["a"], "search": ["a"]}}})
+
+    def search_quota(req, data):
+        raise LLMError("daily quota reached", status=429, quota=True)
+
+    a = FakeProvider("a", handlers={"search": search_quota})
+    r = Router(s, store, providers={"a": a}, sleep=lambda x: None)
+    with pytest.raises(BudgetExhausted):
+        r.call(LLMRequest(task="search", system="", prompt="x", json_mode=False, grounding=True))
+    assert r.call(LLMRequest(task="draft", system="s", prompt="x")).provider == "a"

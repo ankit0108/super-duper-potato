@@ -10,7 +10,7 @@ from typing import Any
 
 from . import ids, log, prompting, textutil, timeutil
 from .context import Ctx
-from .llm.base import BudgetExhausted, LLMRequest
+from .llm.base import BudgetExhausted, LLMRequest, json_rows
 
 MAX_CLUSTER = 14
 
@@ -36,7 +36,7 @@ def translate_items(ctx: Ctx, items: list[dict[str, Any]], max_items: int = 40) 
         return 0
     done = 0
     by_id = {it["id"]: it for it in todo}
-    for row in (data or {}).get("items", []):
+    for row in json_rows(data, "items"):
         item = by_id.get(str(row.get("id")))
         if item and row.get("title_en"):
             item["title_en"] = textutil.normalize_ws(row["title_en"])[:300]
