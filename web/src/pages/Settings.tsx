@@ -277,7 +277,7 @@ function ModelsSection({ settings }: { settings: S }) {
     act({ type: "settings.update", patch: { llm: { daily_cap: v.cap, routes: { draft: v.route }, ...(Object.keys(modelPatch).length ? { providers: modelPatch } : {}) } } }, { toast: "Model settings saved." });
   };
   return (
-    <Section id="models" title="Models" description="Free providers are tried in order; when one hits its daily quota, the next takes over. Switching the drafter to a paid model is a change here." onSave={save} dirty={dirty} pending={pending}>
+    <Section id="models" title="Models" description="Free providers are tried in order; when one hits its daily quota or fails, the next takes over. “auto:flash” and “auto:flash-lite” pick the newest Gemini models your key can use, so retired models don't break anything. Switching the drafter to a paid model is a change here." onSave={save} dirty={dirty} pending={pending}>
       <div className="grid gap-6 lg:grid-cols-2">
         <div>
           <div className="mb-2 text-[13px] font-semibold">Drafting order</div>

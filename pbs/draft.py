@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from . import guardrails, ids, log, prompting, textutil, timeutil
 from .context import Ctx
-from .llm.base import BudgetExhausted, LLMRequest, LLMResponse
+from .llm.base import BudgetExhausted, LLMRequest, LLMResponse, why_unavailable
 from .style import Style, render_examples, render_rules, style_for
 
 PLATFORM_LABEL = {"linkedin": "LinkedIn", "x": "X"}
@@ -651,7 +651,7 @@ def process_work(ctx: Ctx, limit: int = 12) -> dict[str, int]:
             stats["done"] += 1
         except BudgetExhausted as exc:
             work["attempts"] = int(work.get("attempts") or 0) + 1
-            work["last_error"] = "Waiting for model quota; will retry on the next run"
+            work["last_error"] = f"Waiting: {why_unavailable(exc)}; will retry on the next run"
             card["work"] = work
             save_card(ctx, card)
             stats["deferred"] += 1

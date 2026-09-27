@@ -25,6 +25,10 @@ def settings_from_store(store: Store) -> tuple[Settings, list[str]]:
     return load_settings(overrides)
 
 
+# Errors that belong to one news source: tracked in source health, not worth flagging the whole run for.
+SOURCE_LEVEL = ("parse:", "search:")
+
+
 class RunRecorder:
     def __init__(self, store: Store, task: str, trigger: str):
         self.store = store
@@ -66,6 +70,16 @@ class RunRecorder:
     def finish(self, llm_usage: dict[str, Any] | None = None) -> dict[str, Any]:
         ok_steps = sum(1 for s in self.steps if s["status"] == "ok")
         status = "ok" if self.failed_steps == 0 else ("partial" if ok_steps else "failed")
+        usage = llm_usage or {}
+        if usage.get("failures") and not usage.get("calls"):
+            # Nothing a model was asked for came back: the run "worked", but not the way it should have.
+            errors = usage.get("provider_errors") or {}
+            self.note("No model call succeeded in this run" + (
+                ": " + "; ".join(f"{p}: {e}" for p, e in sorted(errors.items())) if errors else "") + ".")
+            if status == "ok":
+                status = "partial"
+        elif status == "ok" and any(not e["where"].startswith(SOURCE_LEVEL) for e in self.journal.errors):
+            status = "partial"  # a card, request or event failed even though its step carried on
         row = {
             "id": self.id,
             "task": self.task,

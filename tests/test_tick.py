@@ -106,3 +106,42 @@ def test_offline_ctx_has_no_real_network(make_ctx, web):
     tick.run(ctx.data_root, transport=web.transport(), llm_providers=fake_providers(), sleep=lambda s: None,
              send_notifications=False)
     assert web.requests and all("http" in u for u in web.requests)
+
+
+def test_a_run_where_no_model_answers_is_partial_says_why_and_still_delivers_briefs(tmp_path, web, monkeypatch):
+    from conftest import PROVIDERS
+
+    from pbs.llm.base import LLMError
+    from pbs.llm.fake import FakeProvider
+
+    monkeypatch.setenv("GEMINI_API_KEY", "x")
+    retired = LLMError("unreadable response body (HTTP 200, text/html, 900 bytes)", status=200, code="bad_body",
+                       fatal_for_provider=True)
+    dead = {n: FakeProvider(n, fail_with=retired) for n in PROVIDERS}
+    out = tick.run(tmp_path / "data", transport=web.transport(), llm_providers=dead, sleep=lambda s: None,
+                   send_notifications=False, trigger="schedule")
+    assert out["status"] == "partial" and out["llm_calls"] == 0 and out["llm_failures"] == len(PROVIDERS)
+    assert out["delivery"]["counts"] == {"linkedin": 3, "x": 6}  # the full set, as briefs
+    assert sum(len(p.calls) for p in dead.values()) == len(PROVIDERS)  # each tried once, then switched off
+    desk = json.loads((tmp_path / "data" / "desk" / "desk.json").read_text())
+    DeskState.model_validate(desk)
+    run = desk["runs"][0]
+    assert run["degraded"] == "brief_cards"
+    assert any(n.startswith("No model call succeeded in this run: gemini: unreadable response (HTTP 200)")
+               for n in run["notes"])
+    assert "llm_failing" in {w["code"] for w in desk["warnings"]}
+    external = [c for c in desk["cards"] if c.get("delivery_id") == out["delivery"]["id"] and c["mode"] == "external"]
+    assert external and all(c["draft_state"] == "brief" for c in external)
+    assert "model providers returned errors" in " ".join(external[0]["flags"]["notes"])
+
+
+def test_doctor_only_checks_and_never_delivers(tmp_path, monkeypatch, capsys):
+    from pbs import cli
+    from pbs.store import Store
+
+    monkeypatch.setenv("PBS_PUBLIC_LOGS", "1")
+    assert cli.main(["doctor", "--offline", "--data", str(tmp_path / "diag")]) == 0
+    out = capsys.readouterr().out
+    assert "doctor: ok   Model: gemini (fake-1)" in out and "doctor: warn Secret: PBS_BLOCKLIST" in out
+    store = Store.open(tmp_path / "diag")
+    assert store.count("doctor_reports") == 1 and store.count("deliveries") == 0 and store.count("cards") == 0

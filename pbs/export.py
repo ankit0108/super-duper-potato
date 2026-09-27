@@ -28,8 +28,16 @@ def warnings(ctx: Ctx) -> list[dict[str, Any]]:
     llm = ctx.llm
     if not any(llm.provider_usable(p) for p in ctx.settings.llm.providers):
         out.append({"level": "error", "code": "no_llm", "at": now,
-                    "message": "No model provider is usable. Add a GEMINI_API_KEY secret, or check that the workflow "
-                               "has 'models: read' permission for GitHub Models."})
+                    "message": "No model provider is usable. Add the GEMINI_API_KEY secret (free), and GROQ_API_KEY "
+                               "as a fallback, then run the doctor from System."})
+    today_rows = ctx.store.select("quota", "day = ?", (timeutil.now().strftime("%Y-%m-%d"),))
+    failing = [q for q in today_rows if q.get("last_error_at") and not q.get("exhausted_at")
+               and (not q.get("last_ok_at") or q["last_error_at"] > q["last_ok_at"])]
+    if failing and not any(int(q.get("requests") or 0) for q in today_rows):
+        detail = "; ".join(f"{q['provider']}: {str(q.get('last_error') or '')[:120]}" for q in failing)
+        out.append({"level": "error", "code": "llm_failing", "at": max(q["last_error_at"] for q in failing),
+                    "message": f"No model has answered today, so new cards arrive as briefs. {detail}. "
+                               "Run the doctor from System for details."})
     if not ctx.blocklist:
         out.append({"level": "warn", "code": "no_blocklist", "at": now,
                     "message": "The PBS_BLOCKLIST secret is empty, so the employer and client check can't run. Add "

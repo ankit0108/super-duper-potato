@@ -216,72 +216,65 @@ llm:
   daily_cap: 60
   max_calls_per_run: 45
   personal_allow_training_fallback: true
+  # Free tiers change often. Gemini models are discovered at run time ("auto:"), so retired models don't
+  # break anything; its free quotas are per model, so a model that runs out hands over to the next.
+  # Groq (free key, doesn't train on inputs) is the main fallback; OpenRouter's free router is the last resort.
   providers:
     gemini:
       kind: gemini
-      model: gemini-2.5-flash
+      model: auto:flash
+      quota_per_model: true
       api_key_env: GEMINI_API_KEY
-      daily_limit: 200
-      rpm: 8
+      daily_limit: 60
+      rpm: 5
+      output_headroom: 4096
       trains_on_inputs: true
       vision: true
       grounding: true
     gemini_lite:
       kind: gemini
-      model: gemini-2.5-flash-lite
+      model: auto:flash-lite
+      quota_per_model: true
       api_key_env: GEMINI_API_KEY
-      daily_limit: 500
-      rpm: 12
+      daily_limit: 300
+      rpm: 10
+      output_headroom: 2048
       trains_on_inputs: true
-      vision: true
-    github:
-      kind: openai
-      base_url: https://models.github.ai/inference
-      model: openai/gpt-4.1-mini
-      api_key_env: GITHUB_TOKEN
-      daily_limit: 140
-      rpm: 12
-      max_input_tokens: 7000
-      trains_on_inputs: false
-      vision: true
-    github_strong:
-      kind: openai
-      base_url: https://models.github.ai/inference
-      model: openai/gpt-4.1
-      api_key_env: GITHUB_TOKEN
-      daily_limit: 45
-      rpm: 8
-      max_input_tokens: 7000
-      trains_on_inputs: false
       vision: true
     groq:
       kind: openai
       base_url: https://api.groq.com/openai/v1
-      model: llama-3.3-70b-versatile
+      model: openai/gpt-oss-120b
+      fallback_models: [openai/gpt-oss-20b]
+      quota_per_model: true
       api_key_env: GROQ_API_KEY
-      daily_limit: 800
-      rpm: 25
+      daily_limit: 500
+      rpm: 20
+      max_input_tokens: 5000
+      output_headroom: 1024
+      extra_body: {reasoning_effort: low}
       trains_on_inputs: false
     openrouter:
       kind: openai
       base_url: https://openrouter.ai/api/v1
-      model: meta-llama/llama-3.3-70b-instruct:free
+      model: openrouter/free
       api_key_env: OPENROUTER_API_KEY
       daily_limit: 45
       rpm: 10
+      output_headroom: 1024
       trains_on_inputs: true
   routes:
-    translate: [gemini_lite, github, groq, openrouter]
-    triage: [gemini, github, groq, openrouter]
-    draft: [gemini, github_strong, github, groq, openrouter]
-    draft_personal: [github_strong, github, gemini, groq]
-    questions: [gemini_lite, gemini, github, groq]
-    reflect: [github_strong, gemini, github, groq]
-    voice: [github_strong, github, gemini, groq]
-    vision: [gemini, github]
+    translate: [gemini_lite, groq, gemini, openrouter]
+    triage: [gemini_lite, gemini, groq, openrouter]
+    draft: [gemini, groq, gemini_lite, openrouter]
+    draft_personal: [groq, gemini, gemini_lite, openrouter]
+    questions: [gemini_lite, gemini, groq, openrouter]
+    reflect: [gemini, groq, gemini_lite]
+    voice: [groq, gemini, gemini_lite]
+    vision: [gemini, gemini_lite]
     search: [gemini]
-    stances: [gemini, github_strong, github]
-    evergreen: [gemini, github_strong, github, groq]
+    stances: [gemini, groq, gemini_lite]
+    evergreen: [gemini, groq, gemini_lite, openrouter]
   temperature:
     translate: 0.1
     triage: 0.2

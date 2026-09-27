@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel
 
-from pbs.llm.base import BudgetExhausted, LLMError, LLMRequest, extract_json
+from pbs.llm.base import AllProvidersFailed, BudgetExhausted, LLMError, LLMRequest, extract_json
 from pbs.llm.fake import FakeProvider
 from pbs.llm.router import Router
 from pbs.settings import load
@@ -121,3 +121,49 @@ def test_fake_generate_raises_from_handler_are_classified(store):
     assert r.call(LLMRequest(task="draft", system="s", prompt="x")).provider == "b"
     assert r.call(LLMRequest(task="draft", system="s", prompt="x")).provider == "b"
     assert len(a.calls) == 1
+
+
+def test_a_provider_that_throws_anything_is_switched_off_and_the_next_one_answers(store, capsys):
+    import json
+
+    def broken(req, data):  # what a retired API answering with a web page used to cause
+        raise json.JSONDecodeError("Expecting value", "<html>", 0)
+
+    a = FakeProvider("a", handlers={"draft": broken})
+    r = Router(_settings(), store, providers={"a": a, "b": FakeProvider("b")}, sleep=lambda s: None)
+    assert r.call(LLMRequest(task="draft", system="s", prompt="x")).provider == "b"
+    assert r.call(LLMRequest(task="draft", system="s", prompt="x")).provider == "b"
+    assert len(a.calls) == 1
+    assert r.usage.provider_errors == {"a": "request failed (JSONDecodeError)"}
+    assert "llm: a switched off for this run: request failed (JSONDecodeError)" in capsys.readouterr().out
+
+
+def test_when_every_provider_fails_the_error_says_so_and_is_remembered(store):
+    a = FakeProvider("a", fail_with=LLMError("gone", status=404, code="NOT_FOUND", model_gone=True))
+    b = FakeProvider("b", fail_with=LLMError("bad key", status=401, code="invalid_api_key", fatal_for_provider=True))
+    r = Router(_settings(), store, providers={"a": a, "b": b}, sleep=lambda s: None)
+    with pytest.raises(AllProvidersFailed):
+        r.call(LLMRequest(task="draft", system="s", prompt="x"))
+    with pytest.raises(AllProvidersFailed):  # later calls fail fast, without calling anyone
+        r.call(LLMRequest(task="triage", system="s", prompt="x"))
+    assert len(a.calls) == 1 and len(b.calls) == 1 and r.usage.all_failed and r.chain_broken("draft")
+    assert r.usage.provider_errors == {"a": "model not available (HTTP 404 NOT_FOUND)",
+                                       "b": "key rejected (HTTP 401 invalid_api_key)"}
+    row = store.get("quota", f"a:{r._day()}")
+    assert row["last_error_at"] and not row.get("last_ok_at") and not row.get("requests")
+
+
+def test_out_of_quota_everywhere_is_budget_not_failure(store):
+    a = FakeProvider("a", fail_with=LLMError("daily", status=429, quota=True))
+    b = FakeProvider("b", fail_with=LLMError("daily", status=429, quota=True))
+    r = Router(_settings(), store, providers={"a": a, "b": b}, sleep=lambda s: None)
+    with pytest.raises(BudgetExhausted) as err:
+        r.call(LLMRequest(task="draft", system="s", prompt="x"))
+    assert not isinstance(err.value, AllProvidersFailed)
+
+
+def test_routes_skip_providers_that_no_longer_exist(store):
+    s = _settings()
+    s.llm.routes["draft"] = ["retired", "a", "b"]
+    r = Router(s, store, providers={"a": FakeProvider("a"), "b": FakeProvider("b")}, sleep=lambda s: None)
+    assert r.chain("draft") == ["a", "b"]

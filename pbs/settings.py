@@ -160,12 +160,21 @@ class WeeklyBatch(_Strict):
 
 class ProviderSpec(_Strict):
     kind: Literal["gemini", "openai", "fake"]
+    # A model ID, or for Gemini "auto:flash" / "auto:flash-lite": the newest models of that family the key
+    # can use, found at run time, so retired and renamed models don't break the pipeline.
     model: str
+    # Tried in order when the model is retired or (with quota_per_model) reaches its daily quota.
+    fallback_models: list[str] = []
+    quota_per_model: bool = False
     api_key_env: str = ""
     base_url: str | None = None
     daily_limit: int = Field(100, ge=0)
     rpm: int = Field(10, ge=1)
     max_input_tokens: int | None = None
+    # Extra output tokens for models that reason before answering (the reasoning counts as output).
+    output_headroom: int = Field(0, ge=0, le=32000)
+    # Provider-specific request fields (for example {"reasoning_effort": "low"}); dropped if rejected.
+    extra_body: dict[str, Any] = {}
     trains_on_inputs: bool = True
     vision: bool = False
     grounding: bool = False

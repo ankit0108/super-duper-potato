@@ -26,10 +26,11 @@ desk is where to look first.
 | --- | --- |
 | No cards by 6:30am | GitHub delays or drops scheduled runs sometimes; a catch-up run follows about 90 minutes after the first. To get them now: **System → Deliver the morning set**. If runs are failing, open the latest run's log from System |
 | "The schedule is disabled" | GitHub disables schedules in repos without recent activity. **System → Re-enable** (the Saturday run also keeps it alive) |
-| "No model provider is usable" | Run the doctor (**System → Run doctor**). Usually an expired or missing `GEMINI_API_KEY`; GitHub Models needs no key |
-| Cards arrive as briefs with **Draft this** | The free model quota ran out. Tap **Draft this** later (quotas reset daily, UTC), or add `GROQ_API_KEY`/`OPENROUTER_API_KEY` as extra fallbacks |
+| "No model provider is usable" | Run the doctor (**System → Run doctor**). Usually an expired or missing `GEMINI_API_KEY`; add `GROQ_API_KEY` as a fallback |
+| "No model has answered today" | Every provider failed with an error, not just quota. **System → Free-tier usage** shows each provider's last error, and the run log has one line per provider (`llm: … switched off for this run: …`). "key rejected" means a new key; "model not available" is handled by itself unless you pinned a model in **Settings → Models** (set it back to `auto:flash`). Tap **Draft this** once it's fixed |
+| Cards arrive as briefs with **Draft this** | The free model quota ran out (or the providers failed: see the row above). Tap **Draft this** later (quotas reset daily), or add `GROQ_API_KEY`/`OPENROUTER_API_KEY` as extra fallbacks |
 | "GitHub rejected the token" | The desk token expired or was revoked. Make a new `pbs-desk` token (SETUP step 3) and paste it in **Settings → Connection** |
-| Pipeline run fails at "Check out data" | The `pbs-pipeline` token (secret `PBS_DATA_TOKEN`) expired or lost access to `pbs-data`. Replace the secret |
+| Pipeline run fails at "Check out data" | The error names the problem. "can't read" or "can't push": edit the `pbs-pipeline` token so its repository access includes `pbs-data` with **Contents: Read and write**. "rejected (HTTP 401)": the token expired; create a new one and replace the `PBS_DATA_TOKEN` secret. "wasn't found": check the `PBS_DATA_REPO` variable |
 | A change you made "didn't stick" | **System → Rejected changes** lists anything the pipeline couldn't apply, with the reason. *Changes in flight* shows what's still waiting for a run |
 | A source keeps failing | Sources pause themselves after a week of failures. Replace a dead feed with a Google News query for the same outlet (**Sources → Add source**) |
 | A card is **Blocked** | It matched your blocklist. Nothing was reworded. Edit the draft by hand or skip it. If the match is a false positive, refine the term in `PBS_BLOCKLIST` |
@@ -45,8 +46,8 @@ saved, so a crash mid-run can't lose your actions.
 
 ## Costs and limits
 
-Everything runs on free tiers: Actions minutes (unlimited on a public repo), Pages, Gemini and GitHub Models,
-and free news sources. A normal day uses about 15–20 model calls, with a hard cap of 60 in settings. The one upgrade worth paying for, if drafts
+Everything runs on free tiers: Actions minutes (unlimited on a public repo), Pages, Gemini and Groq, and free
+news sources. A normal day uses about 15–20 model calls, with a hard cap of 60 in settings. The one upgrade worth paying for, if drafts
 stay generic after a month, is a stronger drafting model: **Settings → Models**.
 
 ## Development

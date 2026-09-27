@@ -1,7 +1,8 @@
 """The tick: every run does whatever is due, so no work depends on one particular run firing (FR-28).
 
-Order: ingest desk events → expire → work Ankit is waiting on (answers, rewrites, 'draft this') → requests →
-metrics → morning delivery if due → Saturday batch if due → reflection if due → learning → prune → export.
+Order: ingest desk events → doctor if asked → expire → work Ankit is waiting on (answers, rewrites,
+'draft this') → requests → metrics → morning delivery if due → Saturday batch if due → reflection if due →
+learning → prune → export.
 """
 
 from __future__ import annotations
@@ -52,6 +53,11 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
         playbook.ensure_seed(ctx)
     with ctx.run.step("inbox") as s:
         s["stats"] = inbox.ingest(ctx)
+    if "doctor" in ctx.hints:
+        # Early (after the inbox, which can ask for it), so its checks are logged before the day's work.
+        with ctx.run.step("doctor") as s:
+            s["summary"] = doctor.run_doctor(ctx, probe_llm=transport is None or llm_providers is not None,
+                                             probe_sources=True)["summary"]
     with ctx.run.step("expire") as s:
         s["expired"] = learn.expire_cards(ctx)
     with ctx.run.step("work") as s:
@@ -92,10 +98,6 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
     if reflect.reflection_due(ctx) or {"reflection", "report"} & ctx.hints:
         with ctx.run.step("reflection") as s:
             s["result"] = reflect.weekly_reflection(ctx)
-    if "doctor" in ctx.hints:
-        with ctx.run.step("doctor") as s:
-            s["summary"] = doctor.run_doctor(ctx, probe_llm=transport is None or llm_providers is not None,
-                                             probe_sources=True)["summary"]
     with ctx.run.step("learn"):
         learn.update_rewards(ctx)
         voice.update_voice(ctx, weekly=False)
@@ -112,11 +114,17 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
         ctx.store.upsert("runs", record)
     changed = ctx.store.save()
     inbox.cleanup(ctx)
-    summary.update(status=record["status"], changed_files=len(changed), llm_calls=(record.get("llm") or {}).get("calls", 0),
-                   degraded=ctx.run.degraded)
-    if record["status"] == "failed" and send_notifications and ctx.settings.notify.on_failure:
-        notify.send(ctx, "PBS run failed", "A run failed. Open System on the desk for details.", tags="warning")
-    log.info(f"tick: done status={record['status']} llm_calls={summary['llm_calls']} files={len(changed)}")
+    llm = record.get("llm") or {}
+    summary.update(status=record["status"], changed_files=len(changed), llm_calls=llm.get("calls", 0),
+                   llm_failures=llm.get("failures", 0), degraded=ctx.run.degraded)
+    if send_notifications and ctx.settings.notify.on_failure:
+        if record["status"] == "failed":
+            notify.send(ctx, "PBS run failed", "A run failed. Open System on the desk for details.", tags="warning")
+        elif summary.get("delivery") and llm.get("failures") and not llm.get("calls"):
+            notify.send(ctx, "PBS: drafts need attention", "No model answered, so today's cards are briefs. "
+                        "Open System on the desk for details.", tags="warning")
+    log.info(f"tick: done status={record['status']} llm_calls={summary['llm_calls']} "
+             f"llm_failures={summary['llm_failures']} degraded={ctx.run.degraded} files={len(changed)}")
     return summary
 
 

@@ -31,11 +31,12 @@ def read_input(prompt: str) -> Any:
 
 class FakeProvider:
     def __init__(self, name: str = "fake", handlers: dict[str, Handler] | None = None,
-                 fail_with: LLMError | None = None):
+                 fail_with: LLMError | None = None, model: str = "fake-1"):
         self.name = name
         self.handlers: dict[str, Handler] = dict(DEFAULT_HANDLERS)
         self.handlers.update(handlers or {})
         self.fail_with = fail_with
+        self.current_model = model
         self.calls: list[LLMRequest] = []
 
     def available(self) -> bool:
@@ -49,7 +50,7 @@ class FakeProvider:
         handler = self.handlers.get(req.task) or self.handlers["default"]
         out = handler(req, data)
         text = out if isinstance(out, str) else json.dumps(out, ensure_ascii=False)
-        return LLMResponse(text=text, provider=self.name, model="fake-1", tokens_in=len(req.prompt) // 4,
+        return LLMResponse(text=text, provider=self.name, model=self.current_model, tokens_in=len(req.prompt) // 4,
                            tokens_out=len(text) // 4)
 
 

@@ -45,12 +45,22 @@ def cmd_tick(args: argparse.Namespace) -> int:
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
-    from . import tick
+    """Only the checks (secrets, every model provider, every source): no delivery, so it's safe to run anytime,
+    even against an empty data directory when the real data can't be reached."""
+    from . import doctor, export
+    from .context import Ctx
+    from .scout.sources import sync_seeds
 
-    summary = tick.run(_data_dir(args.data), trigger="doctor", hints={"doctor"}, send_notifications=False,
-                       **_offline_kwargs(args.offline))
-    print(json.dumps(summary, indent=1))
-    return 0
+    ctx = Ctx.create(_data_dir(args.data), task="doctor", trigger="manual", **_offline_kwargs(args.offline))
+    sync_seeds(ctx.store)
+    with ctx.run.step("doctor") as step:
+        step["summary"] = doctor.run_doctor(ctx)["summary"]
+    ctx.run.finish(ctx.llm.usage.as_dict() if ctx._router else {})
+    export.write(ctx)
+    ctx.store.save()
+    summary = step.get("summary") or {}
+    print(json.dumps(summary))
+    return 1 if summary.get("fail") or "summary" not in step else 0
 
 
 def cmd_init(args: argparse.Namespace) -> int:

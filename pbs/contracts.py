@@ -432,6 +432,9 @@ class Quota(_Out):
     daily_limit: int | None = None
     exhausted_at: str | None = None
     last_error: str | None = None
+    last_error_at: str | None = None
+    last_ok_at: str | None = None
+    model: str | None = None
 
 
 class DeskWarning(_Out):

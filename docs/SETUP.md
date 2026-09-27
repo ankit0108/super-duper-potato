@@ -33,11 +33,17 @@ can't be reused by the pipeline and the other way round.
 Pick an expiry you're comfortable with (up to a year) and set yourself a reminder. When a token expires the
 desk says so, and the pipeline's run fails with a clear message.
 
-## 4. Get a Gemini API key
+## 4. Get two free model keys
 
-[aistudio.google.com](https://aistudio.google.com) → **Get API key** → **Create API key** → copy it. The free
-tier is enough. PBS sends your own words (answers, edits, voice analysis) to GitHub Models first, because it
-doesn't train on inputs. Every model call has your blocklist terms redacted.
+- **Gemini** (required): [aistudio.google.com](https://aistudio.google.com) → **Get API key** → **Create API
+  key** → copy it. The free tier is enough. PBS finds the newest Gemini Flash models your key can use on every
+  run, so model retirements don't need any change from you.
+- **Groq** (recommended): [console.groq.com](https://console.groq.com) → **API Keys** → **Create API Key** →
+  copy it. No card needed. It takes over when Gemini's free quota runs out, and PBS sends your own words
+  (answers, edits, voice analysis) to it first because it doesn't train on inputs. Gemini's free tier may use
+  inputs to improve Google's products.
+
+Every model call has your blocklist terms redacted.
 
 ## 5. Add the secrets
 
@@ -46,13 +52,12 @@ In **this** repo: **Settings → Secrets and variables → Actions → Secrets �
 | Secret | Required | What to put |
 | --- | --- | --- |
 | `PBS_DATA_TOKEN` | Yes | The `pbs-pipeline` token |
-| `GEMINI_API_KEY` | Recommended | The key from step 4. Without it, GitHub Models does everything within its smaller free quota |
+| `GEMINI_API_KEY` | Yes | The Gemini key from step 4 |
+| `GROQ_API_KEY` | Recommended | The Groq key from step 4: the fallback, and the first choice for your own words |
 | `PBS_BLOCKLIST` | Strongly recommended | One term per line: your employer, clients, colleagues, internal system names and code names, with common variants. Drafts containing a term are blocked (never reworded), and the terms are redacted from every model call |
-| `GROQ_API_KEY`, `OPENROUTER_API_KEY` | Optional | Extra free fallbacks when the others run out |
+| `OPENROUTER_API_KEY` | Optional | A last free fallback ([openrouter.ai](https://openrouter.ai) → Keys) |
 | `PBS_NTFY_TOPIC` | Optional | A long random [ntfy](https://ntfy.sh) topic name for "drafts are ready" pings (content-free) |
 | `PBS_TELEGRAM_BOT_TOKEN`, `PBS_TELEGRAM_CHAT_ID` | Optional | The Telegram alternative to ntfy |
-
-GitHub Models needs no key: the workflow uses its built-in token with `models: read`.
 
 ## 6. Add the variables
 
@@ -72,7 +77,9 @@ URL: `https://<you>.github.io/<repo name>/`.
 ## 8. First run and connecting the desk
 
 1. **Actions → pbs → Run workflow**, hint `doctor`. After about two minutes `pbs-data` has `db/` and
-   `desk/desk.json`, and the doctor has checked every secret, model and source.
+   `desk/desk.json`, and the doctor has checked every secret, model and source. Its results are in the run's
+   log (lines starting `doctor:`) and on the desk's System page. If the run stops at **Check out data**, the
+   error says what to change on the `pbs-pipeline` token.
 2. Open the desk URL and fill in **Connect your desk**: data repo `<you>/pbs-data` (branch `main`), pipeline
    repo `<you>/<repo name>` (branch `main`), and the `pbs-desk` token.
 3. **System → Deliver the morning set** for your first cards now, or wait for tomorrow morning.

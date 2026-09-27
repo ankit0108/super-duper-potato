@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from . import ids, log, prompting, textutil, timeutil
 from .context import Ctx
-from .llm.base import BudgetExhausted, LLMRequest
+from .llm.base import BudgetExhausted, LLMRequest, why_unavailable
 
 MIME = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
 FIELDS = ("impressions", "reactions", "comments", "reposts", "sends", "followers_gained", "profile_views", "link_clicks")
@@ -117,8 +117,8 @@ def process_uploads(ctx: Ctx) -> dict[str, int]:
                 results.append({"path": rel, **res})
                 stats["metrics"] += res["metrics"]
                 stats["needs_review"] += res["needs_review"]
-            except BudgetExhausted:
-                error = "Waiting for model quota; will retry on the next run"
+            except BudgetExhausted as exc:
+                error = f"Waiting: {why_unavailable(exc)}; will retry on the next run"
                 break
             except Exception as exc:  # noqa: BLE001
                 log.error(f"metrics:{upload['id']}", exc)
