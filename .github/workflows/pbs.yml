@@ -5,7 +5,8 @@ name: pbs
 
 on:
   schedule:
-    - cron: "41 18 * * *"      # morning delivery: 04:41 AEST / 05:41 AEDT
+    - cron: "11 18 * * *"      # morning delivery: 04:11 AEST / 05:11 AEDT (room for Actions delays before 6am)
+    - cron: "47 19 * * *"      # catch-up if GitHub dropped or delayed it: 05:47 AEST / 06:47 AEDT
     - cron: "7 1,7,13 * * *"   # light ticks: ingest desk events, expire, learn, catch up
     - cron: "23 9 * * 6"       # Saturday batch: 19:23 AEST / 20:23 AEDT
   workflow_dispatch:
@@ -77,7 +78,7 @@ jobs:
           HINT="$INPUT_HINT"
           if [ "$EVENT" = "schedule" ]; then
             case "$SCHEDULE" in
-              "41 18 * * *") HINT="morning" ;;
+              "11 18 * * *"|"47 19 * * *") HINT="morning" ;;
               "23 9 * * 6") HINT="weekly_batch" ;;
               *) HINT="" ;;
             esac
@@ -88,7 +89,8 @@ jobs:
 
       - name: Save data
         if: always()
-        run: scripts/data-push.sh "pbs: ${{ github.event_name }} tick ${{ github.run_id }}"
+        run: |
+          scripts/data-push.sh "pbs: ${{ github.event_name }} tick ${{ github.run_id }}"
 
       - name: Keep the schedule alive
         if: github.event_name == 'schedule' && github.event.schedule == '23 9 * * 6'

@@ -59,7 +59,7 @@ class RunRecorder:
             self.notes.append(message)
 
     def degrade(self, level: str) -> None:
-        order = [None, "fewer_cards", "batched_drafts", "brief_cards"]
+        order = [None, "fewer_cards", "brief_cards"]
         if order.index(level) > order.index(self.degraded):
             self.degraded = level
 

@@ -67,13 +67,13 @@ def test_a_failing_step_does_not_stop_the_tick(tmp_path, web, monkeypatch):
 
 
 def test_daylight_saving_change_neither_skips_nor_doubles(tmp_path, make_ctx):
-    # Morning cron 18:41 UTC: Sat 3 Oct is AEST (04:41 local), Sun 4 Oct is AEDT (05:41 local).
-    timeutil.freeze("2026-10-02T18:41:00Z")
+    # Morning cron 18:11 UTC: Sat 3 Oct is AEST (04:11 local), Sun 4 Oct is AEDT (05:11 local).
+    timeutil.freeze("2026-10-02T18:11:00Z")
     ctx = make_ctx()
     assert ctx.local_date_str() == "2026-10-03" and delivery_due(ctx)
-    timeutil.freeze("2026-10-03T18:41:00Z")
+    timeutil.freeze("2026-10-03T18:11:00Z")
     ctx2 = make_ctx()
-    assert ctx2.local_date_str() == "2026-10-04" and ctx2.local_now().strftime("%H:%M") == "05:41"
+    assert ctx2.local_date_str() == "2026-10-04" and ctx2.local_now().strftime("%H:%M") == "05:11"
     assert delivery_due(ctx2)
 
 

@@ -224,7 +224,7 @@ v1's 26 requirements are kept; changed ones are marked **(v2)**, and new ones st
 | **Guardrails and operations** |  |  |
 | FR-24 | Run a deterministic blocklist check on every draft before delivery and on the final text at posting; block matches instead of rewording them | 2 |
 | FR-25 | Draft affairs opinions only from recorded stances or interview answers | 2 |
-| FR-26 **(v2)** | Log calls, tokens and quota use per run and provider. When a free limit is near, fall back to the next provider, then trim to fewer cards, then batch drafts, then deliver brief cards without drafts, and note it on the desk | 1 |
+| FR-26 **(v2)** | Log calls, tokens and quota use per run and provider. When a free limit is near, fall back to the next provider, then trim to fewer cards, then deliver brief cards with a **Draft this** button, and note it on the desk | 1 |
 | FR-27 | The desk is an installable, offline-capable web app. It covers the board, card editor, requests, stances, metrics, insights, sources, settings and system health, and needs only a fine-grained GitHub token kept in the browser | 1 |
 | FR-28 | Every run is an idempotent tick that catches up on overdue work (morning delivery, weekly batch, reflection) | 1 |
 | FR-29 | Notify Ankit when drafts or requested results are ready (ntfy or Telegram, optional, content-free messages) | 2 |
@@ -373,7 +373,7 @@ The **Board** is the only page Ankit needs daily.
 | System | Recent runs, quota per provider, warnings, and **Run now** buttons (tick, morning delivery, weekly review, doctor) |
 | History | Past cards and posts with search and filters |
 
-The desk works offline: it caches the last `desk.json`, queues actions in an outbox, and sends them when back online. Keyboard shortcuts cover the daily loop on desktop.
+The desk works offline: it caches the last `desk.json`, queues actions in an outbox, and sends them when back online. Keyboard shortcuts cover the daily loop on desktop. A demo mode runs on data the real pipeline generates offline (`pbs demo`: three simulated weeks plus a fresh morning), so the desk can be tried before any setup.
 
 ## Guardrails
 
@@ -403,7 +403,7 @@ All keys live in GitHub Secrets.
 
 | Job | Schedule (UTC cron) | Melbourne time | Minutes a month (est.) |
 | --- | --- | --- | --- |
-| Morning tick (scout, rank, draft, deliver) | Daily 18:41 | 5:41am AEDT, 4:41am AEST | About 120 |
+| Morning tick (scout, rank, draft, deliver) | Daily 18:11, catch-up 19:47 | 5:11am AEDT, 4:11am AEST | About 120 |
 | Light ticks (ingest, expire, learn, catch-up) | 01:07, 07:07, 13:07 | Around the clock | About 90 |
 | Saturday tick (weekly batch) | Saturday 09:23 | Saturday 8:23pm AEDT | About 10 |
 | Desk-triggered ticks (rewrites, answers, requests, weekly review) | On demand | Any time | About 120 |
@@ -423,7 +423,7 @@ Off-peak minutes are used because GitHub delays top-of-the-hour schedules. Dayli
 
 Weekly extras: reflection 1, voice 1, one per screenshot, stance proposals 1.
 
-When a provider returns a quota error, the chain moves to the next provider. If all are exhausted, runs degrade in order: fewer cards, then batched drafts, then brief cards (topic, why now, angle, sources) with a **Draft this** button, and the desk says so.
+When a provider returns a quota error, the chain moves to the next provider. If all are exhausted, runs degrade in order: first fewer cards (the lowest-ranked beyond each platform's minimum are dropped), then brief cards (topic, why now, angle, sources) with a **Draft this** button that drafts it on demand once quota is back. The desk says which happened.
 
 **Running cost:** $0.
 

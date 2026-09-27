@@ -1,7 +1,7 @@
 """Routes each LLM task through a chain of free providers with quota tracking and fallback.
 
 Order of defences when free tiers run out: next provider in the route, then the caller degrades
-(fewer cards, batched drafts, brief cards). Every call is redacted with the blocklist first.
+(fewer cards, then brief cards with a 'Draft this' button). Every call is redacted with the blocklist first.
 """
 
 from __future__ import annotations
