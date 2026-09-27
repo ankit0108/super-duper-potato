@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="PBS Desk: pick, edit and post your daily LinkedIn and X drafts." />
+    <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://avatars.githubusercontent.com; connect-src 'self' https://api.github.com; font-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'none'; object-src 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <title>PBS Desk</title>
+    <script src="./theme.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>PBS Desk needs JavaScript.</noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

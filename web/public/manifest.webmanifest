@@ -1,0 +1,16 @@
+{
+  "name": "PBS Desk",
+  "short_name": "PBS Desk",
+  "description": "Pick, edit and post your daily LinkedIn and X drafts.",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f5f1",
+  "theme_color": "#4b4bc8",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

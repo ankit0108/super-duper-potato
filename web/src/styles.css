@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-linkedin: var(--linkedin);
+  --color-x: var(--x);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-edit: var(--edit);
+  --color-edit-soft: var(--edit-soft);
+  --color-diff-add: var(--diff-add);
+  --color-diff-del: var(--diff-del);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-grid: var(--grid);
+  --color-axis: var(--axis);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari",
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+:root {
+  color-scheme: light;
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --surface-2: #f1f0eb;
+  --surface-3: #e9e7e0;
+  --border: #e3e1da;
+  --border-strong: #cfccc2;
+  --text: #1d1c19;
+  --muted: #64625b;
+  --faint: #8f8c83;
+  --accent: #4b4bc8;
+  --accent-fg: #ffffff;
+  --accent-soft: #ececfb;
+  --linkedin: #0a66c2;
+  --x: #0f1419;
+  --ok: #17803d;
+  --ok-soft: #e3f5e8;
+  --warn: #a15c07;
+  --warn-soft: #fdf1dc;
+  --bad: #b42318;
+  --bad-soft: #fde8e6;
+  --info: #1d5fa8;
+  --info-soft: #e5eefa;
+  --edit: #6e3fc4;
+  --edit-soft: #f0e9fb;
+  --diff-add: #d8f3df;
+  --diff-del: #fbdcd8;
+  /* Chart series (validated: CVD ΔE 24.7, normal 33.6, ≥3:1 on #ffffff) — LinkedIn = 1, X = 2 everywhere */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --grid: #ecebe5;
+  --axis: #cfccc2;
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: #121211;
+  --surface: #1b1b19;
+  --surface-2: #232320;
+  --surface-3: #2c2c28;
+  --border: #2f2e2a;
+  --border-strong: #45433d;
+  --text: #ecebe6;
+  --muted: #a5a39b;
+  --faint: #7a786f;
+  --accent: #8f8ff0;
+  --accent-fg: #131329;
+  --accent-soft: #26264a;
+  --linkedin: #4c9be8;
+  --x: #e7e9ea;
+  --ok: #4cc47a;
+  --ok-soft: #173222;
+  --warn: #e3a44a;
+  --warn-soft: #3a2a12;
+  --bad: #f07a6e;
+  --bad-soft: #3d1b18;
+  --info: #7fb2ee;
+  --info-soft: #172a42;
+  --edit: #b598f0;
+  --edit-soft: #2b2141;
+  --diff-add: #1c3a26;
+  --diff-del: #472420;
+  /* Dark steps of the same hues (validated on #1b1b19: CVD ΔE 26.8, normal 31.8, ≥3:1) */
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --grid: #2a2a27;
+  --axis: #45433d;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* The draft editor: comfortable reading width, preserved line breaks. */
+.draft-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.55;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

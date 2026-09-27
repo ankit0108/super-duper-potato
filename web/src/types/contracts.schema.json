@@ -1,0 +1,5494 @@
+{
+ "$defs": {
+  "AccountStat": {
+   "properties": {
+    "date": {
+     "title": "Date",
+     "type": "string"
+    },
+    "followers": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Followers"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "platform": {
+     "enum": [
+      "linkedin",
+      "x"
+     ],
+     "title": "Platform",
+     "type": "string"
+    },
+    "profile_views": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Profile Views"
+    },
+    "source": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Source"
+    }
+   },
+   "required": [
+    "id",
+    "date",
+    "platform"
+   ],
+   "title": "AccountStat",
+   "type": "object"
+  },
+  "AccountStatsEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "date": {
+     "title": "Date",
+     "type": "string"
+    },
+    "followers": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Followers"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "platform": {
+     "enum": [
+      "linkedin",
+      "x"
+     ],
+     "title": "Platform",
+     "type": "string"
+    },
+    "profile_views": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Profile Views"
+    },
+    "type": {
+     "const": "account.stats",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "date",
+    "platform"
+   ],
+   "title": "AccountStatsEvent",
+   "type": "object"
+  },
+  "Answer": {
+   "properties": {
+    "answer": {
+     "title": "Answer",
+     "type": "string"
+    },
+    "at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "At"
+    },
+    "question_id": {
+     "title": "Question Id",
+     "type": "string"
+    }
+   },
+   "required": [
+    "question_id",
+    "answer"
+   ],
+   "title": "Answer",
+   "type": "object"
+  },
+  "AnswerIn": {
+   "additionalProperties": false,
+   "properties": {
+    "answer": {
+     "maxLength": 6000,
+     "title": "Answer",
+     "type": "string"
+    },
+    "question_id": {
+     "title": "Question Id",
+     "type": "string"
+    }
+   },
+   "required": [
+    "question_id",
+    "answer"
+   ],
+   "title": "AnswerIn",
+   "type": "object"
+  },
+  "Arm": {
+   "properties": {
+    "alpha": {
+     "title": "Alpha",
+     "type": "number"
+    },
+    "beta": {
+     "title": "Beta",
+     "type": "number"
+    },
+    "format": {
+     "title": "Format",
+     "type": "string"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "mean": {
+     "title": "Mean",
+     "type": "number"
+    },
+    "n_obs": {
+     "title": "N Obs",
+     "type": "number"
+    },
+    "pillar": {
+     "title": "Pillar",
+     "type": "string"
+    },
+    "platform": {
+     "enum": [
+      "linkedin",
+      "x"
+     ],
+     "title": "Platform",
+     "type": "string"
+    },
+    "prior_mean": {
+     "title": "Prior Mean",
+     "type": "number"
+    }
+   },
+   "required": [
+    "id",
+    "platform",
+    "pillar",
+    "format",
+    "alpha",
+    "beta",
+    "mean",
+    "n_obs",
+    "prior_mean"
+   ],
+   "title": "Arm",
+   "type": "object"
+  },
+  "Card": {
+   "properties": {
+    "affairs_type": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Affairs Type"
+    },
+    "angle": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Angle"
+    },
+    "answers": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Answer"
+     },
+     "title": "Answers",
+     "type": "array"
+    },
+    "arm": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Arm"
+    },
+    "claims": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Claim"
+     },
+     "title": "Claims",
+     "type": "array"
+    },
+    "created_at": {
+     "title": "Created At",
+     "type": "string"
+    },
+    "delivered_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Delivered At"
+    },
+    "delivery_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Delivery Id"
+    },
+    "draft": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Draft"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "draft_original": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Draft"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "draft_state": {
+     "default": "full",
+     "enum": [
+      "full",
+      "brief",
+      "pending"
+     ],
+     "title": "Draft State",
+     "type": "string"
+    },
+    "experiment_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Experiment Id"
+    },
+    "expires_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Expires At"
+    },
+    "explore": {
+     "default": false,
+     "title": "Explore",
+     "type": "boolean"
+    },
+    "flags": {
+     "$ref": "#/$defs/Flags",
+     "default": {
+      "avoid_phrases": [],
+      "bait": [],
+      "blocked": [],
+      "first_person": [],
+      "length": [],
+      "notes": [],
+      "opinion": [],
+      "sensitive": false,
+      "sensitive_reason": null,
+      "stance_id": null,
+      "unsourced": []
+     }
+    },
+    "format": {
+     "enum": [
+      "li_text",
+      "x_single",
+      "x_thread",
+      "x_quote",
+      "x_reply"
+     ],
+     "title": "Format",
+     "type": "string"
+    },
+    "format_note": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Format Note"
+    },
+    "hook_type": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Hook Type"
+    },
+    "hooks": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Hook"
+     },
+     "title": "Hooks",
+     "type": "array"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "issue_key": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Issue Key"
+    },
+    "kind": {
+     "default": "news",
+     "enum": [
+      "news",
+      "evergreen",
+      "interview",
+      "request",
+      "adapt"
+     ],
+     "title": "Kind",
+     "type": "string"
+    },
+    "llm": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/LLMInfo"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "mode": {
+     "default": "external",
+     "enum": [
+      "external",
+      "interview"
+     ],
+     "title": "Mode",
+     "type": "string"
+    },
+    "pillar": {
+     "title": "Pillar",
+     "type": "string"
+    },
+    "platform": {
+     "enum": [
+      "linkedin",
+      "x"
+     ],
+     "title": "Platform",
+     "type": "string"
+    },
+    "post_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Post Id"
+    },
+    "questions": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Question"
+     },
+     "title": "Questions",
+     "type": "array"
+    },
+    "rank": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Rank"
+    },
+    "request_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Request Id"
+    },
+    "revision": {
+     "default": 0,
+     "title": "Revision",
+     "type": "integer"
+    },
+    "rewrite_count": {
+     "default": 0,
+     "title": "Rewrite Count",
+     "type": "integer"
+    },
+    "score": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Score"
+    },
+    "score_parts": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Score Parts",
+     "type": "object"
+    },
+    "skip": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Skip"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "sources": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/SourceRef"
+     },
+     "title": "Sources",
+     "type": "array"
+    },
+    "status": {
+     "enum": [
+      "drafting",
+      "suggested",
+      "needs_input",
+      "editing",
+      "posted",
+      "skipped",
+      "expired",
+      "blocked",
+      "failed"
+     ],
+     "title": "Status",
+     "type": "string"
+    },
+    "status_changed_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Status Changed At"
+    },
+    "title": {
+     "title": "Title",
+     "type": "string"
+    },
+    "topic_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Topic Id"
+    },
+    "updated_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Updated At"
+    },
+    "versions": {
+     "$ref": "#/$defs/Versions",
+     "default": {
+      "playbook": null,
+      "prompt": null,
+      "voice": null
+     }
+    },
+    "why_now": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Why Now"
+    },
+    "work": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Work"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "working": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Working"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    }
+   },
+   "required": [
+    "id",
+    "platform",
+    "pillar",
+    "format",
+    "title",
+    "status",
+    "created_at"
+   ],
+   "title": "Card",
+   "type": "object"
+  },
+  "CardAnswersEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "answers": {
+     "items": {
+      "$ref": "#/$defs/AnswerIn"
+     },
+     "maxItems": 10,
+     "minItems": 1,
+     "title": "Answers",
+     "type": "array"
+    },
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "reusable": {
+     "default": true,
+     "title": "Reusable",
+     "type": "boolean"
+    },
+    "save_as_stance": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/StanceFromAnswer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "type": {
+     "const": "card.answers",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id",
+    "answers"
+   ],
+   "title": "CardAnswersEvent",
+   "type": "object"
+  },
+  "CardDraftNowEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "type": {
+     "const": "card.draft_now",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id"
+   ],
+   "title": "CardDraftNowEvent",
+   "type": "object"
+  },
+  "CardEditEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "hook_index": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Hook Index"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "posts": {
+     "anyOf": [
+      {
+       "items": {
+        "maxLength": 30000,
+        "type": "string"
+       },
+       "maxItems": 25,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Posts"
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 30000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Text"
+    },
+    "type": {
+     "const": "card.edit",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id"
+   ],
+   "title": "CardEditEvent",
+   "type": "object"
+  },
+  "CardHookEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "hook_index": {
+     "maximum": 10,
+     "minimum": 0,
+     "title": "Hook Index",
+     "type": "integer"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "type": {
+     "const": "card.hook",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id",
+    "hook_index"
+   ],
+   "title": "CardHookEvent",
+   "type": "object"
+  },
+  "CardPostedEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "editing_seconds": {
+     "anyOf": [
+      {
+       "maximum": 86400,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Editing Seconds"
+    },
+    "hook_index": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Hook Index"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "post_url": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Post Url"
+    },
+    "posted_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Posted At"
+    },
+    "posts": {
+     "anyOf": [
+      {
+       "items": {
+        "maxLength": 30000,
+        "type": "string"
+       },
+       "maxItems": 25,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Posts"
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 30000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Text"
+    },
+    "type": {
+     "const": "card.posted",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id"
+   ],
+   "title": "CardPostedEvent",
+   "type": "object"
+  },
+  "CardRestoreEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "type": {
+     "const": "card.restore",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id"
+   ],
+   "title": "CardRestoreEvent",
+   "type": "object"
+  },
+  "CardRewriteEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "chips": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "maxItems": 10,
+     "title": "Chips",
+     "type": "array"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "note": {
+     "default": "",
+     "maxLength": 1000,
+     "title": "Note",
+     "type": "string"
+    },
+    "target_format": {
+     "anyOf": [
+      {
+       "enum": [
+        "li_text",
+        "x_single",
+        "x_thread",
+        "x_quote",
+        "x_reply"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Target Format"
+    },
+    "target_platform": {
+     "anyOf": [
+      {
+       "enum": [
+        "linkedin",
+        "x"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Target Platform"
+    },
+    "type": {
+     "const": "card.rewrite",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id"
+   ],
+   "title": "CardRewriteEvent",
+   "type": "object"
+  },
+  "CardSkipEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "note": {
+     "anyOf": [
+      {
+       "maxLength": 1000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Note"
+    },
+    "reason": {
+     "enum": [
+      "not_interesting",
+      "off_brand",
+      "wrong_timing",
+      "too_risky",
+      "already_covered",
+      "other"
+     ],
+     "title": "Reason",
+     "type": "string"
+    },
+    "type": {
+     "const": "card.skip",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id",
+    "reason"
+   ],
+   "title": "CardSkipEvent",
+   "type": "object"
+  },
+  "CardStatusEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "status": {
+     "enum": [
+      "editing",
+      "suggested"
+     ],
+     "title": "Status",
+     "type": "string"
+    },
+    "type": {
+     "const": "card.status",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id",
+    "status"
+   ],
+   "title": "CardStatusEvent",
+   "type": "object"
+  },
+  "Claim": {
+   "properties": {
+    "source": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Index into the card's sources (0-based)",
+     "title": "Source"
+    },
+    "text": {
+     "title": "Text",
+     "type": "string"
+    }
+   },
+   "required": [
+    "text"
+   ],
+   "title": "Claim",
+   "type": "object"
+  },
+  "DeliveryInfo": {
+   "properties": {
+    "counts": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "default": {},
+     "title": "Counts",
+     "type": "object"
+    },
+    "degraded": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Degraded"
+    },
+    "delivered_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Delivered At"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "kind": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Kind"
+    },
+    "local_date": {
+     "title": "Local Date",
+     "type": "string"
+    },
+    "notes": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Notes",
+     "type": "array"
+    }
+   },
+   "required": [
+    "id",
+    "local_date"
+   ],
+   "title": "DeliveryInfo",
+   "type": "object"
+  },
+  "DeskMeta": {
+   "properties": {
+    "app_version": {
+     "title": "App Version",
+     "type": "string"
+    },
+    "display_name": {
+     "title": "Display Name",
+     "type": "string"
+    },
+    "generated_at": {
+     "title": "Generated At",
+     "type": "string"
+    },
+    "next_delivery_local": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Next Delivery Local"
+    },
+    "run_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Run Id"
+    },
+    "schema_version": {
+     "default": 1,
+     "title": "Schema Version",
+     "type": "integer"
+    },
+    "timezone": {
+     "title": "Timezone",
+     "type": "string"
+    }
+   },
+   "required": [
+    "generated_at",
+    "app_version",
+    "timezone",
+    "display_name"
+   ],
+   "title": "DeskMeta",
+   "type": "object"
+  },
+  "DeskState": {
+   "properties": {
+    "account_stats": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/AccountStat"
+     },
+     "title": "Account Stats",
+     "type": "array"
+    },
+    "archive_months": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Archive Months",
+     "type": "array"
+    },
+    "arms": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Arm"
+     },
+     "title": "Arms",
+     "type": "array"
+    },
+    "cards": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Card"
+     },
+     "title": "Cards",
+     "type": "array"
+    },
+    "delivery": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/DeliveryInfo"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "doctor": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/DoctorReport"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "experiments": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Experiment"
+     },
+     "title": "Experiments",
+     "type": "array"
+    },
+    "meta": {
+     "$ref": "#/$defs/DeskMeta"
+    },
+    "metrics": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Metric"
+     },
+     "title": "Metrics",
+     "type": "array"
+    },
+    "playbook": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Playbook"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "playbook_history": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Playbook"
+     },
+     "title": "Playbook History",
+     "type": "array"
+    },
+    "posts": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Post"
+     },
+     "title": "Posts",
+     "type": "array"
+    },
+    "processed_event_ids": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Processed Event Ids",
+     "type": "array"
+    },
+    "proposals": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Proposal"
+     },
+     "title": "Proposals",
+     "type": "array"
+    },
+    "quota": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Quota"
+     },
+     "title": "Quota",
+     "type": "array"
+    },
+    "rejected_events": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/RejectedEvent"
+     },
+     "title": "Rejected Events",
+     "type": "array"
+    },
+    "report": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/SystemReport"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "reports_index": {
+     "default": [],
+     "items": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object"
+     },
+     "title": "Reports Index",
+     "type": "array"
+    },
+    "requests": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Request"
+     },
+     "title": "Requests",
+     "type": "array"
+    },
+    "runs": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Run"
+     },
+     "title": "Runs",
+     "type": "array"
+    },
+    "settings": {
+     "additionalProperties": true,
+     "title": "Settings",
+     "type": "object"
+    },
+    "settings_overrides": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Settings Overrides",
+     "type": "object"
+    },
+    "sources": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Source"
+     },
+     "title": "Sources",
+     "type": "array"
+    },
+    "stances": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Stance"
+     },
+     "title": "Stances",
+     "type": "array"
+    },
+    "stats": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Stats",
+     "type": "object"
+    },
+    "uploads": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/MetricUpload"
+     },
+     "title": "Uploads",
+     "type": "array"
+    },
+    "voice": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/VoiceProfile"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "warnings": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/DeskWarning"
+     },
+     "title": "Warnings",
+     "type": "array"
+    }
+   },
+   "required": [
+    "meta",
+    "settings"
+   ],
+   "title": "DeskState",
+   "type": "object"
+  },
+  "DeskWarning": {
+   "properties": {
+    "at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "At"
+    },
+    "code": {
+     "title": "Code",
+     "type": "string"
+    },
+    "level": {
+     "default": "warn",
+     "enum": [
+      "info",
+      "warn",
+      "error"
+     ],
+     "title": "Level",
+     "type": "string"
+    },
+    "message": {
+     "title": "Message",
+     "type": "string"
+    }
+   },
+   "required": [
+    "code",
+    "message"
+   ],
+   "title": "DeskWarning",
+   "type": "object"
+  },
+  "DoctorCheck": {
+   "properties": {
+    "detail": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Detail"
+    },
+    "name": {
+     "title": "Name",
+     "type": "string"
+    },
+    "status": {
+     "enum": [
+      "ok",
+      "warn",
+      "fail",
+      "skip"
+     ],
+     "title": "Status",
+     "type": "string"
+    }
+   },
+   "required": [
+    "name",
+    "status"
+   ],
+   "title": "DoctorCheck",
+   "type": "object"
+  },
+  "DoctorReport": {
+   "properties": {
+    "checks": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/DoctorCheck"
+     },
+     "title": "Checks",
+     "type": "array"
+    },
+    "created_at": {
+     "title": "Created At",
+     "type": "string"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "summary": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Summary",
+     "type": "object"
+    }
+   },
+   "required": [
+    "id",
+    "created_at"
+   ],
+   "title": "DoctorReport",
+   "type": "object"
+  },
+  "Draft": {
+   "properties": {
+    "posts": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Posts",
+     "type": "array"
+    },
+    "quote_url": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Quote Url"
+    },
+    "reply": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/ReplyTarget"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "text": {
+     "default": "",
+     "title": "Text",
+     "type": "string"
+    }
+   },
+   "title": "Draft",
+   "type": "object"
+  },
+  "Experiment": {
+   "properties": {
+    "created_at": {
+     "title": "Created At",
+     "type": "string"
+    },
+    "hypothesis": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Hypothesis"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "instruction": {
+     "title": "Instruction",
+     "type": "string"
+    },
+    "picks": {
+     "default": 0,
+     "title": "Picks",
+     "type": "integer"
+    },
+    "pillar": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Pillar"
+    },
+    "platform": {
+     "anyOf": [
+      {
+       "enum": [
+        "linkedin",
+        "x"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Platform"
+    },
+    "stats": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Stats",
+     "type": "object"
+    },
+    "status": {
+     "default": "active",
+     "enum": [
+      "active",
+      "promoted",
+      "retired"
+     ],
+     "title": "Status",
+     "type": "string"
+    },
+    "trials": {
+     "default": 0,
+     "title": "Trials",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "id",
+    "created_at",
+    "instruction"
+   ],
+   "title": "Experiment",
+   "type": "object"
+  },
+  "Flags": {
+   "properties": {
+    "avoid_phrases": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Avoid Phrases",
+     "type": "array"
+    },
+    "bait": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Bait",
+     "type": "array"
+    },
+    "blocked": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Blocked",
+     "type": "array"
+    },
+    "first_person": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "First Person",
+     "type": "array"
+    },
+    "length": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Length",
+     "type": "array"
+    },
+    "notes": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Notes",
+     "type": "array"
+    },
+    "opinion": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Opinion",
+     "type": "array"
+    },
+    "sensitive": {
+     "default": false,
+     "title": "Sensitive",
+     "type": "boolean"
+    },
+    "sensitive_reason": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Sensitive Reason"
+    },
+    "stance_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Stance Id"
+    },
+    "unsourced": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Unsourced",
+     "type": "array"
+    }
+   },
+   "title": "Flags",
+   "type": "object"
+  },
+  "Hook": {
+   "properties": {
+    "text": {
+     "title": "Text",
+     "type": "string"
+    },
+    "type": {
+     "default": "observation",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "text"
+   ],
+   "title": "Hook",
+   "type": "object"
+  },
+  "InboxBatch": {
+   "additionalProperties": false,
+   "properties": {
+    "created_at": {
+     "title": "Created At",
+     "type": "string"
+    },
+    "device": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Device"
+    },
+    "events": {
+     "items": {
+      "discriminator": {
+       "mapping": {
+        "account.stats": "#/$defs/AccountStatsEvent",
+        "card.answers": "#/$defs/CardAnswersEvent",
+        "card.draft_now": "#/$defs/CardDraftNowEvent",
+        "card.edit": "#/$defs/CardEditEvent",
+        "card.hook": "#/$defs/CardHookEvent",
+        "card.posted": "#/$defs/CardPostedEvent",
+        "card.restore": "#/$defs/CardRestoreEvent",
+        "card.rewrite": "#/$defs/CardRewriteEvent",
+        "card.skip": "#/$defs/CardSkipEvent",
+        "card.status": "#/$defs/CardStatusEvent",
+        "metrics.review": "#/$defs/MetricsReviewEvent",
+        "metrics.upload": "#/$defs/MetricsUploadEvent",
+        "playbook.rule": "#/$defs/PlaybookRuleEvent",
+        "post.metrics": "#/$defs/PostMetricsEvent",
+        "post.update": "#/$defs/PostUpdateEvent",
+        "profile.update": "#/$defs/ProfileUpdateEvent",
+        "proposal.decide": "#/$defs/ProposalDecideEvent",
+        "request.cancel": "#/$defs/RequestCancelEvent",
+        "request.create": "#/$defs/RequestCreateEvent",
+        "run.request": "#/$defs/RunRequestEvent",
+        "settings.update": "#/$defs/SettingsUpdateEvent",
+        "source.delete": "#/$defs/SourceDeleteEvent",
+        "source.upsert": "#/$defs/SourceUpsertEvent",
+        "stance.delete": "#/$defs/StanceDeleteEvent",
+        "stance.propose": "#/$defs/StanceProposeEvent",
+        "stance.upsert": "#/$defs/StanceUpsertEvent"
+       },
+       "propertyName": "type"
+      },
+      "oneOf": [
+       {
+        "$ref": "#/$defs/CardStatusEvent"
+       },
+       {
+        "$ref": "#/$defs/CardEditEvent"
+       },
+       {
+        "$ref": "#/$defs/CardPostedEvent"
+       },
+       {
+        "$ref": "#/$defs/CardSkipEvent"
+       },
+       {
+        "$ref": "#/$defs/CardRewriteEvent"
+       },
+       {
+        "$ref": "#/$defs/CardAnswersEvent"
+       },
+       {
+        "$ref": "#/$defs/CardRestoreEvent"
+       },
+       {
+        "$ref": "#/$defs/CardDraftNowEvent"
+       },
+       {
+        "$ref": "#/$defs/CardHookEvent"
+       },
+       {
+        "$ref": "#/$defs/PostUpdateEvent"
+       },
+       {
+        "$ref": "#/$defs/PostMetricsEvent"
+       },
+       {
+        "$ref": "#/$defs/MetricsUploadEvent"
+       },
+       {
+        "$ref": "#/$defs/MetricsReviewEvent"
+       },
+       {
+        "$ref": "#/$defs/AccountStatsEvent"
+       },
+       {
+        "$ref": "#/$defs/RequestCreateEvent"
+       },
+       {
+        "$ref": "#/$defs/RequestCancelEvent"
+       },
+       {
+        "$ref": "#/$defs/StanceUpsertEvent"
+       },
+       {
+        "$ref": "#/$defs/StanceDeleteEvent"
+       },
+       {
+        "$ref": "#/$defs/StanceProposeEvent"
+       },
+       {
+        "$ref": "#/$defs/SourceUpsertEvent"
+       },
+       {
+        "$ref": "#/$defs/SourceDeleteEvent"
+       },
+       {
+        "$ref": "#/$defs/SettingsUpdateEvent"
+       },
+       {
+        "$ref": "#/$defs/ProfileUpdateEvent"
+       },
+       {
+        "$ref": "#/$defs/ProposalDecideEvent"
+       },
+       {
+        "$ref": "#/$defs/PlaybookRuleEvent"
+       },
+       {
+        "$ref": "#/$defs/RunRequestEvent"
+       }
+      ]
+     },
+     "title": "Events",
+     "type": "array"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "v": {
+     "const": 1,
+     "default": 1,
+     "title": "V",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "id",
+    "created_at",
+    "events"
+   ],
+   "title": "InboxBatch",
+   "type": "object"
+  },
+  "LLMInfo": {
+   "properties": {
+    "model": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Model"
+    },
+    "provider": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Provider"
+    }
+   },
+   "title": "LLMInfo",
+   "type": "object"
+  },
+  "Metric": {
+   "properties": {
+    "captured_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Captured At"
+    },
+    "comments": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Comments"
+    },
+    "created_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Created At"
+    },
+    "extraction_confidence": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Extraction Confidence"
+    },
+    "followers_gained": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Followers Gained"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "impressions": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Impressions"
+    },
+    "link_clicks": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Link Clicks"
+    },
+    "match_confidence": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Match Confidence"
+    },
+    "notes": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Notes"
+    },
+    "platform": {
+     "anyOf": [
+      {
+       "enum": [
+        "linkedin",
+        "x"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Platform"
+    },
+    "post_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Post Id"
+    },
+    "profile_views": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Profile Views"
+    },
+    "raw": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Raw"
+    },
+    "reactions": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Reactions"
+    },
+    "reposts": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Reposts"
+    },
+    "sends": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Sends"
+    },
+    "source": {
+     "default": "manual",
+     "enum": [
+      "manual",
+      "screenshot",
+      "csv"
+     ],
+     "title": "Source",
+     "type": "string"
+    },
+    "status": {
+     "default": "confirmed",
+     "enum": [
+      "confirmed",
+      "needs_review",
+      "rejected"
+     ],
+     "title": "Status",
+     "type": "string"
+    },
+    "upload_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Upload Id"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "Metric",
+   "type": "object"
+  },
+  "MetricUpload": {
+   "properties": {
+    "created_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Created At"
+    },
+    "error": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Error"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "note": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Note"
+    },
+    "paths": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Paths",
+     "type": "array"
+    },
+    "processed_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Processed At"
+    },
+    "results": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Results"
+    },
+    "status": {
+     "default": "pending",
+     "enum": [
+      "pending",
+      "processed",
+      "failed"
+     ],
+     "title": "Status",
+     "type": "string"
+    },
+    "week": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Week"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "MetricUpload",
+   "type": "object"
+  },
+  "MetricValues": {
+   "additionalProperties": false,
+   "properties": {
+    "comments": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Comments"
+    },
+    "followers_gained": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Followers Gained"
+    },
+    "impressions": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Impressions"
+    },
+    "link_clicks": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Link Clicks"
+    },
+    "profile_views": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Profile Views"
+    },
+    "reactions": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Reactions"
+    },
+    "reposts": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Reposts"
+    },
+    "sends": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Sends"
+    }
+   },
+   "title": "MetricValues",
+   "type": "object"
+  },
+  "MetricsReviewEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "action": {
+     "enum": [
+      "confirm",
+      "reject",
+      "edit"
+     ],
+     "title": "Action",
+     "type": "string"
+    },
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "metric_id": {
+     "title": "Metric Id",
+     "type": "string"
+    },
+    "post_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Post Id"
+    },
+    "type": {
+     "const": "metrics.review",
+     "title": "Type",
+     "type": "string"
+    },
+    "values": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/MetricValues"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "metric_id",
+    "action"
+   ],
+   "title": "MetricsReviewEvent",
+   "type": "object"
+  },
+  "MetricsUploadEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "note": {
+     "anyOf": [
+      {
+       "maxLength": 1000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Note"
+    },
+    "paths": {
+     "items": {
+      "type": "string"
+     },
+     "maxItems": 20,
+     "minItems": 1,
+     "title": "Paths",
+     "type": "array"
+    },
+    "type": {
+     "const": "metrics.upload",
+     "title": "Type",
+     "type": "string"
+    },
+    "upload_id": {
+     "title": "Upload Id",
+     "type": "string"
+    },
+    "week": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Week"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "upload_id",
+    "paths"
+   ],
+   "title": "MetricsUploadEvent",
+   "type": "object"
+  },
+  "Playbook": {
+   "properties": {
+    "changes": {
+     "default": [],
+     "items": {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     "title": "Changes",
+     "type": "array"
+    },
+    "created_at": {
+     "title": "Created At",
+     "type": "string"
+    },
+    "experiments": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Experiments",
+     "type": "array"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "rules": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/PlaybookRule"
+     },
+     "title": "Rules",
+     "type": "array"
+    },
+    "source": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Source"
+    },
+    "status": {
+     "default": "active",
+     "enum": [
+      "active",
+      "retired"
+     ],
+     "title": "Status",
+     "type": "string"
+    },
+    "summary": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Summary"
+    },
+    "version": {
+     "title": "Version",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "id",
+    "version",
+    "created_at"
+   ],
+   "title": "Playbook",
+   "type": "object"
+  },
+  "PlaybookRule": {
+   "properties": {
+    "added_in": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Added In"
+    },
+    "confidence": {
+     "default": "medium",
+     "enum": [
+      "low",
+      "medium",
+      "high"
+     ],
+     "title": "Confidence",
+     "type": "string"
+    },
+    "evidence": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Evidence",
+     "type": "array"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "pillar": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Pillar"
+    },
+    "platform": {
+     "anyOf": [
+      {
+       "enum": [
+        "linkedin",
+        "x"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Platform"
+    },
+    "reversal": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Reversal"
+    },
+    "source": {
+     "default": "seed",
+     "enum": [
+      "seed",
+      "reflection",
+      "user",
+      "voice"
+     ],
+     "title": "Source",
+     "type": "string"
+    },
+    "text": {
+     "title": "Text",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "text"
+   ],
+   "title": "PlaybookRule",
+   "type": "object"
+  },
+  "PlaybookRuleEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "action": {
+     "enum": [
+      "add",
+      "remove",
+      "edit"
+     ],
+     "title": "Action",
+     "type": "string"
+    },
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "pillar": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Pillar"
+    },
+    "platform": {
+     "anyOf": [
+      {
+       "enum": [
+        "linkedin",
+        "x"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Platform"
+    },
+    "rule_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Rule Id"
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 600,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Text"
+    },
+    "type": {
+     "const": "playbook.rule",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "action"
+   ],
+   "title": "PlaybookRuleEvent",
+   "type": "object"
+  },
+  "Position": {
+   "properties": {
+    "key": {
+     "title": "Key",
+     "type": "string"
+    },
+    "label": {
+     "title": "Label",
+     "type": "string"
+    },
+    "text": {
+     "title": "Text",
+     "type": "string"
+    }
+   },
+   "required": [
+    "key",
+    "label",
+    "text"
+   ],
+   "title": "Position",
+   "type": "object"
+  },
+  "PositionIn": {
+   "additionalProperties": false,
+   "properties": {
+    "key": {
+     "maxLength": 40,
+     "title": "Key",
+     "type": "string"
+    },
+    "label": {
+     "maxLength": 120,
+     "title": "Label",
+     "type": "string"
+    },
+    "text": {
+     "maxLength": 1000,
+     "title": "Text",
+     "type": "string"
+    }
+   },
+   "required": [
+    "key",
+    "label",
+    "text"
+   ],
+   "title": "PositionIn",
+   "type": "object"
+  },
+  "Post": {
+   "properties": {
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "edit_ratio": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Edit Ratio"
+    },
+    "edit_stats": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Edit Stats",
+     "type": "object"
+    },
+    "editing_seconds": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Editing Seconds"
+    },
+    "features": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Features",
+     "type": "object"
+    },
+    "final_posts": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Final Posts",
+     "type": "array"
+    },
+    "final_text": {
+     "default": "",
+     "title": "Final Text",
+     "type": "string"
+    },
+    "format": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Format"
+    },
+    "guard": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Guard",
+     "type": "object"
+    },
+    "hook_used": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Hook Used"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "latest_metrics": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Metric"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "pillar": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Pillar"
+    },
+    "platform": {
+     "enum": [
+      "linkedin",
+      "x"
+     ],
+     "title": "Platform",
+     "type": "string"
+    },
+    "post_url": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Post Url"
+    },
+    "posted_at": {
+     "title": "Posted At",
+     "type": "string"
+    },
+    "reward": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Reward"
+    },
+    "reward_parts": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Reward Parts",
+     "type": "object"
+    },
+    "time_to_post_minutes": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Time To Post Minutes"
+    },
+    "title": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Title"
+    }
+   },
+   "required": [
+    "id",
+    "card_id",
+    "platform",
+    "posted_at"
+   ],
+   "title": "Post",
+   "type": "object"
+  },
+  "PostMetricsEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "captured_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Captured At"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "post_id": {
+     "title": "Post Id",
+     "type": "string"
+    },
+    "type": {
+     "const": "post.metrics",
+     "title": "Type",
+     "type": "string"
+    },
+    "values": {
+     "$ref": "#/$defs/MetricValues"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "post_id",
+    "values"
+   ],
+   "title": "PostMetricsEvent",
+   "type": "object"
+  },
+  "PostUpdateEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "post_id": {
+     "title": "Post Id",
+     "type": "string"
+    },
+    "post_url": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Post Url"
+    },
+    "posted_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Posted At"
+    },
+    "posts": {
+     "anyOf": [
+      {
+       "items": {
+        "maxLength": 30000,
+        "type": "string"
+       },
+       "maxItems": 25,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Posts"
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 30000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Text"
+    },
+    "type": {
+     "const": "post.update",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "post_id"
+   ],
+   "title": "PostUpdateEvent",
+   "type": "object"
+  },
+  "ProfileUpdateEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "text": {
+     "maxLength": 8000,
+     "title": "Text",
+     "type": "string"
+    },
+    "type": {
+     "const": "profile.update",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "text"
+   ],
+   "title": "ProfileUpdateEvent",
+   "type": "object"
+  },
+  "Proposal": {
+   "properties": {
+    "confidence": {
+     "default": "medium",
+     "enum": [
+      "low",
+      "medium",
+      "high"
+     ],
+     "title": "Confidence",
+     "type": "string"
+    },
+    "created_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Created At"
+    },
+    "decided_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Decided At"
+    },
+    "decision_note": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Decision Note"
+    },
+    "detail": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Detail"
+    },
+    "evidence": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Evidence",
+     "type": "array"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "kind": {
+     "title": "Kind",
+     "type": "string"
+    },
+    "payload": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Payload",
+     "type": "object"
+    },
+    "source": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Source"
+    },
+    "status": {
+     "default": "pending",
+     "enum": [
+      "pending",
+      "approved",
+      "rejected",
+      "applied"
+     ],
+     "title": "Status",
+     "type": "string"
+    },
+    "title": {
+     "title": "Title",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "kind",
+    "title"
+   ],
+   "title": "Proposal",
+   "type": "object"
+  },
+  "ProposalDecideEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "decision": {
+     "enum": [
+      "approve",
+      "reject"
+     ],
+     "title": "Decision",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "note": {
+     "anyOf": [
+      {
+       "maxLength": 1000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Note"
+    },
+    "proposal_id": {
+     "title": "Proposal Id",
+     "type": "string"
+    },
+    "type": {
+     "const": "proposal.decide",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "proposal_id",
+    "decision"
+   ],
+   "title": "ProposalDecideEvent",
+   "type": "object"
+  },
+  "Question": {
+   "properties": {
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "kind": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Kind"
+    },
+    "q": {
+     "title": "Q",
+     "type": "string"
+    },
+    "why": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Why"
+    }
+   },
+   "required": [
+    "id",
+    "q"
+   ],
+   "title": "Question",
+   "type": "object"
+  },
+  "Quota": {
+   "properties": {
+    "daily_limit": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Daily Limit"
+    },
+    "day": {
+     "title": "Day",
+     "type": "string"
+    },
+    "exhausted_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Exhausted At"
+    },
+    "last_error": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Last Error"
+    },
+    "provider": {
+     "title": "Provider",
+     "type": "string"
+    },
+    "requests": {
+     "default": 0,
+     "title": "Requests",
+     "type": "integer"
+    },
+    "tokens_in": {
+     "default": 0,
+     "title": "Tokens In",
+     "type": "integer"
+    },
+    "tokens_out": {
+     "default": 0,
+     "title": "Tokens Out",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "provider",
+    "day"
+   ],
+   "title": "Quota",
+   "type": "object"
+  },
+  "RejectedEvent": {
+   "properties": {
+    "at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "At"
+    },
+    "error": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Error"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "type": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Type"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "RejectedEvent",
+   "type": "object"
+  },
+  "ReplyTarget": {
+   "properties": {
+    "accounts": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Accounts",
+     "type": "array"
+    },
+    "context": {
+     "default": "",
+     "title": "Context",
+     "type": "string"
+    },
+    "search_terms": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Search Terms",
+     "type": "array"
+    }
+   },
+   "title": "ReplyTarget",
+   "type": "object"
+  },
+  "Request": {
+   "properties": {
+    "card_ids": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Card Ids",
+     "type": "array"
+    },
+    "completed_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Completed At"
+    },
+    "created_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Created At"
+    },
+    "error": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Error"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "notes": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Notes"
+    },
+    "platforms": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "default": {},
+     "title": "Platforms",
+     "type": "object"
+    },
+    "query": {
+     "title": "Query",
+     "type": "string"
+    },
+    "status": {
+     "default": "queued",
+     "enum": [
+      "queued",
+      "running",
+      "done",
+      "partial",
+      "failed",
+      "cancelled"
+     ],
+     "title": "Status",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "query"
+   ],
+   "title": "Request",
+   "type": "object"
+  },
+  "RequestCancelEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "request_id": {
+     "title": "Request Id",
+     "type": "string"
+    },
+    "type": {
+     "const": "request.cancel",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "request_id"
+   ],
+   "title": "RequestCancelEvent",
+   "type": "object"
+  },
+  "RequestCreateEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "notes": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Notes"
+    },
+    "platforms": {
+     "additionalProperties": {
+      "maximum": 5,
+      "minimum": 0,
+      "type": "integer"
+     },
+     "propertyNames": {
+      "enum": [
+       "linkedin",
+       "x"
+      ]
+     },
+     "title": "Platforms",
+     "type": "object"
+    },
+    "query": {
+     "maxLength": 500,
+     "minLength": 2,
+     "title": "Query",
+     "type": "string"
+    },
+    "request_id": {
+     "title": "Request Id",
+     "type": "string"
+    },
+    "type": {
+     "const": "request.create",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "request_id",
+    "query",
+    "platforms"
+   ],
+   "title": "RequestCreateEvent",
+   "type": "object"
+  },
+  "Run": {
+   "properties": {
+    "degraded": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Degraded"
+    },
+    "ended_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Ended At"
+    },
+    "errors": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/RunError"
+     },
+     "title": "Errors",
+     "type": "array"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "llm": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Llm",
+     "type": "object"
+    },
+    "notes": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Notes",
+     "type": "array"
+    },
+    "started_at": {
+     "title": "Started At",
+     "type": "string"
+    },
+    "status": {
+     "default": "ok",
+     "enum": [
+      "running",
+      "ok",
+      "partial",
+      "failed"
+     ],
+     "title": "Status",
+     "type": "string"
+    },
+    "steps": {
+     "default": [],
+     "items": {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     "title": "Steps",
+     "type": "array"
+    },
+    "task": {
+     "title": "Task",
+     "type": "string"
+    },
+    "trigger": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Trigger"
+    }
+   },
+   "required": [
+    "id",
+    "task",
+    "started_at"
+   ],
+   "title": "Run",
+   "type": "object"
+  },
+  "RunError": {
+   "properties": {
+    "at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "At"
+    },
+    "message": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Message"
+    },
+    "type": {
+     "title": "Type",
+     "type": "string"
+    },
+    "where": {
+     "title": "Where",
+     "type": "string"
+    }
+   },
+   "required": [
+    "where",
+    "type"
+   ],
+   "title": "RunError",
+   "type": "object"
+  },
+  "RunRequestEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "force": {
+     "default": false,
+     "title": "Force",
+     "type": "boolean"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "tasks": {
+     "default": [],
+     "items": {
+      "enum": [
+       "morning",
+       "weekly_batch",
+       "reflection",
+       "doctor",
+       "report",
+       "scout"
+      ],
+      "type": "string"
+     },
+     "title": "Tasks",
+     "type": "array"
+    },
+    "type": {
+     "const": "run.request",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type"
+   ],
+   "title": "RunRequestEvent",
+   "type": "object"
+  },
+  "SettingsUpdateEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "patch": {
+     "additionalProperties": true,
+     "title": "Patch",
+     "type": "object"
+    },
+    "type": {
+     "const": "settings.update",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "patch"
+   ],
+   "title": "SettingsUpdateEvent",
+   "type": "object"
+  },
+  "Skip": {
+   "properties": {
+    "at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "At"
+    },
+    "note": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Note"
+    },
+    "reason": {
+     "enum": [
+      "not_interesting",
+      "off_brand",
+      "wrong_timing",
+      "too_risky",
+      "already_covered",
+      "other"
+     ],
+     "title": "Reason",
+     "type": "string"
+    }
+   },
+   "required": [
+    "reason"
+   ],
+   "title": "Skip",
+   "type": "object"
+  },
+  "Source": {
+   "properties": {
+    "active": {
+     "default": true,
+     "title": "Active",
+     "type": "boolean"
+    },
+    "added_by": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Added By"
+    },
+    "best_effort": {
+     "default": false,
+     "title": "Best Effort",
+     "type": "boolean"
+    },
+    "health": {
+     "$ref": "#/$defs/SourceHealth",
+     "default": {
+      "consecutive_failures": 0,
+      "items_last_run": null,
+      "items_total": null,
+      "last_error": null,
+      "last_fetch_at": null,
+      "last_success_at": null
+     }
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "kind": {
+     "title": "Kind",
+     "type": "string"
+    },
+    "lang": {
+     "default": "en",
+     "title": "Lang",
+     "type": "string"
+    },
+    "name": {
+     "title": "Name",
+     "type": "string"
+    },
+    "paused_reason": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Paused Reason"
+    },
+    "query": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Query"
+    },
+    "scout": {
+     "title": "Scout",
+     "type": "string"
+    },
+    "tier": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Tier"
+    },
+    "url": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Url"
+    },
+    "yield_stats": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Yield Stats",
+     "type": "object"
+    }
+   },
+   "required": [
+    "id",
+    "name",
+    "kind",
+    "scout"
+   ],
+   "title": "Source",
+   "type": "object"
+  },
+  "SourceDeleteEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "source_id": {
+     "title": "Source Id",
+     "type": "string"
+    },
+    "type": {
+     "const": "source.delete",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "source_id"
+   ],
+   "title": "SourceDeleteEvent",
+   "type": "object"
+  },
+  "SourceHealth": {
+   "properties": {
+    "consecutive_failures": {
+     "default": 0,
+     "title": "Consecutive Failures",
+     "type": "integer"
+    },
+    "items_last_run": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Items Last Run"
+    },
+    "items_total": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Items Total"
+    },
+    "last_error": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Last Error"
+    },
+    "last_fetch_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Last Fetch At"
+    },
+    "last_success_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Last Success At"
+    }
+   },
+   "title": "SourceHealth",
+   "type": "object"
+  },
+  "SourceRef": {
+   "properties": {
+    "lang": {
+     "default": "en",
+     "title": "Lang",
+     "type": "string"
+    },
+    "orig_title": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Orig Title"
+    },
+    "published_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Published At"
+    },
+    "publisher": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Publisher"
+    },
+    "summary": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Summary"
+    },
+    "title": {
+     "default": "",
+     "title": "Title",
+     "type": "string"
+    },
+    "url": {
+     "title": "Url",
+     "type": "string"
+    }
+   },
+   "required": [
+    "url"
+   ],
+   "title": "SourceRef",
+   "type": "object"
+  },
+  "SourceUpsertEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "active": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Active"
+    },
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "kind": {
+     "anyOf": [
+      {
+       "enum": [
+        "rss",
+        "gnews",
+        "arxiv",
+        "hf_papers",
+        "hn_front",
+        "hn_show",
+        "wikipedia_otd",
+        "reddit"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Kind"
+    },
+    "lang": {
+     "anyOf": [
+      {
+       "enum": [
+        "en",
+        "hi"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Lang"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "maxLength": 120,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Name"
+    },
+    "pillar_hints": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Pillar Hints"
+    },
+    "query": {
+     "anyOf": [
+      {
+       "maxLength": 300,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Query"
+    },
+    "scout": {
+     "anyOf": [
+      {
+       "enum": [
+        "tech",
+        "affairs",
+        "startups",
+        "life"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Scout"
+    },
+    "source_id": {
+     "title": "Source Id",
+     "type": "string"
+    },
+    "tier": {
+     "anyOf": [
+      {
+       "enum": [
+        "world",
+        "india",
+        "bihar",
+        "other"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Tier"
+    },
+    "type": {
+     "const": "source.upsert",
+     "title": "Type",
+     "type": "string"
+    },
+    "url": {
+     "anyOf": [
+      {
+       "maxLength": 1000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Url"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "source_id"
+   ],
+   "title": "SourceUpsertEvent",
+   "type": "object"
+  },
+  "Stance": {
+   "properties": {
+    "chosen": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/StanceChoice"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "context": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Context"
+    },
+    "created_by": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Created By"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "issue": {
+     "title": "Issue",
+     "type": "string"
+    },
+    "keywords": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Keywords",
+     "type": "array"
+    },
+    "positions": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/Position"
+     },
+     "title": "Positions",
+     "type": "array"
+    },
+    "sources": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/SourceRef"
+     },
+     "title": "Sources",
+     "type": "array"
+    },
+    "status": {
+     "default": "proposed",
+     "enum": [
+      "proposed",
+      "active",
+      "archived"
+     ],
+     "title": "Status",
+     "type": "string"
+    },
+    "tier": {
+     "default": "other",
+     "enum": [
+      "world",
+      "india",
+      "bihar",
+      "other"
+     ],
+     "title": "Tier",
+     "type": "string"
+    },
+    "updated_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Updated At"
+    }
+   },
+   "required": [
+    "id",
+    "issue"
+   ],
+   "title": "Stance",
+   "type": "object"
+  },
+  "StanceChoice": {
+   "properties": {
+    "custom_text": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Custom Text"
+    },
+    "position_key": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Position Key"
+    }
+   },
+   "title": "StanceChoice",
+   "type": "object"
+  },
+  "StanceDeleteEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "stance_id": {
+     "title": "Stance Id",
+     "type": "string"
+    },
+    "type": {
+     "const": "stance.delete",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "stance_id"
+   ],
+   "title": "StanceDeleteEvent",
+   "type": "object"
+  },
+  "StanceFromAnswer": {
+   "additionalProperties": false,
+   "properties": {
+    "issue": {
+     "anyOf": [
+      {
+       "maxLength": 200,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Issue"
+    },
+    "stance_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Stance Id"
+    },
+    "text": {
+     "maxLength": 1000,
+     "title": "Text",
+     "type": "string"
+    },
+    "tier": {
+     "anyOf": [
+      {
+       "enum": [
+        "world",
+        "india",
+        "bihar",
+        "other"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Tier"
+    }
+   },
+   "required": [
+    "text"
+   ],
+   "title": "StanceFromAnswer",
+   "type": "object"
+  },
+  "StanceProposeEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "count": {
+     "default": 3,
+     "maximum": 10,
+     "minimum": 1,
+     "title": "Count",
+     "type": "integer"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "type": {
+     "const": "stance.propose",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type"
+   ],
+   "title": "StanceProposeEvent",
+   "type": "object"
+  },
+  "StanceUpsertEvent": {
+   "additionalProperties": false,
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "chosen_key": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Chosen Key"
+    },
+    "clear_choice": {
+     "default": false,
+     "title": "Clear Choice",
+     "type": "boolean"
+    },
+    "context": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Context"
+    },
+    "custom_text": {
+     "anyOf": [
+      {
+       "maxLength": 1000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Custom Text"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "issue": {
+     "anyOf": [
+      {
+       "maxLength": 200,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Issue"
+    },
+    "keywords": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "maxItems": 30,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Keywords"
+    },
+    "positions": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/PositionIn"
+       },
+       "maxItems": 8,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Positions"
+    },
+    "stance_id": {
+     "title": "Stance Id",
+     "type": "string"
+    },
+    "status": {
+     "anyOf": [
+      {
+       "enum": [
+        "proposed",
+        "active",
+        "archived"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Status"
+    },
+    "tier": {
+     "anyOf": [
+      {
+       "enum": [
+        "world",
+        "india",
+        "bihar",
+        "other"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Tier"
+    },
+    "type": {
+     "const": "stance.upsert",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "stance_id"
+   ],
+   "title": "StanceUpsertEvent",
+   "type": "object"
+  },
+  "SystemReport": {
+   "properties": {
+    "actions": {
+     "default": [],
+     "items": {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     "title": "Actions",
+     "type": "array"
+    },
+    "created_at": {
+     "title": "Created At",
+     "type": "string"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "period": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Period",
+     "type": "object"
+    },
+    "proposals": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Proposals",
+     "type": "array"
+    },
+    "sections": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Sections",
+     "type": "object"
+    },
+    "week": {
+     "title": "Week",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "week",
+    "created_at"
+   ],
+   "title": "SystemReport",
+   "type": "object"
+  },
+  "Versions": {
+   "properties": {
+    "playbook": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Playbook"
+    },
+    "prompt": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Prompt"
+    },
+    "voice": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Voice"
+    }
+   },
+   "title": "Versions",
+   "type": "object"
+  },
+  "VoiceProfile": {
+   "properties": {
+    "added_phrases": {
+     "default": [],
+     "items": {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     "title": "Added Phrases",
+     "type": "array"
+    },
+    "avoid": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Avoid",
+     "type": "array"
+    },
+    "created_at": {
+     "title": "Created At",
+     "type": "string"
+    },
+    "cut_phrases": {
+     "default": [],
+     "items": {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     "title": "Cut Phrases",
+     "type": "array"
+    },
+    "examples": {
+     "additionalProperties": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     },
+     "default": {},
+     "title": "Examples",
+     "type": "object"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "rules": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Rules",
+     "type": "array"
+    },
+    "stats": {
+     "additionalProperties": true,
+     "default": {},
+     "title": "Stats",
+     "type": "object"
+    },
+    "summary": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Summary"
+    },
+    "version": {
+     "title": "Version",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "id",
+    "version",
+    "created_at"
+   ],
+   "title": "VoiceProfile",
+   "type": "object"
+  },
+  "Work": {
+   "properties": {
+    "attempts": {
+     "default": 0,
+     "title": "Attempts",
+     "type": "integer"
+    },
+    "chips": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Chips",
+     "type": "array"
+    },
+    "kind": {
+     "enum": [
+      "draft",
+      "rewrite",
+      "questions"
+     ],
+     "title": "Kind",
+     "type": "string"
+    },
+    "last_error": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Last Error"
+    },
+    "note": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Note"
+    },
+    "requested_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Requested At"
+    },
+    "target_format": {
+     "anyOf": [
+      {
+       "enum": [
+        "li_text",
+        "x_single",
+        "x_thread",
+        "x_quote",
+        "x_reply"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Target Format"
+    },
+    "target_platform": {
+     "anyOf": [
+      {
+       "enum": [
+        "linkedin",
+        "x"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Target Platform"
+    }
+   },
+   "required": [
+    "kind"
+   ],
+   "title": "Work",
+   "type": "object"
+  },
+  "Working": {
+   "properties": {
+    "hook_index": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Hook Index"
+    },
+    "posts": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Posts"
+    },
+    "text": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Text"
+    },
+    "updated_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Updated At"
+    }
+   },
+   "title": "Working",
+   "type": "object"
+  }
+ },
+ "properties": {
+  "batch": {
+   "$ref": "#/$defs/InboxBatch"
+  },
+  "desk": {
+   "$ref": "#/$defs/DeskState"
+  }
+ },
+ "required": [
+  "desk",
+  "batch"
+ ],
+ "title": "Contracts",
+ "type": "object"
+}

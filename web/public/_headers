@@ -1,0 +1,5 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), geolocation=(), microphone=(self)
+  X-Frame-Options: DENY
