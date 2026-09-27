@@ -10,7 +10,7 @@ from typing import Any
 from . import ids, log, notify, timeutil
 from .context import Ctx
 from .llm.base import LLMError, LLMRequest
-from .scout.fetch import FetchJob, fetch_all
+from .scout.fetch import FetchJob, fetch_all, no_sleep
 from .scout.sources import fetch_url, sync_seeds
 
 
@@ -74,7 +74,8 @@ def run_doctor(ctx: Ctx, probe_llm: bool = True, probe_sources: bool = True) -> 
         jobs = [FetchJob(key=s["id"], url=fetch_url(s, ctx.local_date_str())) for s in sources]
         sc = ctx.settings.scouting
         results = asyncio.run(fetch_all(jobs, user_agent=sc.user_agent, timeout=sc.timeout_seconds,
-                                        concurrency=sc.concurrency, transport=ctx.transport))
+                                        concurrency=sc.concurrency, transport=ctx.transport,
+                                        **({"sleep": no_sleep} if ctx.transport is not None else {})))
         failed = [r.key for r in results if not r.ok]
         checks.append(_check("Sources reachable", "ok" if not failed else ("warn" if len(failed) < len(results) / 3
                                                                            else "fail"),

@@ -192,5 +192,65 @@
    "final": "Hello, world.",
    "expected": 0.3333
   }
+ ],
+ "sentences": [
+  {
+   "name": "initial is not a sentence end",
+   "text": "Engineers' Day marks the birth of M. Visvesvaraya on 15 September 1860. He led major projects.",
+   "expected": [
+    "Engineers' Day marks the birth of M. Visvesvaraya on 15 September 1860.",
+    "He led major projects."
+   ]
+  },
+  {
+   "name": "title abbreviation",
+   "text": "Talk to Dr. Rao today. Then leave.",
+   "expected": [
+    "Talk to Dr. Rao today.",
+    "Then leave."
+   ]
+  },
+  {
+   "name": "e.g.",
+   "text": "Use tools, e.g. MCP servers. Then stop.",
+   "expected": [
+    "Use tools, e.g. MCP servers.",
+    "Then stop."
+   ]
+  },
+  {
+   "name": "acronym at sentence end",
+   "text": "Made in the USA. Sold here.",
+   "expected": [
+    "Made in the USA.",
+    "Sold here."
+   ]
+  },
+  {
+   "name": "line breaks",
+   "text": "First line\nSecond line\n\nThird",
+   "expected": [
+    "First line",
+    "Second line",
+    "Third"
+   ]
+  },
+  {
+   "name": "hindi danda",
+   "text": "बिहार में नई योजना। दूसरा वाक्य।",
+   "expected": [
+    "बिहार में नई योजना।",
+    "दूसरा वाक्य।"
+   ]
+  },
+  {
+   "name": "question and exclamation",
+   "text": "Wait! Really? Yes.",
+   "expected": [
+    "Wait!",
+    "Really?",
+    "Yes."
+   ]
+  }
  ]
 }

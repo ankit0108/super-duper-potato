@@ -37,6 +37,10 @@ class FetchJob:
 SLOW_HOSTS = {"news.google.com": 1.0, "www.reddit.com": 2.0, "export.arxiv.org": 3.0}
 
 
+async def no_sleep(_seconds: float) -> None:
+    """Politeness delays only matter against real hosts; offline runs (a mock transport) skip them."""
+
+
 async def fetch_all(jobs: list[FetchJob], *, user_agent: str, timeout: float = 20, concurrency: int = 8,
                     transport: httpx.AsyncBaseTransport | None = None, max_bytes: int = 5_000_000,
                     sleep=asyncio.sleep) -> list[FetchResult]:

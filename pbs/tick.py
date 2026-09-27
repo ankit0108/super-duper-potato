@@ -6,6 +6,7 @@ metrics → morning delivery if due → Saturday batch if due → reflection if 
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -37,7 +38,9 @@ TASKS = {"morning", "weekly_batch", "reflection", "doctor", "report", "scout", "
 
 def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | None = None, force: bool = False,
         transport: Any = None, llm_providers: dict[str, Any] | None = None, sleep: Any = None,
-        send_notifications: bool = True) -> dict[str, Any]:
+        send_notifications: bool = True,
+        morning: Callable[[Ctx], dict[str, Any] | None] | None = None) -> dict[str, Any]:
+    """One run. `morning` replaces the morning delivery step (the demo builder uses it to replay past days)."""
     ctx = Ctx.create(data_root, task="tick", trigger=trigger, hints=hints, force=force, transport=transport,
                      llm_providers=llm_providers, sleep=sleep)
     summary: dict[str, Any] = {"run_id": ctx.run.id}
@@ -71,7 +74,7 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
             if morning_wanted and ctx.store.get("deliveries", deliver.delivery_id(ctx.local_date_str())):
                 s["result"] = _extra_delivery(ctx)
             else:
-                s["result"] = deliver.morning_delivery(ctx)
+                s["result"] = morning(ctx) if morning else deliver.morning_delivery(ctx)
             res = s["result"]
             if res and send_notifications and ctx.settings.notify.on_delivery:
                 title, msg = notify.delivery_message(res["counts"], res["needs_input"], ctx.run.degraded)
@@ -108,6 +111,7 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
         record["status"] = "partial" if record["status"] == "ok" else record["status"]
         ctx.store.upsert("runs", record)
     changed = ctx.store.save()
+    inbox.cleanup(ctx)
     summary.update(status=record["status"], changed_files=len(changed), llm_calls=(record.get("llm") or {}).get("calls", 0),
                    degraded=ctx.run.degraded)
     if record["status"] == "failed" and send_notifications and ctx.settings.notify.on_failure:

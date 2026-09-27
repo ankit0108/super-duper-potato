@@ -1,0 +1,97 @@
+# The PBS pipeline. Every run is a "tick" that does whatever is due, so a delayed, dropped or cancelled
+# scheduled run is recovered by the next run of any kind. The desk triggers this workflow for work
+# Ankit is waiting on (answers, rewrites, requests, weekly review).
+name: pbs
+
+on:
+  schedule:
+    - cron: "41 18 * * *"      # morning delivery: 04:41 AEST / 05:41 AEDT
+    - cron: "7 1,7,13 * * *"   # light ticks: ingest desk events, expire, learn, catch up
+    - cron: "23 9 * * 6"       # Saturday batch: 19:23 AEST / 20:23 AEDT
+  workflow_dispatch:
+    inputs:
+      hint:
+        description: "Tasks to run now (comma-separated): morning, weekly_batch, reflection, doctor, scout"
+        required: false
+        default: ""
+      force:
+        description: "Force hinted tasks (for example another morning set)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # the 'data' branch in single-repo mode
+  models: read      # GitHub Models, free, with the built-in token
+  actions: write    # keep the schedule alive
+
+concurrency:
+  group: pbs-state
+  cancel-in-progress: false
+
+env:
+  PBS_PUBLIC_LOGS: "1"   # logs carry counts and IDs only; personal content stays in the private data repo
+  PBS_DATA_DIR: .pbs-data
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: pip install -q -e .
+
+      - name: Check out data
+        env:
+          PBS_DATA_REPO: ${{ vars.PBS_DATA_REPO }}
+          PBS_DATA_BRANCH: ${{ vars.PBS_DATA_BRANCH }}
+          PBS_DATA_TOKEN: ${{ secrets.PBS_DATA_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          REPO_PRIVATE: ${{ github.event.repository.private }}
+        run: scripts/data-checkout.sh
+
+      - name: Tick
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          PBS_BLOCKLIST: ${{ secrets.PBS_BLOCKLIST }}
+          PBS_NTFY_TOPIC: ${{ secrets.PBS_NTFY_TOPIC }}
+          PBS_TELEGRAM_BOT_TOKEN: ${{ secrets.PBS_TELEGRAM_BOT_TOKEN }}
+          PBS_TELEGRAM_CHAT_ID: ${{ secrets.PBS_TELEGRAM_CHAT_ID }}
+          PBS_DESK_URL: ${{ vars.PBS_DESK_URL }}
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_HINT: ${{ inputs.hint }}
+          INPUT_FORCE: ${{ inputs.force }}
+        run: |
+          HINT="$INPUT_HINT"
+          if [ "$EVENT" = "schedule" ]; then
+            case "$SCHEDULE" in
+              "41 18 * * *") HINT="morning" ;;
+              "23 9 * * 6") HINT="weekly_batch" ;;
+              *) HINT="" ;;
+            esac
+          fi
+          FORCE=""
+          if [ "$INPUT_FORCE" = "true" ]; then FORCE="--force"; fi
+          pbs tick --trigger "$EVENT" --hint "$HINT" $FORCE
+
+      - name: Save data
+        if: always()
+        run: scripts/data-push.sh "pbs: ${{ github.event_name }} tick ${{ github.run_id }}"
+
+      - name: Keep the schedule alive
+        if: github.event_name == 'schedule' && github.event.schedule == '23 9 * * 6'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: scripts/keepalive.sh

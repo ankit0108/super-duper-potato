@@ -129,7 +129,12 @@ def morning_delivery(ctx: Ctx, scout: bool = True, dlv_id: str | None = None) ->
         if ctx.settings.platform_enabled(platform):
             plan[platform] = allocate(ctx, platform, cands.get(platform, []), arms, rng, taken_elsewhere=taken)
             taken |= {c.topic_key for c in plan[platform]}
+    return deliver_plan(ctx, plan, dlv_id)
 
+
+def deliver_plan(ctx: Ctx, plan: dict[str, list[Candidate]], dlv_id: str) -> dict[str, Any]:
+    """Create and fill the cards for a ranked plan, within the model budget, and record the delivery."""
+    local_date = ctx.local_date_str()
     # Budget: trim lowest-ranked beyond the minimum when the model budget can't cover the whole set.
     need = sum(1 for cs in plan.values() for c in cs if not (c.mode == "interview" and c.bank))
     available = ctx.llm.remaining("draft")

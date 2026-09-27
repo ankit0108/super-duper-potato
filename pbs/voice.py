@@ -23,16 +23,27 @@ FLUFF = {"really", "very", "just", "truly", "incredibly", "extremely", "crucial"
          "journey", "unlock", "unleash", "dive", "deep-dive", "transformative", "groundbreaking", "delve"}
 _EMOJI = re.compile(r"[\U0001F300-\U0001FAFF☀-➿]")
 _STOP = {"the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "is", "it", "that", "this", "with", "as",
-         "be", "are", "was", "at", "by", "from", "we", "you", "i", ",", ".", ":", ";", "-", "—", "'", "’"}
+         "be", "are", "was", "at", "by", "from", "we", "you", "i", "does", "do", "did", "your", "yours", "our", "their",
+         "his", "her", "its", "my", "me", "us", "them", "they", "he", "she", "what", "which", "who", "whom", "when",
+         "where", "why", "how", "than", "more", "most", "less", "can", "could", "would", "should", "will", "may",
+         "might", "must", "have", "has", "had", "not", "no", "so", "but", "if", "then", "there", "here", "about",
+         "into", "over", "under", "only", "also", "all", "any", "each", "every", "some", "one", "been", "being",
+         "were", "these", "those"}
+
+
+def _is_word(tok: str) -> bool:
+    return len(tok) > 1 and any(ch.isalpha() for ch in tok) and all(ch.isalnum() or ch in "-'’" for ch in tok)
 
 
 def _ngrams(phrase: str, n_max: int = 4) -> set[str]:
+    """Candidate phrases from an edit: runs of real words that don't start or end on a function word.
+    Punctuation and stray letters (the "s" of "it's") break a run, so "line : the details" never forms."""
     toks = [t for t in phrase.casefold().split() if t]
     grams: set[str] = set()
     for n in range(1, n_max + 1):
         for i in range(len(toks) - n + 1):
             gram = toks[i:i + n]
-            if gram[0] in _STOP or gram[-1] in _STOP:
+            if not all(_is_word(t) for t in gram) or gram[0] in _STOP or gram[-1] in _STOP:
                 continue
             if n == 1 and gram[0] not in FLUFF:
                 continue
@@ -91,14 +102,18 @@ def deterministic_rules(stats: dict[str, Any]) -> list[str]:
         if s.get("posts", 0) < 3:
             continue
         if s.get("length_ratio") and s["length_ratio"] < 0.85 and s.get("final_length_median"):
-            rules.append(f"On {label} he cuts drafts to about {int(s['length_ratio'] * 100)}% of their length: "
-                         f"aim for about {s['final_length_median']} characters.")
+            # Rounded, so the rule (and the profile version) only changes when his habit does.
+            pct = int(round(s["length_ratio"] * 20) * 5)
+            step = 50 if platform == "linkedin" else 10
+            chars = int(round(s["final_length_median"] / step) * step)
+            rules.append(f"On {label} he cuts drafts to about {pct}% of their length: aim for about {chars} characters.")
         if s.get("emoji_per_post") == 0:
             rules.append(f"No emoji on {label}.")
         if s.get("hashtags_per_post") == 0:
             rules.append(f"No hashtags on {label}.")
         if s.get("sentence_words_median") and s["sentence_words_median"] <= 12:
-            rules.append(f"Keep {label} sentences short (about {int(s['sentence_words_median'])} words).")
+            words = int(round(s["sentence_words_median"] / 2) * 2)
+            rules.append(f"Keep {label} sentences short (about {words} words).")
     return rules
 
 

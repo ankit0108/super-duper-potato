@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [data]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: pip install -q -e ".[dev]"
+      - run: ruff check pbs tests
+      - run: pytest
+      - name: Desk contract is up to date
+        run: |
+          pbs schema --out /tmp/contracts.schema.json
+          diff -q /tmp/contracts.schema.json web/src/types/contracts.schema.json
+
+  desk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: End-to-end (demo mode)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run e2e

@@ -44,7 +44,11 @@ def test_posting_records_edit_ratio_hook_and_features(make_ctx, tmp_path):
     assert post["editing_seconds"] == 420 and post["time_to_post_minutes"] is not None
     types = [i["type"] for i in ctx.store.select("interactions", "card_id = ?", (card["id"],))]
     assert "picked" in types and "posted" in types
-    assert not list((ctx.data_root / "inbox").glob("*.json"))  # inbox file consumed
+    assert list((ctx.data_root / "inbox").glob("*.json"))  # kept until the store is saved
+    ctx.store.save()
+    assert inbox.cleanup(ctx) == 1
+    assert not list((ctx.data_root / "inbox").glob("*.json"))
+    assert inbox.ingest(ctx)["files"] == 0
 
 
 def test_events_apply_once(make_ctx):
@@ -244,3 +248,12 @@ def test_personal_draft_goes_to_non_training_provider_first(make_ctx):
     _ = ctx.llm  # build the router
     chain = ctx.llm.chain("draft_personal", personal=True)
     assert chain[0] in ("github_strong", "github")
+
+
+def test_voice_learns_phrases_not_function_words_or_punctuation():
+    from pbs.voice import _ngrams
+
+    grams = _ngrams("Does your team know ? Bottom line : the details matter more than the headline . "
+                    "It ' s a really important shift")
+    assert {"bottom line", "details matter", "really", "important shift"} <= grams
+    assert not {"does your", "your team", "more than", "line : the details", "s a really", "matter more"} & grams

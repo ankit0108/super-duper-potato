@@ -36,6 +36,8 @@ def _event_time(ev: Any) -> str:
 
 
 def ingest(ctx: Ctx) -> dict[str, int]:
+    """Apply inbox events. Files are only deleted by `cleanup()` after the store has been saved,
+    so a crash mid-run never loses an event (processed_events makes re-reading harmless)."""
     folder = inbox_dir(ctx)
     stats = {"files": 0, "applied": 0, "rejected": 0, "skipped": 0}
     if not folder.is_dir():
@@ -74,11 +76,22 @@ def ingest(ctx: Ctx) -> dict[str, int]:
                 log.error(f"inbox:{ev.type}", exc)
                 _record(ctx, ev.id, ev.type, "rejected", f"internal error ({type(exc).__name__})", env.id)
                 stats["rejected"] += 1
-        path.unlink()
+        _consumed.setdefault(id(ctx), []).append(path)
     if stats["files"]:
         log.info(f"inbox: {stats['applied']} applied, {stats['rejected']} rejected, {stats['skipped']} duplicates "
                  f"from {stats['files']} files")
     return stats
+
+
+_consumed: dict[int, list[Path]] = {}
+
+
+def cleanup(ctx: Ctx) -> int:
+    """Delete inbox files whose events are now in the saved store."""
+    paths = _consumed.pop(id(ctx), [])
+    for path in paths:
+        path.unlink(missing_ok=True)
+    return len(paths)
 
 
 def _record(ctx: Ctx, ev_id: str, ev_type: str | None, status: str, error: str | None,

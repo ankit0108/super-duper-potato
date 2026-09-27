@@ -20,6 +20,11 @@ def test_edit_tokens(case):
     assert T.edit_tokens(case["text"]) == case["expected"]
 
 
+@pytest.mark.parametrize("case", VECTORS["sentences"], ids=lambda c: c["name"])
+def test_split_sentences(case):
+    assert T.split_sentences(case["text"]) == case["expected"]
+
+
 @pytest.mark.parametrize("case", VECTORS["edit_ratio"], ids=lambda c: c["name"])
 def test_edit_ratio(case):
     assert T.edit_ratio(case["draft"], case["final"]) == pytest.approx(case["expected"], abs=1e-4)

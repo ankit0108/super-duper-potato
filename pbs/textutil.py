@@ -330,7 +330,9 @@ def edit_changes(draft: str | None, final: str | None) -> dict[str, list[str]]:
 # Sentences, numbers, openings
 # ---------------------------------------------------------------------------
 
-_SENT_RE = re.compile(r"(?<=[.!?।])\s+|\n+")
+# A sentence ends at . ! ? or । followed by space, but not after an initial ("M. Visvesvaraya") or a
+# common abbreviation ("Dr.", "e.g.").
+_SENT_RE = re.compile(r"(?<![\s(][A-Z]\.)(?<!\b(?:Dr|Mr|Ms|St|vs|No)\.)(?<!e\.g\.)(?<!i\.e\.)(?<=[.!?।])\s+|\n+")
 
 
 def split_sentences(text: str | None) -> list[str]:

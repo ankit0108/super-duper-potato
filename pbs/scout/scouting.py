@@ -10,7 +10,7 @@ from typing import Any
 from .. import ids, log, textutil, timeutil
 from ..context import Ctx
 from ..store import Store
-from .fetch import FetchJob, fetch_all
+from .fetch import FetchJob, fetch_all, no_sleep
 from .parsers import parse
 from .sources import fetch_url, sync_seeds
 
@@ -131,7 +131,7 @@ def run_scouts(ctx: Ctx, only: set[str] | None = None) -> dict[str, Any]:
     sc = settings.scouting
     results = asyncio.run(fetch_all(jobs, user_agent=sc.user_agent, timeout=sc.timeout_seconds,
                                     concurrency=sc.concurrency, transport=ctx.transport,
-                                    **({"sleep": _nosleep} if ctx.transport is not None else {})))
+                                    **({"sleep": no_sleep} if ctx.transport is not None else {})))
     index = DedupIndex(store, sc.dedup_window_days)
     by_id = {s["id"]: s for s in sources}
     now = timeutil.now_iso()
@@ -174,9 +174,6 @@ def run_scouts(ctx: Ctx, only: set[str] | None = None) -> dict[str, Any]:
              f"{stats['duplicates']} duplicates, {stats['failed']} failed")
     return stats
 
-
-async def _nosleep(_seconds: float) -> None:
-    return None
 
 
 def _auto_pause(ctx: Ctx) -> None:

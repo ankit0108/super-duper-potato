@@ -11,7 +11,7 @@ from urllib.parse import quote
 from .. import log, textutil
 from ..context import Ctx
 from ..llm.base import BudgetExhausted, LLMError, LLMRequest
-from .fetch import FetchJob, fetch_all
+from .fetch import FetchJob, fetch_all, no_sleep
 from .parsers import _parse_feed, _parse_hn
 from .sources import gnews_search_url
 
@@ -61,7 +61,7 @@ def run_search(ctx: Ctx, query: str) -> list[tuple[dict[str, Any], dict[str, Any
     sc = ctx.settings.scouting
     results = asyncio.run(fetch_all([j for j, _ in jobs], user_agent=sc.user_agent, timeout=sc.timeout_seconds,
                                     concurrency=4, transport=ctx.transport,
-                                    **({"sleep": _nosleep} if ctx.transport is not None else {})))
+                                    **({"sleep": no_sleep} if ctx.transport is not None else {})))
     meta = {j.key: m for j, m in jobs}
     found: list[tuple[dict[str, Any], dict[str, Any]]] = []
     for res in results:
@@ -120,7 +120,3 @@ def grounded_search(ctx: Ctx, query: str) -> list[tuple[dict[str, Any], dict[str
                           "summary": "", "published_at": None, "lang": "en",
                           "publisher": g.get("title") or "Web", "signals": {"grounded": 1}}))
     return out
-
-
-async def _nosleep(_s: float) -> None:
-    return None

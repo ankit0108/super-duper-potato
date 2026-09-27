@@ -10,7 +10,7 @@ from xml.sax.saxutils import escape
 
 import httpx
 
-from .. import timeutil
+from .. import ids, timeutil
 
 
 def rss(title: str, items: list[dict[str, Any]]) -> str:
@@ -184,10 +184,15 @@ def build_world(ref: dt.datetime | None = None) -> dict[str, tuple[int, str, str
 
 
 class MockWeb:
-    """httpx transport serving `build_world()`. Unknown URLs get an empty feed (or 404 for JSON APIs)."""
+    """httpx transport serving `build_world()`. Unknown URLs get an empty feed (or empty JSON for APIs).
 
-    def __init__(self, world: dict[str, tuple[int, str, str]] | None = None):
+    With `filler=True` (the desk demo), unknown feeds return two posts from several days ago instead: every
+    source then looks alive on the Sources page, but nothing old enough to become today's news.
+    """
+
+    def __init__(self, world: dict[str, tuple[int, str, str]] | None = None, filler: bool = False):
         self.world = world if world is not None else build_world()
+        self.filler = filler
         self.requests: list[str] = []
 
     def _match(self, url: str) -> tuple[int, str, str] | None:
@@ -205,10 +210,17 @@ class MockWeb:
             if "algolia" in url or "api/" in url:
                 return httpx.Response(200, json={"hits": [], "events": []})
             return httpx.Response(200, headers={"content-type": "application/rss+xml"},
-                                  text=rss("empty", []))
+                                  text=rss("feed", self._older_posts(url) if self.filler else []))
         status, ctype, body = hit
         return httpx.Response(status, headers={"content-type": ctype, "etag": f'"{hash(body) & 0xffff}"'},
                               content=body.encode("utf-8"))
+
+    @staticmethod
+    def _older_posts(url: str) -> list[dict[str, Any]]:
+        host = httpx.URL(url).host or "example.com"
+        key = ids.short_hash(url)
+        return [{"title": f"Earlier post {n} from {host} ({key})", "url": f"https://{host}/archive/{key}-{n}",
+                 "summary": "", "at": timeutil.now() - dt.timedelta(days=4 + n)} for n in (1, 2)]
 
     def transport(self) -> httpx.MockTransport:
         return httpx.MockTransport(self.handler)
