@@ -7,6 +7,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+import httpx
+
 
 @dataclass
 class LLMRequest:
@@ -38,23 +40,81 @@ class LLMResponse:
     latency_ms: int = 0
 
 
-class LLMError(Exception):
-    """Provider failure. `quota` = daily limit reached; `rate_limited` = retry after a pause."""
+_CODE_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,48}$")
 
-    def __init__(self, message: str, *, status: int | None = None, retryable: bool = False,
-                 quota: bool = False, rate_limited: bool = False, retry_after: float | None = None,
-                 fatal_for_provider: bool = False):
+
+class LLMError(Exception):
+    """Provider failure.
+
+    `quota`: daily limit reached. `rate_limited`: retry after a pause. `model_gone`: the model was retired or
+    renamed, so the provider's next model should be tried. `code` is the provider's own error code
+    (NOT_FOUND, invalid_api_key, ...): an identifier, never request content, so it is safe for public logs.
+    """
+
+    def __init__(self, message: str, *, status: int | None = None, code: str | None = None,
+                 retryable: bool = False, quota: bool = False, rate_limited: bool = False,
+                 retry_after: float | None = None, fatal_for_provider: bool = False, model_gone: bool = False):
         super().__init__(message)
         self.status = status
+        self.code = code if code and _CODE_RE.match(code) else None
         self.retryable = retryable
         self.quota = quota
         self.rate_limited = rate_limited
         self.retry_after = retry_after
         self.fatal_for_provider = fatal_for_provider
+        self.model_gone = model_gone
+
+    @property
+    def kind(self) -> str:
+        if self.quota:
+            return "daily quota reached"
+        if self.rate_limited:
+            return "rate limited"
+        if self.model_gone:
+            return "model not available"
+        if self.code == "bad_body":
+            return "unreadable response"
+        if self.code == "network":
+            return "network error"
+        if self.status in (401, 403) or "key" in (self.code or "").lower():
+            return "key rejected"
+        if self.status is not None and self.status >= 500:
+            return "server error"
+        return "request failed"
+
+    def public(self) -> str:
+        """Content-free summary for public logs: kind, HTTP status and the provider's error code."""
+        detail = " ".join(p for p in (f"HTTP {self.status}" if self.status is not None else "",
+                                      self.code if self.code not in (None, "bad_body", "network") else "") if p)
+        return f"{self.kind} ({detail})" if detail else self.kind
 
 
 class BudgetExhausted(Exception):
     """No provider can take another call right now (daily cap, run cap, or all quotas used)."""
+
+
+class AllProvidersFailed(BudgetExhausted):
+    """Every provider in the route was tried and failed with an error (not just out of quota)."""
+
+
+def why_unavailable(exc: BudgetExhausted) -> str:
+    """For notes Ankit reads: quota versus broken providers need different reactions."""
+    if isinstance(exc, AllProvidersFailed):
+        return "the model providers returned errors (System shows which)"
+    return "the free model quota ran out"
+
+
+def read_json(resp: httpx.Response) -> dict[str, Any]:
+    """The JSON object in a provider's reply, or an LLMError that says what came back instead."""
+    try:
+        data = resp.json()
+    except ValueError:
+        data = None
+    if not isinstance(data, dict):
+        ctype = (resp.headers.get("content-type") or "no content type").split(";")[0].strip()[:40]
+        raise LLMError(f"unreadable response body (HTTP {resp.status_code}, {ctype}, {len(resp.content)} bytes)",
+                       status=resp.status_code, code="bad_body", fatal_for_provider=True)
+    return data
 
 
 class Provider(Protocol):

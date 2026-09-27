@@ -82,3 +82,75 @@ def test_public_repo_without_data_repo_is_refused(tmp_path):
     e.update(REPO_PRIVATE="false", PBS_DATA_DIR=str(tmp_path / "work"))
     out = subprocess.run([str(ROOT / "scripts/data-checkout.sh")], cwd=tmp_path, env=e, capture_output=True, text=True)
     assert out.returncode == 1 and "public" in out.stdout
+
+
+GITHUB_403 = ("remote: Write access to repository not granted.\n"
+              "fatal: unable to access 'https://github.com/ankit/pbs-data.git/': The requested URL returned error: 403")
+
+
+def fake_tools(tmp_path: Path, git_fail: dict[str, str] | None = None, http_code: str = "200") -> dict[str, str]:
+    """Put stand-ins for git (failing the given subcommands with GitHub's messages) and curl on PATH."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    real_git = shutil.which("git")
+    cases = "".join(f'  {sub}) printf "%s\\n" {json.dumps(msg)} >&2; exit 128 ;;\n'
+                    for sub, msg in (git_fail or {}).items())
+    (bin_dir / "git").write_text(f'#!/usr/bin/env bash\nfor a in "$@"; do case "$a" in\n{cases}'
+                                 f'  ls-remote) exit 0 ;;\nesac; done\nexec {real_git} "$@"\n')
+    (bin_dir / "curl").write_text(f'#!/usr/bin/env bash\ncat >/dev/null\nprintf "{http_code}"\n')
+    for f in bin_dir.iterdir():
+        f.chmod(0o755)
+    e = dict(os.environ)
+    e.pop("PBS_DATA_URL", None)
+    e.update(PATH=f"{bin_dir}:{Path(sys.executable).parent}:{e.get('PATH', '')}", PBS_DATA_REPO="ankit/pbs-data",
+             PBS_DATA_TOKEN="tok", PBS_DATA_DIR=str(tmp_path / "work"))
+    return e
+
+
+def run_script(name: str, e: dict[str, str], cwd: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run([str(ROOT / "scripts" / name), *args], cwd=cwd, env=e, capture_output=True, text=True,
+                          timeout=60)
+
+
+def test_a_token_that_cannot_read_the_data_repo_stops_before_the_run(tmp_path):
+    e = fake_tools(tmp_path, git_fail={"ls-remote": GITHUB_403})
+    out = run_script("data-checkout.sh", e, tmp_path)
+    assert out.returncode == 1
+    assert "PBS_DATA_TOKEN can't read ankit/pbs-data (HTTP 403)" in out.stdout
+    assert 'Contents must be "Read and write"' in out.stdout
+    assert "starting fresh" not in out.stdout and not (tmp_path / "work").exists()
+
+
+def test_a_read_only_token_stops_before_the_run(tmp_path):
+    e = fake_tools(tmp_path, http_code="403")
+    out = run_script("data-checkout.sh", e, tmp_path)
+    assert out.returncode == 1
+    assert "PBS_DATA_TOKEN can read ankit/pbs-data but can't push to it (HTTP 403)" in out.stdout
+
+
+def test_a_missing_data_repo_says_so(tmp_path):
+    e = fake_tools(tmp_path, git_fail={"ls-remote": "remote: Repository not found.\nfatal: repository "
+                                                    "'https://github.com/ankit/pbs-data.git/' not found"})
+    out = run_script("data-checkout.sh", e, tmp_path)
+    assert out.returncode == 1 and "wasn't found with PBS_DATA_TOKEN (HTTP 404)" in out.stdout
+
+
+def test_an_unreadable_local_remote_is_not_mistaken_for_a_new_one(tmp_path):
+    e = dict(os.environ)
+    e.update(PBS_DATA_URL=str(tmp_path / "missing.git"), PBS_DATA_DIR=str(tmp_path / "work"))
+    out = run_script("data-checkout.sh", e, tmp_path)
+    assert out.returncode == 1 and "Couldn't read the data repo" in out.stdout
+    assert not (tmp_path / "work").exists()
+
+
+def test_push_refused_for_access_fails_at_once_with_the_fix(tmp_path):
+    work = tmp_path / "work"
+    git("init", "-q", "-b", "main", str(work), cwd=tmp_path)
+    git("remote", "add", "origin", "https://github.com/ankit/pbs-data.git", cwd=work)
+    (work / "state.txt").write_text("x")
+    e = fake_tools(tmp_path, git_fail={"push": GITHUB_403})
+    e.update(GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@e", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@e")
+    out = run_script("data-push.sh", e, tmp_path, "pbs: test")
+    assert out.returncode == 1
+    assert "PBS_DATA_TOKEN can read ankit/pbs-data but can't push to it (HTTP 403)" in out.stdout
+    assert "rebasing" not in out.stdout and "attempt" not in out.stdout

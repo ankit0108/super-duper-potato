@@ -8,7 +8,7 @@ from typing import Any
 
 from . import bandit, draft, ids, log, prompting, textutil, timeutil
 from .context import Ctx
-from .llm.base import BudgetExhausted, LLMRequest
+from .llm.base import BudgetExhausted, LLMRequest, why_unavailable
 from .rank import Candidate, allocate, build_candidates, build_memory, interview_bank
 from .scout.scouting import run_scouts
 from .topics import build_topics
@@ -97,11 +97,12 @@ def fill_card(ctx: Ctx, card: dict[str, Any], cand: Candidate | None = None) -> 
                 return card
             return draft.ask_questions(ctx, card)
         return draft.draft_external(ctx, card, experiment=cand.experiment if cand else None)
-    except BudgetExhausted:
+    except BudgetExhausted as exc:
         ctx.run.degrade("brief_cards")
-        return draft.make_brief(ctx, card, "Draft skipped: the free model quota ran out. Tap 'Draft this' to retry.")
+        return draft.make_brief(ctx, card, f"Draft skipped: {why_unavailable(exc)}. Tap 'Draft this' to retry.")
     except Exception as exc:  # noqa: BLE001 - deliver the rest of the set
         log.error(f"fill:{card['id']}", exc)
+        ctx.run.degrade("brief_cards")
         return draft.make_brief(ctx, card, "Drafting failed. Tap 'Draft this' to retry.")
 
 
@@ -138,7 +139,8 @@ def deliver_plan(ctx: Ctx, plan: dict[str, list[Candidate]], dlv_id: str) -> dic
     # Budget: trim lowest-ranked beyond the minimum when the model budget can't cover the whole set.
     need = sum(1 for cs in plan.values() for c in cs if not (c.mode == "interview" and c.bank))
     available = ctx.llm.remaining("draft")
-    if available < need:
+    # Out of budget: fewer cards. Providers failing with errors: the full set, as briefs, so nothing is lost.
+    if available < need and not ctx.llm.chain_broken("draft"):
         for platform, cs in plan.items():
             min_slots = getattr(ctx.settings.platforms, platform).min_slots
             while len(cs) > min_slots and need > available:

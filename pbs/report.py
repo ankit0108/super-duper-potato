@@ -227,13 +227,14 @@ def health_proposals(ctx: Ctx, sections: dict[str, Any]) -> list[str]:
         medians = [((r.get("sections") or {}).get("drafter_quality") or {}).get("edit_ratio_median", {}) for r in reports]
         for pl in ("linkedin", "x"):
             series = [m.get(pl) for m in reversed(medians) if m.get(pl) is not None]
-            routes = ctx.settings.llm.routes.get("draft", [])
-            if len(series) >= 4 and series[-1] >= series[0] - 0.02 and routes and routes[0] != "github_strong":
+            since = timeutil.iso(timeutil.now() - dt.timedelta(weeks=8))
+            asked = ctx.store.count("proposals", "kind = 'model_upgrade' AND created_at >= ?", (since,))
+            if len(series) >= 4 and series[-1] >= series[0] - 0.02 and not asked:
                 ids.append(playbook.create_proposal(
-                    ctx, kind="model_upgrade", title="Edit ratio is flat after four weeks: try the strongest free model",
-                    detail="Put GitHub Models' strongest model first for drafting (still $0). If that doesn't help, the "
-                           "one paid upgrade is a stronger drafting model, set in Settings → Models.",
-                    payload={"patch": {"llm": {"routes": {"draft": ["github_strong", *[r for r in routes if r != "github_strong"]]}}}},
-                    confidence="medium", source="report"))
+                    ctx, kind="model_upgrade", title="Edit ratio is flat after four weeks: consider a stronger drafter",
+                    detail="The free models are already the newest ones available. If drafts still need the same "
+                           "amount of editing, the one paid upgrade worth making is a stronger drafting model, set "
+                           "in Settings → Models. Approving this only records that you've seen it.",
+                    payload={}, confidence="medium", source="report"))
                 break
     return ids

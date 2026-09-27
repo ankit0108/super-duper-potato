@@ -9,7 +9,7 @@ from . import draft, ids, log, textutil, timeutil
 from .bandit import arm_id
 from .context import Ctx
 from .deliver import expiry_for
-from .llm.base import BudgetExhausted
+from .llm.base import BudgetExhausted, why_unavailable
 from .scout.scouting import DedupIndex
 from .scout.search import run_search
 from .topics import pillar_fit, why_now
@@ -98,7 +98,7 @@ def handle_requests(ctx: Ctx, max_requests: int = 2) -> dict[str, int]:
             topic = _request_topic(ctx, request, item_ids)
             sources = draft.select_sources(ctx, topic, limit=6)
             card_ids: list[str] = []
-            budget_hit = False
+            budget_hit: str | None = None
             for platform, count in (request.get("platforms") or {}).items():
                 if not count or platform not in ("linkedin", "x"):
                     continue
@@ -112,16 +112,16 @@ def handle_requests(ctx: Ctx, max_requests: int = 2) -> dict[str, int]:
                     card = _new_request_card(ctx, request, topic, sources, platform, pillar, fmt, rank)
                     card_ids.append(card["id"])
                     if budget_hit:
-                        draft.make_brief(ctx, card, "Draft skipped: the free model quota ran out. Tap 'Draft this'.")
+                        draft.make_brief(ctx, card, f"Draft skipped: {budget_hit}. Tap 'Draft this'.")
                         continue
                     try:
                         card = draft.draft_external(ctx, card, avoid_angles=angles)
                         if card.get("angle"):
                             angles.append(card["angle"])
-                    except BudgetExhausted:
-                        budget_hit = True
+                    except BudgetExhausted as exc:
+                        budget_hit = why_unavailable(exc)
                         ctx.run.degrade("brief_cards")
-                        draft.make_brief(ctx, card, "Draft skipped: the free model quota ran out. Tap 'Draft this'.")
+                        draft.make_brief(ctx, card, f"Draft skipped: {budget_hit}. Tap 'Draft this'.")
             status = "partial" if budget_hit else "done"
             ctx.store.update("requests", request["id"], status=status, completed_at=timeutil.now_iso(),
                              card_ids=card_ids, error=None,

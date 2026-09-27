@@ -1,15 +1,21 @@
-"""OpenAI-compatible chat completions: GitHub Models, Groq, OpenRouter, Cerebras, Mistral, and paid APIs."""
+"""OpenAI-compatible chat completions: Groq, OpenRouter, Cerebras, Mistral, and paid APIs."""
 
 from __future__ import annotations
 
 import base64
 import os
 import time
+from typing import Any
 
 import httpx
 
+from .. import log
 from ..settings import ProviderSpec
-from .base import LLMError, LLMRequest, LLMResponse
+from .base import LLMError, LLMRequest, LLMResponse, read_json
+
+_GONE_CODES = {"model_not_found", "model_decommissioned", "model_not_available", "invalid_model"}
+_GONE_WORDS = ("decommissioned", "does not exist", "no longer supported", "no longer available", "not a valid model",
+               "model not found", "no endpoints found", "unknown model")
 
 
 class OpenAICompatProvider:
@@ -17,7 +23,8 @@ class OpenAICompatProvider:
         self.name = name
         self.spec = spec
         self._client = client
-        self._json_mode_ok = True
+        self._idx = 0
+        self._dropped: set[str] = set()  # optional request fields this provider rejected
 
     def _key(self) -> str:
         return os.environ.get(self.spec.api_key_env, "").strip() if self.spec.api_key_env else ""
@@ -25,7 +32,33 @@ class OpenAICompatProvider:
     def available(self) -> bool:
         return bool(self._key()) and bool(self.spec.base_url)
 
+    @property
+    def models(self) -> list[str]:
+        out: list[str] = []
+        for m in [self.spec.model, *self.spec.fallback_models]:
+            if m and m not in out:
+                out.append(m)
+        return out
+
+    @property
+    def current_model(self) -> str | None:
+        return self.models[self._idx] if self._idx < len(self.models) else None
+
     def generate(self, req: LLMRequest) -> LLMResponse:
+        while True:
+            model = self.current_model
+            if model is None:
+                raise LLMError("no model left to try", code="no_model", fatal_for_provider=True, model_gone=True)
+            try:
+                return self._generate(model, req)
+            except LLMError as exc:
+                rotate = exc.model_gone or (exc.quota and self.spec.quota_per_model)
+                if not rotate or self._idx + 1 >= len(self.models):
+                    raise
+                self._idx += 1
+                log.info(f"llm: {self.name} {model}: {exc.public()}; switching to {self.current_model}")
+
+    def _body(self, model: str, req: LLMRequest) -> dict[str, Any]:
         if req.images:
             content: list[dict] | str = [{"type": "text", "text": req.prompt}]
             for data, mime in req.images:
@@ -37,52 +70,58 @@ class OpenAICompatProvider:
         if req.system:
             messages.append({"role": "system", "content": req.system})
         messages.append({"role": "user", "content": content})
-        body: dict = {"model": self.spec.model, "messages": messages, "max_tokens": req.max_output_tokens}
+        body: dict[str, Any] = {"model": model, "messages": messages,
+                                "max_tokens": req.max_output_tokens + self.spec.output_headroom}
         if req.temperature is not None:
             body["temperature"] = req.temperature
-        if req.json_mode and self._json_mode_ok:
+        if req.json_mode:
             body["response_format"] = {"type": "json_object"}
+        body.update(self.spec.extra_body)
+        for key in self._dropped:
+            body.pop(key, None)
+        return body
 
+    def _generate(self, model: str, req: LLMRequest) -> LLMResponse:
         headers = {"Authorization": f"Bearer {self._key()}", "Content-Type": "application/json"}
-        if "models.github.ai" in (self.spec.base_url or ""):
-            headers["Accept"] = "application/vnd.github+json"
-            headers["X-GitHub-Api-Version"] = "2022-11-28"
         if "openrouter.ai" in (self.spec.base_url or ""):
             headers["X-Title"] = "PBS"
-
         url = f"{self.spec.base_url.rstrip('/')}/chat/completions"  # type: ignore[union-attr]
         started = time.monotonic()
         client = self._client or httpx.Client(timeout=120)
         try:
-            resp = client.post(url, json=body, headers=headers)
-            if resp.status_code == 400 and "response_format" in resp.text and self._json_mode_ok:
-                # Some models reject JSON mode; retry once without it and remember.
-                self._json_mode_ok = False
-                body.pop("response_format", None)
-                resp = client.post(url, json=body, headers=headers)
+            resp = client.post(url, json=self._body(model, req), headers=headers)
+            # Some models reject JSON mode or a provider-specific field: drop it, ask once more, remember.
+            optional = ["response_format", *self.spec.extra_body]
+            rejected = [k for k in optional if k not in self._dropped and k in resp.text] if resp.status_code == 400 else []
+            if rejected:
+                self._dropped.update(rejected)
+                resp = client.post(url, json=self._body(model, req), headers=headers)
         except httpx.HTTPError as exc:
-            raise LLMError(f"network error: {type(exc).__name__}", retryable=True) from exc
+            raise LLMError(f"network error: {type(exc).__name__}", code="network", retryable=True) from exc
         finally:
             if self._client is None:
                 client.close()
         latency = int((time.monotonic() - started) * 1000)
         if resp.status_code != 200:
             raise _classify(resp)
-        data = resp.json()
+        data = read_json(resp)
+        if isinstance(data.get("error"), dict):  # some gateways report upstream failures with HTTP 200
+            raise _from_error(200, data["error"], resp)
         choices = data.get("choices") or []
         if not choices:
-            raise LLMError("no choices in response", status=200, retryable=True)
+            raise LLMError("no choices in response", status=200, code="no_choices", retryable=True)
         msg = choices[0].get("message") or {}
         text = msg.get("content") or ""
         if isinstance(text, list):
             text = "".join(p.get("text", "") for p in text if isinstance(p, dict))
         if not text.strip():
-            raise LLMError("empty output", status=200, retryable=True)
+            raise LLMError("empty output", status=200, code=str(choices[0].get("finish_reason") or "empty"),
+                           retryable=True)
         usage = data.get("usage") or {}
         return LLMResponse(
             text=text,
             provider=self.name,
-            model=str(data.get("model") or self.spec.model),
+            model=str(data.get("model") or model),
             tokens_in=int(usage.get("prompt_tokens") or 0),
             tokens_out=int(usage.get("completion_tokens") or 0),
             finish_reason=choices[0].get("finish_reason"),
@@ -91,14 +130,23 @@ class OpenAICompatProvider:
 
 
 def _classify(resp: httpx.Response) -> LLMError:
-    status = resp.status_code
     try:
         payload = resp.json()
-        err = payload.get("error", payload) if isinstance(payload, dict) else {}
-        message = str(err.get("message") or err.get("code") or resp.text[:300]) if isinstance(err, dict) else str(err)
     except ValueError:
-        message = resp.text[:300]
+        payload = None
+    err = payload.get("error", payload) if isinstance(payload, dict) else None
+    if not isinstance(err, dict):
+        err = {"message": str(err) if err else resp.text[:300]}
+    return _from_error(resp.status_code, err, resp)
+
+
+def _from_error(status: int, err: dict[str, Any], resp: httpx.Response) -> LLMError:
+    message = str(err.get("message") or err.get("code") or resp.text[:300])
     low = message.lower()
+    raw_code = err.get("code") if isinstance(err.get("code"), str) else err.get("type")
+    code = str(raw_code) if raw_code else None
+    if status == 200 and isinstance(err.get("code"), int):
+        status = int(err["code"])
     retry_after = None
     ra = resp.headers.get("retry-after")
     if ra:
@@ -107,17 +155,20 @@ def _classify(resp: httpx.Response) -> LLMError:
         except ValueError:
             retry_after = None
     if status == 429:
-        daily_markers = ("86400", "per day", "userbymodelbyday", "rpd", "per-day", "free-models-per-day", "daily")
+        daily_markers = ("86400", "per day", "userbymodelbyday", "rpd", "per-day", "free-models-per-day", "daily",
+                         "tokens per day", "(tpd)")
         if any(m in low for m in daily_markers) or (retry_after is not None and retry_after > 3600):
-            return LLMError(f"daily quota reached: {message[:200]}", status=status, quota=True)
-        return LLMError(f"rate limited: {message[:200]}", status=status, rate_limited=True, retryable=True,
-                        retry_after=retry_after or 15.0)
+            return LLMError(f"daily quota reached: {message[:200]}", status=status, code=code, quota=True)
+        return LLMError(f"rate limited: {message[:200]}", status=status, code=code, rate_limited=True,
+                        retryable=True, retry_after=retry_after or 15.0)
     if status in (500, 502, 503, 504, 529):
-        return LLMError(f"server error {status}", status=status, retryable=True, retry_after=retry_after)
+        return LLMError(f"server error {status}", status=status, code=code, retryable=True, retry_after=retry_after)
+    if status == 404 or code in _GONE_CODES or (status == 400 and any(w in low for w in _GONE_WORDS)):
+        return LLMError(f"model not available: {message[:200]}", status=status, code=code, model_gone=True)
     if status in (401, 403):
-        return LLMError(f"auth error {status}: {message[:200]}", status=status, fatal_for_provider=True)
-    if status == 404:
-        return LLMError(f"model not found: {message[:200]}", status=status, fatal_for_provider=True)
+        return LLMError(f"key rejected {status}: {message[:200]}", status=status, code=code, fatal_for_provider=True)
+    if 300 <= status < 400 or status == 410:
+        return LLMError(f"endpoint moved or gone ({status})", status=status, code=code, fatal_for_provider=True)
     if status == 413 or "too large" in low or "context length" in low or "max_tokens" in low:
-        return LLMError(f"request too large: {message[:200]}", status=status)
-    return LLMError(f"error {status}: {message[:300]}", status=status)
+        return LLMError(f"request too large: {message[:200]}", status=status, code=code or "too_large")
+    return LLMError(f"error {status}: {message[:300]}", status=status, code=code)

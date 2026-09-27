@@ -150,7 +150,7 @@ export function System() {
       </Panel>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <Panel title="Free-tier usage today" description="Calls per provider (UTC day). When one runs out, the next in the chain takes over.">
+        <Panel title="Free-tier usage today" description="Calls per provider (UTC day). When one runs out or fails, the next in the chain takes over.">
           {(view?.quota ?? []).length === 0 ? (
             <p className="text-[13px] text-muted">No model calls yet today.</p>
           ) : (
@@ -158,18 +158,24 @@ export function System() {
               {(view?.quota ?? []).map((q) => {
                 const limit = q.daily_limit ?? 0;
                 const ratio = limit ? Math.min(1, (q.requests ?? 0) / limit) : 0;
+                const failing = !!q.last_error_at && !q.exhausted_at && (!q.last_ok_at || q.last_error_at > q.last_ok_at);
                 return (
                   <li key={q.provider}>
-                    <div className="mb-1 flex justify-between text-[13px]">
-                      <span>{q.provider}</span>
-                      <span className="text-muted tabular-nums">
+                    <div className="mb-1 flex justify-between gap-3 text-[13px]">
+                      <span className="min-w-0 truncate">
+                        {q.provider}
+                        {q.model && <span className="text-muted"> · {q.model}</span>}
+                      </span>
+                      <span className="shrink-0 text-muted tabular-nums">
                         {q.requests ?? 0}
                         {limit ? ` / ${limit}` : ""} {q.exhausted_at && <Badge tone="warn">quota reached</Badge>}
+                        {failing && <Badge tone="bad">failing</Badge>}
                       </span>
                     </div>
                     <div className="h-2 rounded-full bg-accent-soft" role="img" aria-label={`${q.provider}: ${q.requests} of ${limit} calls`}>
                       <div className="h-full rounded-full" style={{ width: `${ratio * 100}%`, background: ratio > 0.85 || q.exhausted_at ? "var(--warn)" : "var(--accent)" }} />
                     </div>
+                    {failing && q.last_error && <p className="mt-1 text-[12px] break-words text-muted">{q.last_error}</p>}
                   </li>
                 );
               })}

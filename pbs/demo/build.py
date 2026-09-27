@@ -51,6 +51,8 @@ SKIP_REASONS = [("not_interesting", 0.45), ("wrong_timing", 0.2), ("off_brand", 
                 ("too_risky", 0.08)]
 HOOK_PREFERENCE = ["number", "question", "observation", "contrarian", "how-to", "story"]
 CLOSERS = ["Where have you seen this play out?", "What would you add?", "Curious where others land on this."]
+# What "auto:flash" and "auto:flash-lite" resolved to when this demo was written.
+DEMO_MODELS = {"gemini": "gemini-3.6-flash", "gemini_lite": "gemini-3.5-flash-lite"}
 PINNED = {7: "On this day in 1949", 8: "Engineers' Day"}  # history posts on 14 and 15 September
 
 
@@ -79,9 +81,9 @@ def request_world(ref: dt.datetime) -> dict[str, tuple[int, str, str]]:
 
 @contextmanager
 def _demo_environment() -> Iterator[None]:
-    keep = {k: os.environ.get(k) for k in ("PBS_BLOCKLIST", "GEMINI_API_KEY", "GITHUB_TOKEN", "PBS_NTFY_TOPIC",
+    keep = {k: os.environ.get(k) for k in ("PBS_BLOCKLIST", "GEMINI_API_KEY", "GROQ_API_KEY", "PBS_NTFY_TOPIC",
                                            "PBS_TELEGRAM_BOT_TOKEN", "PBS_TELEGRAM_CHAT_ID", "PBS_PUBLIC_LOGS")}
-    os.environ.update({"PBS_BLOCKLIST": BLOCKLIST, "GEMINI_API_KEY": "demo", "GITHUB_TOKEN": "demo"})
+    os.environ.update({"PBS_BLOCKLIST": BLOCKLIST, "GEMINI_API_KEY": "demo", "GROQ_API_KEY": "demo"})
     for k in ("PBS_NTFY_TOPIC", "PBS_TELEGRAM_BOT_TOKEN", "PBS_TELEGRAM_CHAT_ID"):
         os.environ.pop(k, None)
     os.environ["PBS_PUBLIC_LOGS"] = "1"
@@ -163,7 +165,8 @@ class Simulation:
         self.root = root
         self.settings, _ = load_settings()
         handlers = demo_handlers()
-        self.providers = {name: FakeProvider(name, handlers=handlers) for name in self.settings.llm.providers}
+        self.providers = {name: FakeProvider(name, handlers=handlers, model=DEMO_MODELS.get(name, spec.model))
+                          for name, spec in self.settings.llm.providers.items()}
         self.rng = random.Random(28)
         self.pool = StoryPool(random.Random(9))
         self.quiet = MockWeb(world={})

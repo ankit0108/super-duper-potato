@@ -7,7 +7,7 @@ picks, what he changes and how the posts perform.
 - **Never posts for you.** No auto-posting, liking, replying or messaging. You copy, open the app, post, and tap *Posted*.
 - **Never makes things up.** Every figure is checked against the sources; firsthand posts are drafted only from your answers; opinions on public issues only from stances you recorded.
 - **Keeps work private.** A blocklist (your employer, clients, colleagues, internal systems) blocks drafts before you see them and is redacted from every model call.
-- **Costs nothing.** GitHub Actions, GitHub Pages, free model tiers (Gemini, GitHub Models) and free news sources.
+- **Costs nothing.** GitHub Actions, GitHub Pages, free model tiers (Gemini, Groq) and free news sources.
 
 The full product spec is [docs/PRD.md](docs/PRD.md). Setup takes about 15 minutes: [docs/SETUP.md](docs/SETUP.md).
 Day-to-day operation and fixes: [docs/RUNBOOK.md](docs/RUNBOOK.md).
@@ -26,7 +26,7 @@ flowchart LR
     IN["inbox/<br/>desk events"]
   end
   S["Free sources<br/>RSS, Google News, arXiv,<br/>HF papers, HN, Wikipedia"] --> T
-  M["Free models<br/>Gemini → GitHub Models<br/>→ Groq/OpenRouter"] <--> T
+  M["Free models<br/>Gemini → Groq<br/>→ OpenRouter"] <--> T
   T -- "writes" --> DB & DJ
   IN -- "ingested" --> T
   D -- "reads" --> DJ

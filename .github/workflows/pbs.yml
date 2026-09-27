@@ -22,7 +22,6 @@ on:
 
 permissions:
   contents: write   # the 'data' branch in single-repo mode
-  models: read      # GitHub Models, free, with the built-in token
   actions: write    # keep the schedule alive
 
 concurrency:
@@ -38,9 +37,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -50,6 +49,7 @@ jobs:
         run: pip install -q -e .
 
       - name: Check out data
+        id: data
         env:
           PBS_DATA_REPO: ${{ vars.PBS_DATA_REPO }}
           PBS_DATA_BRANCH: ${{ vars.PBS_DATA_BRANCH }}
@@ -62,7 +62,6 @@ jobs:
       - name: Tick
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           PBS_BLOCKLIST: ${{ secrets.PBS_BLOCKLIST }}
@@ -87,8 +86,21 @@ jobs:
           if [ "$INPUT_FORCE" = "true" ]; then FORCE="--force"; fi
           pbs tick --trigger "$EVENT" --hint "$HINT" $FORCE
 
+      - name: Check models and sources anyway
+        # The data couldn't be checked out (the error above says why). Run the doctor on a throwaway state so
+        # this run still reports whether the model keys and sources work.
+        if: failure() && steps.data.outcome == 'failure'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          PBS_BLOCKLIST: ${{ secrets.PBS_BLOCKLIST }}
+        run: pbs doctor --data "$RUNNER_TEMP/pbs-diagnose" || true
+
       - name: Save data
         if: always()
+        env:
+          PBS_DATA_REPO: ${{ vars.PBS_DATA_REPO }}
         run: |
           scripts/data-push.sh "pbs: ${{ github.event_name }} tick ${{ github.run_id }}"
 

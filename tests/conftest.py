@@ -13,7 +13,7 @@ from pbs.settings import load
 from pbs.store import Store
 
 FIXTURES = Path(__file__).parent / "fixtures"
-PROVIDERS = ["gemini", "gemini_lite", "github", "github_strong", "groq", "openrouter"]
+PROVIDERS = ["gemini", "gemini_lite", "groq", "openrouter"]
 
 
 @pytest.fixture(autouse=True)
@@ -21,7 +21,8 @@ def _frozen_clock(monkeypatch):
     # Monday 28 Sep 2026, 05:45 Melbourne (AEST, UTC+10)
     timeutil.freeze("2026-09-27T19:45:00Z")
     ids.seed(7)
-    for var in ("PBS_BLOCKLIST", "GEMINI_API_KEY", "GITHUB_TOKEN", "PBS_NTFY_TOPIC", "PBS_TELEGRAM_BOT_TOKEN"):
+    for var in ("PBS_BLOCKLIST", "GEMINI_API_KEY", "GROQ_API_KEY", "OPENROUTER_API_KEY", "PBS_NTFY_TOPIC",
+                "PBS_TELEGRAM_BOT_TOKEN"):
         monkeypatch.delenv(var, raising=False)
     yield
     timeutil.freeze(None)

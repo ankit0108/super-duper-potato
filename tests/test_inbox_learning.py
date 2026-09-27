@@ -247,7 +247,8 @@ def test_personal_draft_goes_to_non_training_provider_first(make_ctx):
     ctx = make_ctx(providers=fake_providers())
     _ = ctx.llm  # build the router
     chain = ctx.llm.chain("draft_personal", personal=True)
-    assert chain[0] in ("github_strong", "github")
+    assert chain[0] == "groq"
+    assert not ctx.settings.llm.providers[chain[0]].trains_on_inputs
 
 
 def test_voice_learns_phrases_not_function_words_or_punctuation():

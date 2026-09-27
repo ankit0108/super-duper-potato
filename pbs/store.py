@@ -111,7 +111,8 @@ TABLES: dict[str, Table] = {
         _t("runs",
            "task trigger started_at ended_at status steps llm errors degraded notes journal versions",
            json_cols="steps llm errors notes journal versions", shard="started_at"),
-        _t("quota", "provider day requests tokens_in tokens_out exhausted_at last_error updated_at"),
+        _t("quota", "provider day requests tokens_in tokens_out exhausted_at last_error last_error_at last_ok_at model "
+           "updated_at"),
         _t("settings", "value updated_at", json_cols="value"),
         _t("processed_events", "batch_id at type status error", shard="at"),
         _t("doctor_reports", "created_at checks summary", json_cols="checks summary"),
