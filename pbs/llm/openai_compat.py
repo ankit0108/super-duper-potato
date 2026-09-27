@@ -11,7 +11,7 @@ import httpx
 
 from .. import log
 from ..settings import ProviderSpec
-from .base import LLMError, LLMRequest, LLMResponse, read_json
+from .base import LLMError, LLMRequest, LLMResponse, read_json, rotates
 
 _GONE_CODES = {"model_not_found", "model_decommissioned", "model_not_available", "invalid_model"}
 _GONE_WORDS = ("decommissioned", "does not exist", "no longer supported", "no longer available", "not a valid model",
@@ -52,8 +52,7 @@ class OpenAICompatProvider:
             try:
                 return self._generate(model, req)
             except LLMError as exc:
-                rotate = exc.model_gone or (exc.quota and self.spec.quota_per_model)
-                if not rotate or self._idx + 1 >= len(self.models):
+                if not rotates(exc, self.spec.quota_per_model) or self._idx + 1 >= len(self.models):
                     raise
                 self._idx += 1
                 log.info(f"llm: {self.name} {model}: {exc.public()}; switching to {self.current_model}")

@@ -30,6 +30,9 @@ def seed_sources() -> list[dict[str, Any]]:
     return out
 
 
+AUTO_PAUSE = "No successful fetch for"  # the start of the reason scouting gives when it pauses a source
+
+
 def sync_seeds(store: Store) -> int:
     """Add new seed sources; never overwrite Ankit's edits or health history. Returns count added."""
     now = timeutil.now_iso()
@@ -58,10 +61,17 @@ def sync_seeds(store: Store) -> int:
         elif existing.get("added_by") == "seed":
             # Refresh seed-owned fields (URL fixes ship with code) unless Ankit edited the source.
             if not (existing.get("extra") or {}).get("user_edited"):
-                patch = {k: seed.get(k) for k in ("name", "url", "query", "hl", "gl", "ceid", "pillar_hints",
+                patch = {k: seed.get(k) for k in ("name", "kind", "url", "query", "hl", "gl", "ceid", "pillar_hints",
                                                    "tier", "max_items") if seed.get(k) != existing.get(k)}
+                if bool(seed.get("best_effort", False)) != bool(existing.get("best_effort")):
+                    patch["best_effort"] = bool(seed.get("best_effort", False))
                 if seed.get("extra") and (existing.get("extra") or {}).get("topic") != seed["extra"].get("topic"):
                     patch["extra"] = {**(existing.get("extra") or {}), **seed["extra"]}
+                if set(patch) & {"kind", "url", "query", "hl", "gl", "ceid"}:
+                    # A new address gets a fresh start: no stale validators, failure count or automatic pause.
+                    patch.update(etag=None, last_modified=None, consecutive_failures=0, last_error=None)
+                    if not existing.get("active") and str(existing.get("paused_reason") or "").startswith(AUTO_PAUSE):
+                        patch.update(active=True, paused_reason=None)
                 if patch:
                     patch["updated_at"] = now
                     store.update("sources", seed["id"], **patch)

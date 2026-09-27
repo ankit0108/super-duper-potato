@@ -12,7 +12,7 @@ from ..context import Ctx
 from ..store import Store
 from .fetch import FetchJob, fetch_all, no_sleep
 from .parsers import parse
-from .sources import fetch_url, sync_seeds
+from .sources import AUTO_PAUSE, fetch_url, sync_seeds
 
 NEAR_DUP_JACCARD = 0.82
 
@@ -170,8 +170,10 @@ def run_scouts(ctx: Ctx, only: set[str] | None = None) -> dict[str, Any]:
                          last_error=res.error, items_last_run=0)
         store.update("sources", source["id"], **patch)
     _auto_pause(ctx)
+    failing = [f"{r.key} ({r.error})" for r in results if not r.ok]
     log.info(f"scout: {stats['ok']}/{stats['sources']} sources ok, {stats['new_items']} new items, "
-             f"{stats['duplicates']} duplicates, {stats['failed']} failed")
+             f"{stats['duplicates']} duplicates, {stats['failed']} failed"
+             + (f": {', '.join(failing[:12])}" if failing else ""))
     return stats
 
 
@@ -184,7 +186,7 @@ def _auto_pause(ctx: Ctx) -> None:
         last_ok = timeutil.parse(s.get("last_success_at") or s.get("created_at"))
         if last_ok is not None and last_ok < cutoff:
             ctx.store.update("sources", s["id"], active=False,
-                             paused_reason=f"No successful fetch for {days} days ({s.get('last_error') or 'error'})",
+                             paused_reason=f"{AUTO_PAUSE} {days} days ({s.get('last_error') or 'error'})",
                              updated_at=timeutil.now_iso())
             ctx.run.note(f"Paused source {s['id']} after {days} days of failures")
 

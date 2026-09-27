@@ -73,9 +73,10 @@ def build_world(ref: dt.datetime | None = None) -> dict[str, tuple[int, str, str
          "summary": "Mainframes, brittle integrations and missing documentation remain the hard part.",
          "at": at(26)},
     ]))
-    world["venturebeat.com/category/ai"] = (200, xml, rss("VentureBeat AI", [
-        {"title": "OpenAI debuts enterprise agent platform with human approval steps",
-         "url": "https://venturebeat.com/ai/openai-enterprise-agent-platform/",
+    world["news.google.com/rss/search?q=site%3Aventurebeat.com"] = (200, xml, rss("Google News", [
+        {"title": "OpenAI debuts enterprise agent platform with human approval steps - VentureBeat",
+         "url": "https://news.google.com/rss/articles/venturebeat-openai-enterprise-agent-platform",
+         "publisher": "VentureBeat",
          "summary": "Agents can be scoped to specific tools, and every action is logged for compliance review.",
          "at": at(5)},
     ]))

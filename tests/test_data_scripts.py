@@ -117,7 +117,8 @@ def test_a_token_that_cannot_read_the_data_repo_stops_before_the_run(tmp_path):
     out = run_script("data-checkout.sh", e, tmp_path)
     assert out.returncode == 1
     assert "PBS_DATA_TOKEN can't read ankit/pbs-data (HTTP 403)" in out.stdout
-    assert 'Contents must be "Read and write"' in out.stdout
+    assert "GitHub said: Write access to repository not granted." in out.stdout
+    assert 'Contents set to "Read and write"' in out.stdout
     assert "starting fresh" not in out.stdout and not (tmp_path / "work").exists()
 
 
@@ -132,7 +133,8 @@ def test_a_missing_data_repo_says_so(tmp_path):
     e = fake_tools(tmp_path, git_fail={"ls-remote": "remote: Repository not found.\nfatal: repository "
                                                     "'https://github.com/ankit/pbs-data.git/' not found"})
     out = run_script("data-checkout.sh", e, tmp_path)
-    assert out.returncode == 1 and "wasn't found with PBS_DATA_TOKEN (HTTP 404)" in out.stdout
+    assert out.returncode == 1 and "PBS_DATA_TOKEN can't see ankit/pbs-data (HTTP 404)" in out.stdout
+    assert "GitHub said: Repository not found." in out.stdout and "Resource owner ankit," in out.stdout
 
 
 def test_an_unreadable_local_remote_is_not_mistaken_for_a_new_one(tmp_path):
