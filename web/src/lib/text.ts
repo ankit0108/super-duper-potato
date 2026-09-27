@@ -150,8 +150,10 @@ export function diffWords(before: string, after: string): DiffOp[] {
   const m = b.length;
   const max = n + m;
   if (max === 0) return [];
-  const offset = max;
-  const v = new Int32Array(2 * max + 2);
+  // One spare slot on each side: the snapshot for step d reads k = -d-1 .. d+1, and a negative slice start
+  // would silently wrap around to the end of the array.
+  const offset = max + 1;
+  const v = new Int32Array(2 * max + 3);
   const trace: Int32Array[] = [];
   let found = -1;
   outer: for (let d = 0; d <= max; d++) {
