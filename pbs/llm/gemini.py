@@ -17,7 +17,7 @@ import httpx
 
 from .. import log
 from ..settings import ProviderSpec
-from .base import LLMError, LLMRequest, LLMResponse, read_json
+from .base import LLMError, LLMRequest, LLMResponse, read_json, rotates
 
 API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 MAX_AUTO_MODELS = 4
@@ -154,8 +154,7 @@ class GeminiProvider:
             try:
                 return self._generate(model, req)
             except LLMError as exc:
-                rotate = exc.model_gone or (exc.quota and self.spec.quota_per_model)
-                if not (rotate and self._advance(model, exc)):
+                if not (rotates(exc, self.spec.quota_per_model) and self._advance(model, exc)):
                     raise
 
     def _body(self, model: str, req: LLMRequest) -> dict[str, Any]:

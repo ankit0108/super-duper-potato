@@ -60,3 +60,20 @@ def test_otd_parser_filters_to_relevant_events():
     content = b'{"events": [{"text": "Patna gets its first university.", "year": 1917, "pages": [{"extract": "x", "content_urls": {"desktop": {"page": "https://en.wikipedia.org/wiki/Patna_University"}}}]}, {"text": "Something unrelated.", "year": 1800, "pages": []}]}'
     items = parse({"kind": "wikipedia_otd"}, content, "2026-09-28")
     assert len(items) == 1 and items[0]["signals"]["otd_tier"] == "bihar"
+
+
+def test_a_seed_whose_address_changes_gets_a_fresh_start(store):
+    from pbs.scout.sources import AUTO_PAUSE, sync_seeds
+
+    sync_seeds(store)
+    # As an older release left it: a direct feed that GitHub's servers couldn't reach, paused automatically.
+    store.update("sources", "venturebeat-ai", kind="rss", url="https://venturebeat.com/category/ai/feed/", query=None,
+                 consecutive_failures=9, last_error="HTTP 403", etag='"old"', active=False,
+                 paused_reason=f"{AUTO_PAUSE} 7 days (HTTP 403)")
+    store.update("sources", "reddit-machinelearning", active=False, paused_reason="Paused by Ankit")
+    sync_seeds(store)
+    row = store.get("sources", "venturebeat-ai")
+    assert row["kind"] == "gnews" and row["query"].startswith("site:venturebeat.com") and not row.get("url")
+    assert row["active"] and not row.get("paused_reason") and row["consecutive_failures"] == 0
+    assert not row.get("etag") and not row.get("last_error")
+    assert not store.get("sources", "reddit-machinelearning")["active"]  # his own pause stays

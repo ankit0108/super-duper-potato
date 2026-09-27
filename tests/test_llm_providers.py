@@ -266,3 +266,13 @@ def test_a_failed_model_listing_is_retried_rather_than_remembered():
         p.generate(REQ)
     assert err.value.retryable and err.value.public() == "network error"
     assert p.generate(REQ).model == "gemini-3.6-flash"
+
+
+def test_an_overloaded_newest_model_hands_over_to_the_next_one():
+    busy = {"error": {"code": 503, "status": "UNAVAILABLE", "message": "The model is overloaded. Please try again later."}}
+    fake = FakeGemini({"gemini-3.6-flash": (503, busy),
+                       "gemini-3.5-flash": gemini_reply('{"ok": true}', "gemini-3.5-flash")})
+    p = gemini(fake)
+    assert p.generate(REQ).model == "gemini-3.5-flash"
+    assert p.generate(REQ).model == "gemini-3.5-flash"
+    assert fake.generated == ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash"]

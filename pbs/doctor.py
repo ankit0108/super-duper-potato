@@ -11,6 +11,7 @@ from . import ids, log, notify, timeutil
 from .context import Ctx
 from .llm.base import LLMError, LLMRequest
 from .scout.fetch import FetchJob, fetch_all, no_sleep
+from .scout.parsers import parse
 from .scout.sources import fetch_url, sync_seeds
 
 
@@ -86,17 +87,37 @@ def run_doctor(ctx: Ctx, probe_llm: bool = True, probe_sources: bool = True) -> 
 
     if probe_sources:
         sync_seeds(ctx.store)
-        sources = ctx.store.select("sources", "active = 1")
-        jobs = [FetchJob(key=s["id"], url=fetch_url(s, ctx.local_date_str())) for s in sources]
+        sources = {s["id"]: s for s in ctx.store.select("sources", "active = 1")}
+        local_date = ctx.local_date_str()
+        jobs = [FetchJob(key=s["id"], url=fetch_url(s, local_date)) for s in sources.values()]
         sc = ctx.settings.scouting
         results = asyncio.run(fetch_all(jobs, user_agent=sc.user_agent, timeout=sc.timeout_seconds,
                                         concurrency=sc.concurrency, transport=ctx.transport,
                                         **({"sleep": no_sleep} if ctx.transport is not None else {})))
-        failed = [r.key for r in results if not r.ok]
-        checks.append(_check("Sources reachable", "ok" if not failed else ("warn" if len(failed) < len(results) / 3
-                                                                           else "fail"),
-                             f"{len(results) - len(failed)}/{len(results)} ok" +
-                             (f"; failing: {', '.join(failed[:12])}" if failed else "")))
+        # Reachable is not enough: a feed that answers with something unreadable is failing too. An empty
+        # feed is only noted (a quiet Google News query can be empty), unless it's a web page, not a feed.
+        failed: list[str] = []
+        empty: list[str] = []
+        for r in results:
+            if not r.ok:
+                failed.append(f"{r.key} ({r.error})")
+                continue
+            try:
+                items = parse(sources[r.key], r.content, local_date)
+            except Exception as exc:  # noqa: BLE001 - report it, whatever the parser tripped on
+                failed.append(f"{r.key} (unreadable: {type(exc).__name__})")
+                continue
+            if not items and r.content.lstrip()[:15].lower().startswith((b"<!doctype html", b"<html")):
+                failed.append(f"{r.key} (a web page, not a feed)")
+            elif not items:
+                empty.append(r.key)
+        detail = f"{len(results) - len(failed)}/{len(results)} working"
+        if failed:
+            detail += f"; failing: {', '.join(failed[:15])}"
+        if empty:
+            detail += f"; empty today: {', '.join(empty[:10])}" + (f" and {len(empty) - 10} more" if len(empty) > 10 else "")
+        checks.append(_check("Sources", "ok" if not failed else ("warn" if len(failed) < len(results) / 3
+                                                                 else "fail"), detail))
 
     for c in checks:
         public = c.pop("_public", c["detail"])

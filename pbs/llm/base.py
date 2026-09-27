@@ -89,6 +89,14 @@ class LLMError(Exception):
         return f"{self.kind} ({detail})" if detail else self.kind
 
 
+def rotates(exc: LLMError, quota_per_model: bool) -> bool:
+    """Whether a provider's next model should answer instead: the model is gone, or (when quotas and capacity
+    are per model) it is out of quota, rate limited or overloaded, which says nothing about the next one."""
+    if exc.model_gone:
+        return True
+    return quota_per_model and (exc.quota or exc.rate_limited or (exc.status or 0) >= 500)
+
+
 class BudgetExhausted(Exception):
     """No provider can take another call right now (daily cap, run cap, or all quotas used)."""
 
