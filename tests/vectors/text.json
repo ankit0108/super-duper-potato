@@ -1,0 +1,196 @@
+{
+ "x_length": [
+  {
+   "name": "plain ascii",
+   "text": "hello",
+   "expected": 5
+  },
+  {
+   "name": "280 letters",
+   "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "expected": 280
+  },
+  {
+   "name": "url counts 23",
+   "text": "see https://example.com/very/long/path?x=1 now",
+   "expected": 31
+  },
+  {
+   "name": "bare domain counts 23",
+   "text": "visit openai.com today",
+   "expected": 35
+  },
+  {
+   "name": "emoji counts 2",
+   "text": "Hello 👋",
+   "expected": 8
+  },
+  {
+   "name": "zwj family is one emoji",
+   "text": "👨‍👩‍👧",
+   "expected": 2
+  },
+  {
+   "name": "flag is one emoji",
+   "text": "🇮🇳",
+   "expected": 2
+  },
+  {
+   "name": "skin tone modifier",
+   "text": "👍🏽",
+   "expected": 2
+  },
+  {
+   "name": "heart with variation selector",
+   "text": "❤️ it",
+   "expected": 5
+  },
+  {
+   "name": "keycap",
+   "text": "1️⃣ one",
+   "expected": 6
+  },
+  {
+   "name": "devanagari counts 1 per code point",
+   "text": "नमस्ते",
+   "expected": 6
+  },
+  {
+   "name": "cjk counts 2",
+   "text": "こんにちは",
+   "expected": 10
+  },
+  {
+   "name": "composed accent",
+   "text": "café",
+   "expected": 4
+  },
+  {
+   "name": "decomposed accent normalises",
+   "text": "café",
+   "expected": 4
+  },
+  {
+   "name": "newlines count",
+   "text": "a\nb",
+   "expected": 3
+  },
+  {
+   "name": "empty",
+   "text": "",
+   "expected": 0
+  }
+ ],
+ "tokens": [
+  {
+   "name": "words and punctuation",
+   "text": "Hello, world!",
+   "expected": [
+    "Hello",
+    ",",
+    "world",
+    "!"
+   ]
+  },
+  {
+   "name": "hindi words keep marks",
+   "text": "नमस्ते दुनिया",
+   "expected": [
+    "नमस्ते",
+    "दुनिया"
+   ]
+  },
+  {
+   "name": "hyphen splits",
+   "text": "GPT-5 is here.",
+   "expected": [
+    "GPT",
+    "-",
+    "5",
+    "is",
+    "here",
+    "."
+   ]
+  },
+  {
+   "name": "apostrophe splits",
+   "text": "don't",
+   "expected": [
+    "don",
+    "'",
+    "t"
+   ]
+  },
+  {
+   "name": "underscore is a word char",
+   "text": "snake_case x",
+   "expected": [
+    "snake_case",
+    "x"
+   ]
+  },
+  {
+   "name": "emoji is its own token",
+   "text": "ship it 🚀",
+   "expected": [
+    "ship",
+    "it",
+    "🚀"
+   ]
+  },
+  {
+   "name": "whitespace variants",
+   "text": "a\tb c\nd",
+   "expected": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ]
+  }
+ ],
+ "edit_ratio": [
+  {
+   "name": "identical",
+   "draft": "The quick brown fox",
+   "final": "The quick brown fox",
+   "expected": 0.0
+  },
+  {
+   "name": "both empty",
+   "draft": "",
+   "final": "",
+   "expected": 0.0
+  },
+  {
+   "name": "one empty",
+   "draft": "",
+   "final": "hello",
+   "expected": 1.0
+  },
+  {
+   "name": "one word changed",
+   "draft": "The quick brown fox",
+   "final": "The slow brown fox",
+   "expected": 0.25
+  },
+  {
+   "name": "totally different",
+   "draft": "alpha beta",
+   "final": "gamma delta",
+   "expected": 1.0
+  },
+  {
+   "name": "shortened",
+   "draft": "I really think this is a very important change for teams",
+   "final": "This is an important change for teams",
+   "expected": 0.4444
+  },
+  {
+   "name": "punctuation only",
+   "draft": "Hello world",
+   "final": "Hello, world.",
+   "expected": 0.3333
+  }
+ ]
+}

@@ -1,0 +1,42 @@
+# Phrases the drafter must avoid from day one. The learner adds phrases Ankit repeatedly cuts.
+examples_per_prompt: 2
+avoid_phrases:
+  - delve
+  - game-changer
+  - game changer
+  - in today's fast-paced world
+  - in today's rapidly evolving
+  - unlock the power
+  - unleash
+  - revolutionize
+  - revolutionise
+  - supercharge
+  - let that sink in
+  - here's the thing
+  - buckle up
+  - the future is here
+  - paradigm shift
+  - synergy
+  - seamlessly
+  - cutting-edge
+  - navigate the complexities
+  - it's not just about
+  - a testament to
+  - rapidly evolving landscape
+  - ever-evolving
+  - tapestry
+  - realm of
+  - harness the power
+  - "🚀"
+bait_phrases:
+  - agree?
+  - thoughts?
+  - comment below
+  - like if
+  - rt if
+  - repost if
+  - tag someone
+  - follow for more
+  - drop a
+  - who else
+  - smash that

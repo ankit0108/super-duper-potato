@@ -1,0 +1,95 @@
+# Evergreen interview prompts. Used when an interview pillar wins a slot but no news topic fits it,
+# and by the Saturday batch when the model budget is tight. Each is used at most once every 60 days.
+# Questions never ask for employer, client or colleague details.
+
+- id: receipts-first-break
+  platform: linkedin
+  pillar: receipts
+  title: What production automation teaches that demos don't
+  angle: The unglamorous part that decides whether an automation survives contact with real work
+  questions:
+    - What was the first thing that broke when an automation you built met real data?
+    - What check do you now add before anything goes live, and why?
+- id: receipts-exceptions
+  platform: linkedin
+  pillar: receipts
+  title: Exceptions are the real process
+  angle: Why the happy path is 20% of the work in enterprise automation
+  questions:
+    - Think of a process you automated. Which exception took the most effort to handle?
+    - How did you decide what goes to a human versus what the bot retries?
+- id: receipts-stakeholders
+  platform: linkedin
+  pillar: receipts
+  title: Getting a business team to trust a bot
+  angle: Trust is built in the first failure, not the first demo
+  questions:
+    - What made a business team trust (or distrust) an automation you shipped?
+    - What would you do differently the next time you roll one out?
+- id: receipts-agents-vs-rpa
+  platform: linkedin
+  pillar: receipts
+  title: Where LLM agents actually beat RPA — and where they don't
+  angle: A practitioner's line between deterministic bots and agents
+  questions:
+    - In your experience, what kind of task is still better done with a classic RPA bot?
+    - Where have you seen an LLM step genuinely replace a brittle rule?
+- id: learning-evals
+  platform: linkedin
+  pillar: learning
+  title: What I learned building evals this week
+  angle: Evals are where agent projects become honest
+  questions:
+    - What did you build or test this week around evals, agents or MCP?
+    - What surprised you, and what would you tell someone starting the same thing?
+- id: learning-mcp
+  platform: linkedin
+  pillar: learning
+  title: Notes from wiring up an MCP server
+  angle: The practical gotchas of giving an agent tools
+  questions:
+    - Have you built or used an MCP server recently? What was it for?
+    - What was harder than the docs made it look?
+- id: learning-failure
+  platform: linkedin
+  pillar: learning
+  title: An experiment that didn't work
+  angle: Learning in public includes the misses
+  questions:
+    - What's something you tried recently in AI or automation that didn't work?
+    - What did it teach you about the problem?
+- id: life-habit
+  platform: x
+  pillar: life
+  title: A habit that stuck
+  angle: A small personal observation
+  questions:
+    - What small habit has stuck with you this year, and why do you think it did?
+- id: life-melbourne-bihar
+  platform: x
+  pillar: life
+  title: Between Melbourne and Bihar
+  angle: Something that surprises you moving between two very different places
+  questions:
+    - What's something about life in Melbourne that would surprise people back home in Bihar, or the other way round?
+- id: life-reading
+  platform: x
+  pillar: life
+  title: What you're reading
+  angle: One idea worth passing on
+  questions:
+    - What are you reading or listening to right now, and what's one idea from it worth sharing?
+- id: life-weekend
+  platform: x
+  pillar: life
+  title: A weekend observation
+  angle: Small moments, honestly told
+  questions:
+    - What did you notice this weekend that made you think?
+- id: life-career
+  platform: x
+  pillar: life
+  title: Career lesson
+  angle: One lesson you'd give your younger self
+  questions:
+    - What's one career lesson you'd tell yourself five years ago?

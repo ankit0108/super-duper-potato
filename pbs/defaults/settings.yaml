@@ -1,0 +1,303 @@
+# PBS default settings. Ankit's overrides (made in the desk) are stored in the private data repo
+# and deep-merged over this file. Nothing personal belongs here: this repo can be public.
+
+timezone: Australia/Melbourne
+display_name: Ankit
+
+delivery:
+  # The morning set is delivered by the first run on or after this local time each day.
+  earliest_local_time: "04:00"
+  # After this local time a missed morning delivery is skipped (tomorrow's comes instead).
+  latest_local_time: "21:00"
+  # Saturday batch (evergreen + interview cards for the week).
+  weekly_batch_day: saturday
+  weekly_batch_local_time: "19:00"
+  # Weekly reflection fallback if Ankit hasn't run it from the desk by then.
+  reflection_fallback_day: monday
+  reflection_fallback_local_time: "05:00"
+
+platforms:
+  linkedin:
+    enabled: true
+    slots: 3
+    min_slots: 2
+    max_interview_per_day: 1
+    char_limit: 3000
+    fold_chars: 210
+  x:
+    enabled: true
+    slots: 6
+    min_slots: 4
+    max_interview_per_day: 1
+    premium: false
+    char_limit: 280
+    premium_char_limit: 25000
+    thread_min: 3
+    thread_max: 7
+    reply_slots: 2
+    reply_until_followers: 500
+
+formats:
+  li_text: {label: Text post, platform: linkedin, prior: 0.5}
+  x_single: {label: Single post, platform: x, prior: 0.5}
+  x_thread: {label: Thread, platform: x, prior: 0.45}
+  x_quote: {label: Quote-post angle, platform: x, prior: 0.4}
+  x_reply: {label: Reply angle, platform: x, prior: 0.5}
+
+strategy:
+  linkedin:
+    receipts:
+      label: Firsthand receipts
+      weight: 0.30
+      mode: interview
+      formats: [li_text]
+      scouts: [tech]
+      description: >-
+        What building automation in enterprise and financial services actually teaches, with identifying
+        details removed. Drafted only from Ankit's answers.
+      keywords: [automation, rpa, workflow, process, enterprise, bank, banking, financial services, insurance,
+        compliance, operations, legacy, mainframe, document processing, intelligent document, invoice, kyc,
+        onboarding, reconciliation, bots, citizen developer, center of excellence, uipath, automation anywhere,
+        power automate, blue prism, process mining, orchestration, adoption, roi, governance, production]
+    research:
+      label: Research and state of the art
+      weight: 0.25
+      mode: external
+      formats: [li_text]
+      scouts: [tech]
+      description: >-
+        New papers, benchmarks, model and agent capabilities, and techniques moving from labs into practice,
+        explained for people automating real work.
+      keywords: [paper, arxiv, research, researchers, benchmark, study, dataset, evaluation, evals, reasoning,
+        architecture, training, fine-tuning, rlhf, alignment, interpretability, scaling, inference, state of the art,
+        technique, method, open-weights, reinforcement learning, tool use, long context, multimodal, distillation,
+        hugging face, preprint, lab]
+    industry:
+      label: Industry news, with a take
+      weight: 0.25
+      mode: external
+      formats: [li_text]
+      scouts: [tech, startups]
+      description: >-
+        The whole AI and automation industry: labs and model releases, AI startups and funding, big-tech moves,
+        enterprise adoption, regulation, compute and infrastructure, and automation vendors (Automation Anywhere,
+        UiPath, Power Automate), each with a proposed analytical angle.
+      keywords: [launch, launches, released, release, announces, raises, funding, valuation, acquisition, acquires,
+        partnership, earnings, revenue, layoffs, regulation, policy, ai act, lawsuit, antitrust, compute, gpu, nvidia,
+        data center, datacenter, chips, openai, anthropic, google, deepmind, microsoft, meta, amazon, aws, apple, xai,
+        mistral, deepseek, pricing, uipath, automation anywhere, power automate, copilot, agentforce, salesforce,
+        servicenow, digital public infrastructure, indiaai]
+    learning:
+      label: Learning in public
+      weight: 0.20
+      mode: interview
+      formats: [li_text]
+      scouts: [tech]
+      description: >-
+        Builds and experiments, including the FDE-track work: evals, agents, MCP. Drafted only from Ankit's answers.
+      keywords: [agents, agent, agentic, mcp, model context protocol, evals, tool calling, function calling, sdk,
+        framework, langgraph, langchain, llamaindex, open source, tutorial, prototype, rag, retrieval, prompt,
+        prompting, forward deployed, coding agent, claude code, cursor, workflow builder]
+  x:
+    tech:
+      label: Tech and AI
+      weight: 0.35
+      mode: external
+      formats: [x_single, x_thread, x_quote, x_reply]
+      scouts: [tech]
+      description: Faster, lighter takes than LinkedIn; threads welcome.
+      keywords: [ai, llm, model, openai, anthropic, google, gpt, claude, gemini, llama, agent, software, developer,
+        programming, chip, apple, robotics, open source, benchmark, release, launch]
+    affairs:
+      label: World, India and Bihar affairs
+      weight: 0.30
+      mode: external
+      formats: [x_single, x_thread, x_quote, x_reply]
+      scouts: [affairs]
+      description: History behind the news, development trackers, future outlooks, and opinions from recorded stances.
+      keywords: [election, government, minister, policy, parliament, court, economy, gdp, inflation, budget,
+        infrastructure, railway, highway, airport, bihar, patna, india, china, war, ceasefire, climate, flood, monsoon,
+        census, caste, reservation, education, health, migration, history, culture, बिहार, पटना, सरकार]
+    startups:
+      label: Startups
+      weight: 0.20
+      mode: external
+      formats: [x_single, x_thread, x_quote, x_reply]
+      scouts: [startups, tech]
+      description: Ecosystem news, founder lessons, market moves.
+      keywords: [startup, startups, founder, founders, funding, raises, seed, series a, series b, ipo, valuation,
+        venture, unicorn, y combinator, accelerator, acquisition, bootstrapped, arr, saas, fintech, d2c]
+    life:
+      label: Life
+      weight: 0.15
+      mode: interview
+      formats: [x_single, x_thread]
+      scouts: [life]
+      description: Personal observations and experiences. Interview mode only.
+      keywords: [festival, chhath, diwali, holi, cricket, melbourne, family, travel, food, books, habit, lesson]
+
+affairs:
+  # Post types for the affairs lane. `opinion` needs a recorded stance or interview answers.
+  types:
+    history: History behind the news
+    tracker: Development tracker
+    outlook: Future outlook
+    opinion: Opinion
+  linkedin_allowed_topics: [ai regulation, digital public infrastructure, data protection, indiaai, upi, aadhaar]
+
+hooks:
+  types: [question, contrarian, number, story, how-to, observation]
+
+watchlist:
+  # Large accounts likely to post about the day's biggest announcements (used for reply angles).
+  tech: [OpenAI, AnthropicAI, GoogleDeepMind, sama, karpathy, simonw, emollick, AndrewYNg, swyx, ylecun]
+  startups: [ycombinator, garrytan, paulg, naval, Inc42, YourStoryCo]
+  affairs: [ThePrintIndia, IndianExpress, htTweets, the_hindu, PIB_India, BBCWorld]
+  life: []
+
+scouting:
+  concurrency: 8
+  timeout_seconds: 20
+  max_items_per_source: 40
+  item_retention_days: 45
+  dedup_window_days: 7
+  lookback_hours: {tech: 72, affairs: 48, startups: 72, life: 168}
+  cluster_threshold: 0.32
+  shortlist_per_platform: 12
+  candidates_per_scout: {tech: 30, affairs: 24, startups: 12, life: 6}
+  per_source_cap: 8
+  pause_after_failure_days: 7
+  pause_after_zero_yield_weeks: 4
+  user_agent: "PBS/0.2 (personal research digest; +https://github.com)"
+
+ranking:
+  novelty_window_days: 30
+  resuggest_block_days: 3
+  diversity_arm_penalty: 0.7
+  weights: {fit: 1.0, timeliness: 1.0, momentum: 0.8, novelty: 1.0}
+  timeliness_half_life_hours: {tech: 30, affairs: 20, startups: 36, life: 168, research: 96}
+
+learning:
+  frozen: false
+  half_life_days: 42
+  prior_strength: 4
+  explore_rate: 0.2
+  explore_rate_cold_start: 0.3
+  cold_start_days: 14
+  metrics_min_posts: 10
+  median_window: 20
+  perf_blend: 0.4
+  expired_value: 0.2
+  skip_values:
+    not_interesting: 0.0
+    off_brand: 0.0
+    too_risky: 0.1
+    wrong_timing: null
+    already_covered: null
+    other: 0.1
+  edit_ratio_review_weeks: 4
+
+rewards:
+  # Ankit's to change; the learner never changes these.
+  linkedin: {followers_gained: 0.30, profile_views: 0.25, comments: 0.25, reposts: 0.15, impressions: 0.05}
+  x: {comments: 0.30, reposts: 0.25, followers_gained: 0.25, impressions: 0.10, reactions: 0.10}
+
+expiry:
+  interview_days: 7
+  evergreen_days: 7
+  request_days: 3
+  editing_idle_hours: 72
+
+weekly_batch:
+  interview_cards: {linkedin: 3, x: 3}
+  evergreen_cards: {linkedin: 1, x: 2}
+
+llm:
+  daily_cap: 60
+  max_calls_per_run: 45
+  personal_allow_training_fallback: true
+  providers:
+    gemini:
+      kind: gemini
+      model: gemini-2.5-flash
+      api_key_env: GEMINI_API_KEY
+      daily_limit: 200
+      rpm: 8
+      trains_on_inputs: true
+      vision: true
+      grounding: true
+    gemini_lite:
+      kind: gemini
+      model: gemini-2.5-flash-lite
+      api_key_env: GEMINI_API_KEY
+      daily_limit: 500
+      rpm: 12
+      trains_on_inputs: true
+      vision: true
+    github:
+      kind: openai
+      base_url: https://models.github.ai/inference
+      model: openai/gpt-4.1-mini
+      api_key_env: GITHUB_TOKEN
+      daily_limit: 140
+      rpm: 12
+      max_input_tokens: 7000
+      trains_on_inputs: false
+      vision: true
+    github_strong:
+      kind: openai
+      base_url: https://models.github.ai/inference
+      model: openai/gpt-4.1
+      api_key_env: GITHUB_TOKEN
+      daily_limit: 45
+      rpm: 8
+      max_input_tokens: 7000
+      trains_on_inputs: false
+      vision: true
+    groq:
+      kind: openai
+      base_url: https://api.groq.com/openai/v1
+      model: llama-3.3-70b-versatile
+      api_key_env: GROQ_API_KEY
+      daily_limit: 800
+      rpm: 25
+      trains_on_inputs: false
+    openrouter:
+      kind: openai
+      base_url: https://openrouter.ai/api/v1
+      model: meta-llama/llama-3.3-70b-instruct:free
+      api_key_env: OPENROUTER_API_KEY
+      daily_limit: 45
+      rpm: 10
+      trains_on_inputs: true
+  routes:
+    translate: [gemini_lite, github, groq, openrouter]
+    triage: [gemini, github, groq, openrouter]
+    draft: [gemini, github_strong, github, groq, openrouter]
+    draft_personal: [github_strong, github, gemini, groq]
+    questions: [gemini_lite, gemini, github, groq]
+    reflect: [github_strong, gemini, github, groq]
+    voice: [github_strong, github, gemini, groq]
+    vision: [gemini, github]
+    search: [gemini]
+    stances: [gemini, github_strong, github]
+    evergreen: [gemini, github_strong, github, groq]
+  temperature:
+    translate: 0.1
+    triage: 0.2
+    draft: 0.8
+    draft_personal: 0.7
+    questions: 0.6
+    reflect: 0.3
+    voice: 0.3
+    vision: 0.0
+    search: 0.2
+    stances: 0.4
+    evergreen: 0.6
+
+notify:
+  # Content-free pings. Configure PBS_NTFY_TOPIC or PBS_TELEGRAM_BOT_TOKEN + PBS_TELEGRAM_CHAT_ID as secrets.
+  on_delivery: true
+  on_request_done: true
+  on_failure: true
+  desk_url: ""

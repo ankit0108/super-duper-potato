@@ -1,0 +1,31 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Local data checkouts / scratch
+.pbs-data/
+.pbs-local/
+*.sqlite
+*.db
+
+# Node / desk
+web/node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+web/.vite/
+web/coverage/
+
+# Secrets never belong in this public repo
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store

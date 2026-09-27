@@ -1,0 +1,75 @@
+# Seed source registry. Merged into the data repo's `sources` table on every run: new seeds are added,
+# Ankit's edits and the health history are kept. Failing sources pause themselves after a week and show
+# up on the desk; any of them can be replaced by a Google News query from the Sources page.
+#
+# kinds: rss (RSS/Atom URL), gnews (Google News query or topic), arxiv (API query), hf_papers,
+#        hn_front (Hacker News front page via Algolia), hn_show (Show HN), wikipedia_otd, reddit (best effort)
+
+tech:
+  - {id: hf-daily-papers, name: Hugging Face daily papers, kind: hf_papers, url: "https://huggingface.co/api/daily_papers", pillar_hints: [research]}
+  - id: arxiv-agents-evals
+    name: arXiv (agents, evals, tool use)
+    kind: arxiv
+    query: '(cat:cs.AI OR cat:cs.CL OR cat:cs.MA OR cat:cs.SE) AND (abs:agent OR abs:agents OR abs:"tool use" OR abs:benchmark OR abs:evaluation OR abs:automation)'
+    max_items: 30
+    pillar_hints: [research, learning]
+  - {id: hn-front, name: Hacker News front page, kind: hn_front, url: "https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=60", pillar_hints: [industry, learning]}
+  - {id: openai-news, name: OpenAI news, kind: rss, url: "https://openai.com/news/rss.xml", pillar_hints: [industry, research]}
+  - {id: deepmind-blog, name: Google DeepMind blog, kind: rss, url: "https://deepmind.google/blog/rss.xml", pillar_hints: [research, industry]}
+  - {id: google-ai-blog, name: Google AI blog, kind: rss, url: "https://blog.google/technology/ai/rss/", pillar_hints: [industry]}
+  - {id: microsoft-ai-blog, name: Microsoft AI blog, kind: rss, url: "https://blogs.microsoft.com/ai/feed/", pillar_hints: [industry]}
+  - {id: huggingface-blog, name: Hugging Face blog, kind: rss, url: "https://huggingface.co/blog/feed.xml", pillar_hints: [learning, research]}
+  - {id: aws-ml-blog, name: AWS machine learning blog, kind: rss, url: "https://aws.amazon.com/blogs/machine-learning/feed/", pillar_hints: [learning]}
+  - {id: simon-willison, name: Simon Willison, kind: rss, url: "https://simonwillison.net/atom/everything/", pillar_hints: [learning, research]}
+  - {id: import-ai, name: Import AI, kind: rss, url: "https://importai.substack.com/feed", pillar_hints: [research]}
+  - {id: latent-space, name: Latent Space, kind: rss, url: "https://www.latent.space/feed", pillar_hints: [learning, industry]}
+  - {id: interconnects, name: Interconnects, kind: rss, url: "https://www.interconnects.ai/feed", pillar_hints: [research]}
+  - {id: techcrunch-ai, name: TechCrunch AI, kind: rss, url: "https://techcrunch.com/category/artificial-intelligence/feed/", pillar_hints: [industry]}
+  - {id: verge-ai, name: The Verge AI, kind: rss, url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", pillar_hints: [industry]}
+  - {id: venturebeat-ai, name: VentureBeat AI, kind: rss, url: "https://venturebeat.com/category/ai/feed/", pillar_hints: [industry]}
+  - {id: mit-tech-review, name: MIT Technology Review, kind: rss, url: "https://www.technologyreview.com/feed/", pillar_hints: [research, industry]}
+  - {id: mcp-python-sdk, name: MCP Python SDK releases, kind: rss, url: "https://github.com/modelcontextprotocol/python-sdk/releases.atom", pillar_hints: [learning]}
+  - {id: gnews-anthropic, name: "Google News: Anthropic", kind: gnews, query: "Anthropic Claude when:2d", pillar_hints: [industry]}
+  - {id: gnews-rpa-vendors, name: "Google News: automation vendors", kind: gnews, query: 'UiPath OR "Automation Anywhere" OR "Power Automate" OR "Copilot Studio" when:3d', pillar_hints: [industry, receipts]}
+  - {id: gnews-agentic-enterprise, name: "Google News: agentic AI in enterprise", kind: gnews, query: '"agentic AI" enterprise when:2d', pillar_hints: [industry, receipts]}
+  - {id: gnews-ai-banking, name: "Google News: AI in banking and finance", kind: gnews, query: 'AI automation bank OR banking OR insurance when:3d', pillar_hints: [receipts, industry]}
+  - {id: gnews-ai-regulation, name: "Google News: AI regulation", kind: gnews, query: '"AI regulation" OR "AI Act" OR "AI policy" when:2d', pillar_hints: [industry]}
+  - {id: gnews-mcp, name: "Google News: Model Context Protocol", kind: gnews, query: '"Model Context Protocol" OR "MCP server" when:7d', pillar_hints: [learning]}
+  - {id: gnews-indiaai, name: "Google News: IndiaAI and DPI", kind: gnews, query: 'IndiaAI OR "digital public infrastructure" OR MeitY AI when:3d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [industry]}
+  - {id: reddit-localllama, name: r/LocalLLaMA, kind: reddit, url: "https://www.reddit.com/r/LocalLLaMA/top/.rss?t=day", best_effort: true, pillar_hints: [learning, research]}
+  - {id: reddit-machinelearning, name: r/MachineLearning, kind: reddit, url: "https://www.reddit.com/r/MachineLearning/top/.rss?t=day", best_effort: true, pillar_hints: [research]}
+
+affairs:
+  - {id: bbc-world, name: BBC World, kind: rss, url: "https://feeds.bbci.co.uk/news/world/rss.xml", tier: world}
+  - {id: aljazeera, name: Al Jazeera, kind: rss, url: "https://www.aljazeera.com/xml/rss/all.xml", tier: world}
+  - {id: guardian-world, name: The Guardian World, kind: rss, url: "https://www.theguardian.com/world/rss", tier: world}
+  - {id: npr-world, name: NPR World, kind: rss, url: "https://feeds.npr.org/1004/rss.xml", tier: world}
+  - {id: gnews-world, name: "Google News: World", kind: gnews, topic: WORLD, hl: en-IN, gl: IN, ceid: "IN:en", tier: world}
+  - {id: the-hindu-national, name: The Hindu (National), kind: rss, url: "https://www.thehindu.com/news/national/feeder/default.rss", tier: india}
+  - {id: indian-express-india, name: Indian Express (India), kind: rss, url: "https://indianexpress.com/section/india/feed/", tier: india}
+  - {id: ht-india, name: Hindustan Times (India), kind: rss, url: "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml", tier: india}
+  - {id: theprint, name: ThePrint, kind: rss, url: "https://theprint.in/feed/", tier: india}
+  - {id: livemint-economy, name: Mint (Economy), kind: rss, url: "https://www.livemint.com/rss/economy", tier: india}
+  - {id: pib-releases, name: PIB press releases, kind: rss, url: "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3", tier: india, best_effort: true}
+  - {id: gnews-india-nation, name: "Google News: India", kind: gnews, topic: NATION, hl: en-IN, gl: IN, ceid: "IN:en", tier: india}
+  - {id: gnews-bihar-en, name: "Google News: Bihar", kind: gnews, query: "Bihar when:2d", hl: en-IN, gl: IN, ceid: "IN:en", tier: bihar}
+  - {id: gnews-bihar-development, name: "Google News: Bihar development", kind: gnews, query: 'Bihar economy OR investment OR infrastructure OR scheme when:7d', hl: en-IN, gl: IN, ceid: "IN:en", tier: bihar}
+  - {id: gnews-bihar-hi, name: "Google News: बिहार", kind: gnews, query: "बिहार when:2d", hl: hi, gl: IN, ceid: "IN:hi", lang: hi, tier: bihar}
+  - {id: gnews-patna-hi, name: "Google News: पटना", kind: gnews, query: "पटना when:2d", hl: hi, gl: IN, ceid: "IN:hi", lang: hi, tier: bihar}
+  - {id: ht-patna, name: Hindustan Times (Patna), kind: rss, url: "https://www.hindustantimes.com/feeds/rss/cities/patna-news/rssfeed.xml", tier: bihar}
+  - {id: toi-patna, name: Times of India (Patna), kind: rss, url: "https://timesofindia.indiatimes.com/rssfeeds/-2128817995.cms", tier: bihar, best_effort: true}
+  - {id: livehindustan-bihar, name: Live Hindustan (Bihar), kind: rss, url: "https://api.livehindustan.com/feeds/rss/bihar/rssfeed.xml", tier: bihar, lang: hi, best_effort: true}
+  - {id: wikipedia-otd, name: Wikipedia — on this day, kind: wikipedia_otd, tier: world}
+
+startups:
+  - {id: techcrunch-startups, name: TechCrunch Startups, kind: rss, url: "https://techcrunch.com/category/startups/feed/", pillar_hints: [startups, industry]}
+  - {id: techcrunch-venture, name: TechCrunch Venture, kind: rss, url: "https://techcrunch.com/category/venture/feed/", pillar_hints: [startups]}
+  - {id: crunchbase-news, name: Crunchbase News, kind: rss, url: "https://news.crunchbase.com/feed/", pillar_hints: [startups]}
+  - {id: inc42, name: Inc42, kind: rss, url: "https://inc42.com/feed/", pillar_hints: [startups]}
+  - {id: entrackr, name: Entrackr, kind: rss, url: "https://entrackr.com/feed/", best_effort: true, pillar_hints: [startups]}
+  - {id: yourstory, name: YourStory, kind: rss, url: "https://yourstory.com/feed", best_effort: true, pillar_hints: [startups]}
+  - {id: hn-show, name: Show HN, kind: hn_show, url: "https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&numericFilters=points%3E40&hitsPerPage=40", pillar_hints: [startups, learning]}
+  - {id: gnews-india-startups, name: "Google News: Indian startups", kind: gnews, query: 'Indian startup funding OR raises when:2d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [startups]}
+  - {id: gnews-ai-startups, name: "Google News: AI startup funding", kind: gnews, query: '"AI startup" raises OR funding when:2d', pillar_hints: [startups, industry]}
+
+life: []

@@ -1,0 +1,95 @@
+# Ten recurring issues proposed at setup. The positions summarise views people commonly hold; they are
+# not endorsements and the system never picks one. Ankit picks a position or writes his own on the desk.
+# Verify the context lines before relying on them; links go to Wikipedia search for background reading.
+
+- id: ai-regulation
+  tier: world
+  issue: How should governments regulate AI?
+  context: Approaches range from binding risk-based rules to voluntary commitments and licensing of the most capable models.
+  keywords: [ai regulation, ai act, ai safety, frontier model, ai policy]
+  positions:
+    - {key: risk-based, label: Binding, risk-based rules, text: "Set legal obligations that scale with risk, as the EU AI Act does, so high-risk uses face audits and transparency duties."}
+    - {key: light-touch, label: Light-touch and sector-led, text: "Rely on existing laws and sector regulators plus voluntary commitments, to avoid slowing innovation."}
+    - {key: frontier-licensing, label: License the frontier, text: "Focus regulation on the most capable models (for example by compute thresholds), and leave everyday uses mostly alone."}
+- id: trade-realignment
+  tier: world
+  issue: Tariffs and supply-chain realignment
+  context: Governments are using tariffs and incentives to move supply chains, especially away from concentration in China.
+  keywords: [tariff, tariffs, supply chain, china plus one, reshoring, friend-shoring]
+  positions:
+    - {key: realign, label: Realign supply chains, text: "Diversifying production (China+1, friend-shoring) is worth higher costs for resilience and security."}
+    - {key: open-trade, label: Keep trade open, text: "Tariffs mostly raise prices and invite retaliation; open trade serves consumers and growth better."}
+    - {key: strategic-only, label: Protect only strategic sectors, text: "Use targeted measures for chips, energy and pharmaceuticals, and keep the rest of trade open."}
+- id: energy-transition
+  tier: world
+  issue: How fast should developing economies move off coal?
+  context: Developing countries weigh growth and energy security against emissions, with climate finance as a key variable.
+  keywords: [coal, energy transition, renewables, climate finance, net zero, emissions]
+  positions:
+    - {key: fast, label: Fast phase-down with finance, text: "Phase down coal quickly, with rich countries funding the transition."}
+    - {key: growth-first, label: Growth first, text: "Prioritise affordable energy for growth now and decarbonise as clean technology gets cheaper."}
+    - {key: balanced, label: Build renewables fast, keep baseload, text: "Add renewables and storage as fast as possible, but keep coal for reliability until storage matures."}
+- id: one-nation-one-election
+  tier: india
+  issue: Simultaneous elections (One Nation, One Election)
+  context: A high-level committee recommended simultaneous Lok Sabha and state elections; constitutional amendment bills are under parliamentary scrutiny.
+  keywords: [one nation one election, simultaneous elections, onoe]
+  positions:
+    - {key: support, label: Support, text: "Lower costs and less governance disruption from near-constant campaigning."}
+    - {key: oppose, label: Oppose, text: "Weakens federalism and accountability, and national issues could crowd out state ones."}
+    - {key: safeguards, label: Support only with safeguards, text: "Acceptable if phased in, with clear rules for early dissolution and protection for state autonomy."}
+- id: delimitation
+  tier: india
+  issue: Delimitation and North–South representation
+  context: The freeze on reallocating Lok Sabha seats ends after the first census after 2026, raising questions about seats for states with slower population growth.
+  keywords: [delimitation, lok sabha seats, north south, population freeze]
+  positions:
+    - {key: population, label: Reallocate by population, text: "One person, one vote: seats should follow population."}
+    - {key: extend-freeze, label: Extend the freeze, text: "Don't penalise states that controlled population growth; keep the current allocation."}
+    - {key: expand, label: Expand the house, text: "Increase total seats so that no state loses seats while faster-growing states gain."}
+- id: india-ai-dpi
+  tier: india
+  issue: India's approach to AI and digital public infrastructure
+  context: India built DPI such as Aadhaar and UPI and is funding AI compute through the IndiaAI Mission; the approach to AI rules is still evolving.
+  keywords: [indiaai, digital public infrastructure, dpi, upi, aadhaar, meity, data protection]
+  positions:
+    - {key: state-led, label: DPI-style public rails for AI, text: "Build shared public compute, datasets and models, as India did with UPI."}
+    - {key: market-led, label: Market-led, text: "Let companies lead with light regulation; the state should enable rather than build."}
+    - {key: rights-first, label: Rights first, text: "Put data protection, accountability and grievance redress in place before scaling AI in public services."}
+- id: caste-census
+  tier: india
+  issue: Caste enumeration and reservation limits
+  context: Caste enumeration is planned alongside the next census, and there is a long debate over the 50% ceiling on reservations.
+  keywords: [caste census, caste survey, reservation, 50% cap, obc]
+  positions:
+    - {key: count-and-revisit, label: Count and revisit the cap, text: "Data on caste is needed to target welfare, and the 50% ceiling should be revisited with it."}
+    - {key: economic-criteria, label: Move to economic criteria, text: "Counting caste entrenches it; targeting should shift toward economic disadvantage."}
+    - {key: count-keep-cap, label: Count but keep the cap, text: "Collect the data, keep the 50% ceiling, and focus on sub-categorisation within groups."}
+- id: bihar-prohibition
+  tier: bihar
+  issue: Bihar's liquor prohibition (since 2016)
+  context: Bihar has prohibited the sale and consumption of alcohol since 2016; the debate covers social effects, revenue, enforcement and illicit liquor.
+  keywords: [prohibition, liquor ban, sharabbandi, शराबबंदी, hooch]
+  positions:
+    - {key: keep, label: Keep and enforce better, text: "The ban has social benefits, especially for women and families; improve enforcement rather than end it."}
+    - {key: repeal, label: Repeal, text: "It costs revenue, fuels illicit liquor deaths and clogs courts and jails."}
+    - {key: reform, label: Reform it, text: "Keep the policy's goals but decriminalise minor offences and consider regulated sale."}
+- id: bihar-special-status
+  tier: bihar
+  issue: Special category status or a special package for Bihar
+  context: Bihar has long sought special category status; the Centre has favoured special packages and Finance Commission transfers instead.
+  keywords: [special category status, special status, special package, bihar funds]
+  positions:
+    - {key: status, label: Special status is needed, text: "Structural disadvantages justify special category status and its tax and funding benefits."}
+    - {key: package, label: Packages are enough, text: "Targeted packages and Finance Commission transfers can do the job without changing the criteria."}
+    - {key: governance, label: Governance matters more, text: "State capacity, execution and investment climate matter more than the label or central transfers."}
+- id: bihar-jobs-migration
+  tier: bihar
+  issue: Jobs and migration — Bihar's growth strategy
+  context: Large-scale out-migration for work reflects limited local jobs; strategies compete over where to focus.
+  keywords: [migration, bihar jobs, industrial corridor, bihar investment, bihar industry]
+  positions:
+    - {key: manufacturing, label: Manufacturing-led, text: "Land, power and industrial corridors to bring factories to Bihar."}
+    - {key: agri, label: Agriculture and food processing first, text: "Build on farm strengths with processing, storage and supply chains."}
+    - {key: services-skills, label: Services and skills, text: "Invest in education and skills and connect people to national and global services work."}
+    - {key: cities, label: Build cities, text: "Make Patna, Gaya, Bhagalpur and others real growth hubs with infrastructure and housing."}
