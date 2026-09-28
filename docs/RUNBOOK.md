@@ -11,6 +11,12 @@ why in a line, and any skip can get a reason afterwards (**Add why** on the toas
 reads your reasons; **Insights → Learning** lists the ones in use. Cards you don't touch expire when the next
 morning's set arrives, and that's fine.
 
+**A visual (optional).** On a card, **Visual → Create visual** (or pick a kind: carousel, flowchart,
+comparison, numbered list, big number, quote card). About two minutes later it's drawn from the post and its
+sources, in your style. Flip through it, **Edit text** if a word is off, then **Download PDF** (a carousel: on
+LinkedIn, add a document to the post and upload it) or **Download PNG** / **Copy image**, and paste the alt text.
+When you tap **Posted**, keep **Posted with the visual** ticked: Insights compares posts with and without one.
+
 **Right topic, other platform.** On a card, **Also for X** (or **Also for LinkedIn**) makes a version for the
 other platform and keeps both; **Skip → Move to X instead** makes it and skips this one as "wrong platform". The
 new card arrives in about two minutes, rewritten for that platform, and links back to the original. Both teach the
@@ -55,6 +61,7 @@ desk is where to look first.
 | Drafts suddenly need more editing | **Insights → Weekly report** shows edit ratio by prompt and playbook version. Remove the playbook rule that made things worse (**Insights → Playbook**), or **Settings → Learning → Freeze learning** while you review |
 | Want another set today | **System → Get another set** |
 | Hashtags you never use keep coming | Drop them on the card: after a few posts the drafter stops suggesting the ones you remove (and suggests none on a platform where you remove them all). **Settings → Hashtags** turns them off or changes how many |
+| A visual says something the post doesn't, or flags a figure | Figures the sources don't contain are listed above the visual: fix them with **Edit text**, or **Make a different one**. A visual that mentioned a blocklist term isn't kept (the card says so) |
 | A cross-post didn't appear | It needs a run: about two minutes, longer if GitHub is slow (**System** shows changes in flight). If it says **Drafting failed**, open it: the original's text is there to work from, or tap **Rewrite** |
 | A guide change made drafts worse | Add your own rule under **Insights → Playbook** saying what you want instead: your rules win over the platform guide. The guide shows each researched rule with the articles behind it, and never changes without your approval, so reject proposals like it |
 
@@ -69,7 +76,7 @@ saved, so a crash mid-run can't lose your actions.
 
 Everything runs on free tiers: Actions minutes (unlimited on a public repo), Pages, Gemini and Groq, and free
 news sources. A normal day uses about 15–20 model calls, with a hard cap of 60 in settings; each cross-post is
-one more, and the monthly platform research one. The one upgrade worth paying for, if drafts
+one more, as is each visual, and the monthly platform research one. The one upgrade worth paying for, if drafts
 stay generic after a month, is a stronger drafting model: **Settings → Models**.
 
 ## Development

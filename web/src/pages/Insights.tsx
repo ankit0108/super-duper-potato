@@ -699,6 +699,32 @@ function CrosspostStats({ view }: { view: DeskState }) {
   );
 }
 
+type VisualGroup = { posts?: number; with_numbers?: number; perf_median?: number | null };
+type VisualStatsData = { kinds?: Record<string, number>; made?: number } & Partial<Record<Platform, { with?: VisualGroup; without?: VisualGroup }>>;
+const VISUAL_NAMES: Record<string, string> = { carousel: "Carousel", flow: "Flowchart", compare: "Comparison", list: "Numbered list", stat: "Big number", quote: "Quote card" };
+
+function VisualStats({ view }: { view: DeskState }) {
+  const v = ((view.stats ?? {}) as { visuals?: VisualStatsData }).visuals;
+  const used = Object.values(v?.kinds ?? {}).reduce((a, b) => a + b, 0);
+  if (!v || !(used || v.made)) return null;
+  const result = (g?: VisualGroup) => (g?.perf_median != null ? `${Math.round(g.perf_median * 100)} (${g.with_numbers} with numbers)` : g?.posts ? "no numbers yet" : "–");
+  return (
+    <Panel
+      title="Posts with a visual (last 90 days)"
+      description="Result is the median score relative to your own typical post (50 = typical), once a post has numbers. It takes a few weeks of both to say anything."
+    >
+      <DataTable
+        columns={["Platform", "With a visual", "Result", "Without", "Result"]}
+        rows={(["linkedin", "x"] as const).map((p) => [NAMES[p], num(v[p]?.with?.posts ?? 0), result(v[p]?.with), num(v[p]?.without?.posts ?? 0), result(v[p]?.without)])}
+      />
+      <p className="mt-3 text-[13px] text-muted">
+        {v.made ?? 0} visuals made
+        {used ? `, ${used} posted: ${Object.entries(v.kinds ?? {}).map(([k, n]) => `${VISUAL_NAMES[k] ?? k} ${n}`).join(", ")}` : ""}.
+      </p>
+    </Panel>
+  );
+}
+
 function LearningTab({ view }: { view: DeskState }) {
   const pillar = usePillarLabels();
   const arms = view.arms ?? [];
@@ -724,6 +750,7 @@ function LearningTab({ view }: { view: DeskState }) {
     <div className="space-y-5">
       <FeedbackPanel view={view} />
       <CrosspostStats view={view} />
+      <VisualStats view={view} />
       <Panel title="How the mix is chosen" description="Each pillar × format is an arm. Picks and posts raise an arm, skips lower it (except 'wrong timing' and 'already covered'), and old results fade with a six-week half-life. About 20% of slots explore.">
         <div className="-mx-4 overflow-x-auto px-4">
           <DataTable

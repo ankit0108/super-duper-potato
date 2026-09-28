@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Card, Hook } from "@/types";
+import type { Card, Hook, Visual } from "@/types";
 import { readJSON, remove, writeJSON } from "@/lib/storage";
 
 export type WorkingCopy = {
@@ -8,6 +8,8 @@ export type WorkingCopy = {
   hookIndex: number | null;
   hooks: Hook[] | null; // the openings as edited here; null = the drafter's, untouched
   hashtags: string[] | null; // the hashtags he kept or added; null = the suggested ones
+  visual: Visual | null; // the visual's text as edited here; null = the card's visual, untouched
+  visualBase: string | null; // which visual (its created_at) those edits belong to: a newer one replaces them
   baseKey: string; // which server version these edits started from
   baseText: string; // that version's text/posts, to tell whether Ankit changed anything
   basePosts: string[];
@@ -33,6 +35,8 @@ function fromCard(card: Card): WorkingCopy {
     hookIndex: card.working?.hook_index ?? null,
     hooks: card.working?.hooks?.length ? card.working.hooks.map((h) => ({ type: h.type ?? "observation", text: h.text })) : null,
     hashtags: card.working?.hashtags ?? null,
+    visual: card.working?.visual ?? null,
+    visualBase: card.working?.visual?.created_at ?? null,
     baseKey: draftKey(card),
     baseText: text,
     basePosts: posts,
@@ -41,13 +45,26 @@ function fromCard(card: Card): WorkingCopy {
 }
 
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+const visualKey = (v: Visual | null | undefined) =>
+  v ? JSON.stringify([v.kind, v.title ?? "", v.subtitle ?? "", (v.items ?? []).map((it) => [it.title ?? "", it.body ?? ""]), v.caption ?? "", v.alt_text ?? ""]) : "";
+
+/** His edits of the card's current visual, or null (none, or they belong to a visual that has been replaced). */
+export function editedVisual(copy: WorkingCopy, card: Card): Visual | null {
+  return copy.visual && card.visual?.created_at && copy.visualBase === card.visual.created_at ? copy.visual : null;
+}
+
+/** The visual to show: his edits here, else his synced edits, else the card's. */
+export function currentVisual(copy: WorkingCopy, card: Card): Visual | null {
+  const synced = card.working?.visual && card.working.visual.created_at === card.visual?.created_at ? card.working.visual : null;
+  return editedVisual(copy, card) ?? synced ?? card.visual ?? null;
+}
 const sameHooks = (a: Hook[] | null | undefined, b: Hook[] | null | undefined) =>
   (a ?? []).length === (b ?? []).length && (a ?? []).every((h, i) => h.text === b![i].text);
 
 export function useWorkingCopy(card: Card) {
   const [copy, setCopy] = useState<WorkingCopy>(() => {
     const saved = readJSON<WorkingCopy | null>(keyOf(card.id), null);
-    return saved ? { ...saved, hooks: saved.hooks ?? null, hashtags: saved.hashtags ?? null } : fromCard(card);
+    return saved ? { ...saved, hooks: saved.hooks ?? null, hashtags: saved.hashtags ?? null, visual: saved.visual ?? null, visualBase: saved.visualBase ?? null } : fromCard(card);
   });
   const [newDraft, setNewDraft] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -124,7 +141,8 @@ export function useWorkingCopy(card: Card) {
       copy.hookIndex !== server.hookIndex ||
       !sameHooks(copy.hooks, server.hooks) ||
       !same(copy.hashtags ?? [], server.hashtags ?? []) ||
-      (copy.hashtags == null) !== (server.hashtags == null)
+      (copy.hashtags == null) !== (server.hashtags == null) ||
+      (!!editedVisual(copy, card) && visualKey(editedVisual(copy, card)) !== visualKey(server.visual))
     );
   }, [copy, card]);
 

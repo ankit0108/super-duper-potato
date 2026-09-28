@@ -161,6 +161,13 @@ class Hashtags(_Strict):
         return getattr(self, platform)
 
 
+class Visuals(_Strict):
+    enabled: bool = True
+    name_linkedin: str = Field("", max_length=60)
+    name_x: str = Field("", max_length=60)
+    accent: str = Field("#4F46E5", pattern=r"^#[0-9a-fA-F]{6}$")
+
+
 class Drafting(_Strict):
     interview_draft_now: bool = True
     questions_per_card: int = Field(2, ge=1, le=3)
@@ -250,6 +257,7 @@ class Settings(BaseModel):
     expiry: Expiry = Expiry()
     drafting: Drafting = Drafting()
     hashtags: Hashtags = Hashtags()
+    visuals: Visuals = Visuals()
     weekly_batch: WeeklyBatch
     llm: LLM
     notify: Notify = Notify()

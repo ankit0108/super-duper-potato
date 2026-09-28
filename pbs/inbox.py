@@ -151,8 +151,9 @@ def _card_edit(ctx: Ctx, ev: C.CardEditEvent) -> None:
     prev = card.get("working") or {}
     hooks = _edited_hooks(card, ev.hooks) if ev.hooks is not None else prev.get("hooks")
     tags = hashtags.clean(ev.hashtags, 15) if ev.hashtags is not None else prev.get("hashtags")
+    visual = _edited_visual(card, ev.visual) if ev.visual is not None else prev.get("visual")
     card["working"] = {"text": ev.text, "posts": ev.posts, "hook_index": ev.hook_index, "hooks": hooks,
-                       "hashtags": tags, "updated_at": at}
+                       "hashtags": tags, "visual": visual, "updated_at": at}
     if card["status"] in ("suggested", "blocked"):
         draft.log_interaction(ctx, "picked", card, rank=card.get("rank"), via="edit")
         _touch(card, at, "editing")
@@ -177,6 +178,16 @@ def _edited_hooks(card: dict[str, Any], hooks: list[C.HookIn]) -> list[dict[str,
     return out or None
 
 
+def _edited_visual(card: dict[str, Any], visual: C.VisualIn) -> dict[str, Any] | None:
+    """His wording of the card's visual. It belongs to the visual it was edited from (created_at), so a newer
+    visual from the pipeline replaces it."""
+    base = card.get("visual")
+    if not base:
+        return None
+    return {**visual.model_dump(), "sources": base.get("sources") or [], "unsourced": base.get("unsourced") or [],
+            "created_at": base.get("created_at")}
+
+
 def _minutes(n: int):
     import datetime as dt
 
@@ -192,7 +203,8 @@ def _card_posted(ctx: Ctx, ev: C.CardPostedEvent) -> None:
                           posted_at=posted_at)
         return
     learn.record_post(ctx, card, text=ev.text, posts=ev.posts, post_url=ev.post_url, posted_at=posted_at,
-                      editing_seconds=ev.editing_seconds, hook_index=ev.hook_index, tags=ev.hashtags)
+                      editing_seconds=ev.editing_seconds, hook_index=ev.hook_index, tags=ev.hashtags,
+                      with_visual=ev.with_visual)
 
 
 def _card_skip(ctx: Ctx, ev: C.CardSkipEvent) -> None:
@@ -255,6 +267,26 @@ def _card_crosspost(ctx: Ctx, ev: C.CardCrosspostEvent) -> None:
     draft.save_card(ctx, card)
     draft.log_interaction(ctx, "crosspost", card, mode=mode, to=ev.target_platform, format=ev.target_format,
                           pillar=card.get("pillar"), note=ev.note or None)
+    ctx.hints.add("work")
+
+
+def _card_visual(ctx: Ctx, ev: C.CardVisualEvent) -> None:
+    """Draw a visual for the post (drafted on the next run, from the card's current text)."""
+    card = _card(ctx, ev.card_id)
+    if card["status"] == "posted":
+        raise Reject("card is already posted")
+    working = card.get("working") or {}
+    if not (card.get("draft") or working.get("text") or working.get("posts")):
+        raise Reject("the card has no draft to draw from yet")
+    if card.get("work") and card["work"].get("kind") != "visual":
+        raise Reject("the card is busy with a rewrite or draft; ask again when it's done")
+    if not ctx.settings.visuals.enabled:
+        raise Reject("visuals are turned off in settings")
+    at = _event_time(ev)
+    card["work"] = {"kind": "visual", "visual_kind": ev.kind, "note": ev.note, "requested_at": at, "attempts": 0}
+    card["updated_at"] = at  # not a new version of the text: the revision stays
+    draft.save_card(ctx, card)
+    draft.log_interaction(ctx, "visual_requested", card, kind=ev.kind)
     ctx.hints.add("work")
 
 
@@ -591,6 +623,7 @@ APPLY = {
     "card.skip": _card_skip,
     "card.rewrite": _card_rewrite,
     "card.crosspost": _card_crosspost,
+    "card.visual": _card_visual,
     "card.answers": _card_answers,
     "card.restore": _card_restore,
     "card.draft_now": _card_draft_now,

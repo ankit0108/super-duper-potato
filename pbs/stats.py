@@ -115,7 +115,8 @@ def compute(ctx: Ctx) -> dict[str, Any]:
             "streak": _streak(daily), "gates": _gates(ctx, daily, weeks),
             # What the ranking learns from tomorrow (Insights shows it, so he can see his reasons being used).
             "feedback": feedback.recent_feedback(ctx, days=30, limit=15),
-            "crossposts": _crossposts(ctx)}
+            "crossposts": _crossposts(ctx),
+            "visuals": _visuals(ctx)}
 
 
 def _crossposts(ctx: Ctx) -> dict[str, Any]:
@@ -129,6 +130,29 @@ def _crossposts(ctx: Ctx) -> dict[str, Any]:
     for c in ctx.store.select("cards", "crosspost_of IS NOT NULL AND created_at >= ?", (since,)):
         out["made"] += 1
         out["posted"] += 1 if c["status"] == "posted" else 0
+    return out
+
+
+def _visuals(ctx: Ctx) -> dict[str, Any]:
+    """Posts with a visual against posts without, per platform (last 90 days): how many, and their median result
+    relative to his own median (perf, once metrics are in)."""
+    since = timeutil.iso(timeutil.now() - dt.timedelta(days=90))
+    groups: dict[str, dict[str, list[float | None]]] = {p: {"with": [], "without": []} for p in ("linkedin", "x")}
+    kinds: dict[str, int] = {}
+    for p in ctx.store.select("posts", "posted_at >= ?", (since,)):
+        kind = (p.get("features") or {}).get("visual")
+        if kind:
+            kinds[kind] = kinds.get(kind, 0) + 1
+        groups[p["platform"]]["with" if kind else "without"].append(p.get("perf"))
+    out: dict[str, Any] = {"kinds": kinds}
+    for platform, g in groups.items():
+        out[platform] = {}
+        for key, vals in g.items():
+            perf = [v for v in vals if v is not None]
+            out[platform][key] = {"posts": len(vals), "with_numbers": len(perf),
+                                  "perf_median": round(statistics.median(perf), 3) if perf else None}
+    made = ctx.store.count("interactions", "type = 'visual_created' AND at >= ?", (since,))
+    out["made"] = made
     return out
 
 

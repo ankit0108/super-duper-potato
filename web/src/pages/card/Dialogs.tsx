@@ -8,10 +8,10 @@ import { safeUrl } from "@/lib/compose";
 import { useTz } from "@/state/hooks";
 import { Button, cx } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
-import { Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Badge";
 
-export type PostedPayload = { text: string; posts: string[] | null; post_url: string | null; posted_at: string; editing_seconds: number };
+export type PostedPayload = { text: string; posts: string[] | null; post_url: string | null; posted_at: string; editing_seconds: number; with_visual: boolean };
 
 export function PostedDialog({
   open,
@@ -22,6 +22,7 @@ export function PostedDialog({
   tags = [],
   baseline,
   editingSeconds,
+  visualLabel,
   onConfirm,
 }: {
   open: boolean;
@@ -32,16 +33,19 @@ export function PostedDialog({
   tags?: string[];
   baseline: string;
   editingSeconds: number;
+  visualLabel?: string | null;
   onConfirm: (p: PostedPayload) => void;
 }) {
   const tz = useTz();
   const [final, setFinal] = useState(text);
+  const [withVisual, setWithVisual] = useState(true);
   const [url, setUrl] = useState("");
   const [when, setWhen] = useState(() => toLocalInput(new Date(), tz));
   const [minutes, setMinutes] = useState(Math.max(1, Math.round(editingSeconds / 60)));
   useEffect(() => {
     if (open) {
       setFinal(text);
+      setWithVisual(true);
       setWhen(toLocalInput(new Date(), tz));
       setMinutes(Math.max(1, Math.round(editingSeconds / 60)));
     }
@@ -57,6 +61,7 @@ export function PostedDialog({
       post_url: url.trim() || null,
       posted_at: fromLocalInput(when, tz),
       editing_seconds: Math.max(0, Math.round(minutes * 60)),
+      with_visual: !!visualLabel && withVisual,
     });
   };
   return (
@@ -101,6 +106,14 @@ export function PostedDialog({
         <Field label="Editing time (minutes)" htmlFor="posted-min" hint="Measured while this card was open and you were typing. Adjust if it's off.">
           <Input id="posted-min" type="number" min={0} max={600} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} className="w-28" />
         </Field>
+        {visualLabel && (
+          <Checkbox
+            checked={withVisual}
+            onChange={setWithVisual}
+            label={`Posted with the visual (${visualLabel.toLowerCase()})`}
+            description="So the system can compare how posts do with and without one."
+          />
+        )}
       </div>
     </Dialog>
   );

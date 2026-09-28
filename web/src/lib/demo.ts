@@ -155,6 +155,55 @@ function crosspostCard(desk: DeskState, source: Card, ev: Extract<InboxEvent, { 
   };
 }
 
+/** Like the pipeline's visuals.make_visual (with the demo model): a visual from the post's own sentences. */
+export function demoVisual(card: Card, kind: string, now: string): NonNullable<Card["visual"]> {
+  const d = card.working ?? card.draft ?? { text: "", posts: [] };
+  const text = d.posts?.length ? d.posts.join(" ") : (d.text ?? "");
+  const sentences = splitSentences(text.replace(/\s*\n+\s*/g, " ")).filter((s) => s.split(/\s+/).length >= 4);
+  const label = (s: string, n: number) => {
+    const head = s.split(/[:,;–—]/)[0].replace(/[.?!]+$/, "");
+    const words = head.split(/\s+/);
+    return words.length <= n ? head : `${words.slice(0, n).join(" ")}…`;
+  };
+  const figure = /\d[\d,.]*\s?%|\$\s?\d[\d,.]*\s?(?:[mb]n?|billion|million)?|\d[\d,.]*/i.exec(text)?.[0];
+  // A big number needs a figure: a number word will do ("three corridors"); without one it's a list.
+  const word = /\b(two|three|four|five|six|seven|eight|nine|ten|twelve|twenty|hundred)\b/i.exec(text)?.[1];
+  const wanted = kind !== "auto" ? kind : card.platform === "linkedin" ? "carousel" : figure ? "stat" : "list";
+  const chosen = wanted === "stat" && !figure && !word ? "list" : wanted;
+  const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+  const source = card.sources?.[0];
+  let items: Array<{ title: string; body: string }>;
+  if (chosen === "stat") {
+    const fig = figure ?? `${word![0].toUpperCase()}${word!.slice(1).toLowerCase()}`;
+    const about = sentences.find((s) => s.includes(fig) || s.toLowerCase().includes(fig.toLowerCase())) ?? sentences[0] ?? card.title;
+    items = [{ title: fig, body: clip(about, 120) }];
+  }
+  else if (chosen === "quote") items = [{ title: source?.publisher ?? "The source", body: clip(sentences[0] ?? card.title, 200) }];
+  else if (chosen === "compare") {
+    const half = Math.max(1, Math.floor(sentences.length / 2));
+    items = [
+      { title: "What it says", body: sentences.slice(0, half).slice(0, 4).map((s) => clip(s, 60)).join("\n") },
+      { title: "What it means", body: sentences.slice(half).slice(0, 4).map((s) => clip(s, 60)).join("\n") || "Watch what happens next" },
+    ];
+  } else {
+    const n = chosen === "carousel" ? (card.platform === "x" ? 3 : 6) : 5;
+    const chunks = (sentences.length ? sentences : [card.title]).slice(0, n);
+    while (chunks.length < 3) chunks.push(`Step ${chunks.length + 1}`);
+    items = chunks.map((s) => ({ title: label(s, chosen === "flow" ? 4 : 6), body: clip(s, chosen === "carousel" ? 220 : 100) }));
+  }
+  return {
+    kind: chosen as NonNullable<Card["visual"]>["kind"],
+    title: clip(card.title, 90),
+    subtitle: card.angle ? clip(card.angle, 140) : null,
+    items,
+    caption: source ? `Source: ${source.title}${source.publisher ? ` (${source.publisher})` : ""}` : null,
+    alt_text: `${chosen}: ${card.title}. ${items.map((it) => [it.title, it.body].filter(Boolean).join(" ")).join("; ")}`.slice(0, 600),
+    sources: source ? [0] : [],
+    unsourced: [],
+    created_at: now,
+  };
+}
+
 function rewriteText(card: Card, chips: string[], note: string): Card["draft"] {
   const current = card.working ?? card.draft ?? { text: "", posts: [] };
   const wantShort = chips.includes("Shorter") || /short/i.test(note);
@@ -202,6 +251,10 @@ export function processDemoEvents(desk: DeskState, events: InboxEvent[]): DeskSt
     if (ev.type === "card.crosspost" && idx >= 0 && cards[idx].work?.target_platform === ev.target_platform) {
       cards.unshift(crosspostCard(next, cards[idx], ev, now));
       cards[idx + 1] = { ...cards[idx + 1], work: null };
+    }
+    if (ev.type === "card.visual" && idx >= 0) {
+      const c = cards[idx];
+      cards[idx] = { ...c, visual: demoVisual(c, ev.kind ?? "auto", now), work: null, working: c.working ? { ...c.working, visual: null } : c.working, updated_at: now };
     }
     if (ev.type === "card.draft_now" && idx >= 0) {
       const c = cards[idx];

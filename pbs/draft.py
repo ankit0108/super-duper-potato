@@ -820,6 +820,10 @@ def process_work(ctx: Ctx, limit: int = 12) -> dict[str, int]:
                 card["work"] = None
                 save_card(ctx, card)
                 adapt(ctx, card, work)
+            elif work["kind"] == "visual":
+                from . import visuals
+
+                visuals.make_visual(ctx, card, work)
             elif work["kind"] == "rewrite":
                 rewrite(ctx, card, work)
             elif work["kind"] == "questions":
@@ -854,7 +858,9 @@ def process_work(ctx: Ctx, limit: int = 12) -> dict[str, int]:
                 card["work"] = None
                 card["status"] = "failed" if card.get("status") == "drafting" else card.get("status")
                 flags = dict(card.get("flags") or {})
-                flags["notes"] = [*(flags.get("notes") or []), "Drafting failed three times; try Rewrite or skip"]
+                note = ("The visual failed three times; ask for another kind" if work["kind"] == "visual"
+                        else "Drafting failed three times; try Rewrite or skip")
+                flags["notes"] = [*(flags.get("notes") or []), note]
                 card["flags"] = flags
             else:
                 card["work"] = work

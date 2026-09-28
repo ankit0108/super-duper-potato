@@ -89,6 +89,10 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
             hook_index: ev.hook_index ?? null,
             hooks: ev.hooks ?? c.working?.hooks ?? null,
             hashtags: ev.hashtags ?? c.working?.hashtags ?? null,
+            // His wording of the current visual (it belongs to that visual: a newer one replaces it).
+            visual: ev.visual
+              ? { ...ev.visual, sources: c.visual?.sources ?? [], unsourced: c.visual?.unsourced ?? [], created_at: c.visual?.created_at ?? null }
+              : (c.working?.visual ?? null),
             updated_at: ev.at,
           },
           status: c.status === "suggested" || c.status === "blocked" ? "editing" : c.status,
@@ -167,6 +171,9 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
         }));
         break;
       }
+      case "card.visual":
+        updateCard(ev.card_id, (c) => ({ ...c, work: { kind: "visual", visual_kind: ev.kind ?? "auto", note: ev.note ?? "", requested_at: ev.at } }));
+        break;
       case "card.answers":
         updateCard(ev.card_id, (c) => {
           const answers = new Map((c.answers ?? []).map((a) => [a.question_id, a]));

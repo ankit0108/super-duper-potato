@@ -537,6 +537,43 @@ def _with_post_extras(handler: Any) -> Any:
     return run
 
 
+# Visuals written for the demo's stories (others fall back to the demo model's own).
+VISUALS: dict[str, dict[str, Any]] = {
+    "agentbench": {
+        "kind": "carousel",
+        "title": "41% end to end: where AI agents fail on real back-office work",
+        "subtitle": "What AgentBench-Enterprise means for anyone automating finance and insurance operations",
+        "items": [
+            {"title": "The headline number",
+             "body": "The best LLM agent completed 41% of 1,200 back-office tasks end to end."},
+            {"title": "Where it breaks",
+             "body": "Exception handling: the missing field, the invoice in the wrong currency, the customer record "
+                     "that exists twice."},
+            {"title": "Test on your exceptions",
+             "body": "Evaluate agents on your exceptions, not your happy path. A demo on clean data tells you almost "
+                     "nothing."},
+            {"title": "Design the handoff first",
+             "body": "If an agent can't finish, who picks it up, and with what context?"},
+            {"title": "What to watch",
+             "body": "The number will go up. Is your process ready to catch the tasks that don't make it?"},
+        ],
+        "caption": "Source: AgentBench-Enterprise (Hugging Face papers, Sept 2026)",
+        "alt_text": ("Carousel: 41% end to end, where AI agents fail on real back-office work. The best LLM agent "
+                     "completed 41% of 1,200 back-office tasks end to end. Failures cluster in exception handling. "
+                     "Test agents on your exceptions, design the handoff first, and make sure your process can catch "
+                     "the tasks agents don't finish."),
+        "sources": [0],
+    },
+}
+
+
+def _visual(req: LLMRequest, data: Any) -> Any:
+    key = _key_for((data or {}).get("topic") or "", VISUALS) if isinstance(data, dict) else None
+    if key and ("Make a document carousel" in req.prompt or "Pick the kind" in req.prompt):
+        return VISUALS[key]
+    return DEFAULT_HANDLERS["visual"](req, data)
+
+
 def _research(req: LLMRequest, data: Any) -> Any:
     """The monthly platform research: changes backed by this month's (demo) coverage, citing it."""
     rows = data if isinstance(data, list) else []
@@ -588,4 +625,4 @@ def demo_handlers() -> dict[str, Any]:
     draft = _with_post_extras(_draft)
     return {"triage": _triage, "translate": _translate, "draft": draft, "draft_personal": draft,
             "questions": _questions, "reflect": reflect, "voice": _voice, "evergreen": evergreen,
-            "research": _research}
+            "research": _research, "visual": _visual}

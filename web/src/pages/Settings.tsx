@@ -183,6 +183,50 @@ function HashtagsSection({ settings }: { settings: S }) {
   );
 }
 
+function VisualsSection({ settings }: { settings: S }) {
+  const act = useDesk((s) => s.act);
+  const pending = useDesk((s) => s.pending.settings);
+  const initial = useMemo(
+    () => ({
+      enabled: settings.visuals?.enabled ?? true,
+      name_linkedin: settings.visuals?.name_linkedin ?? "",
+      name_x: settings.visuals?.name_x ?? "",
+      accent: settings.visuals?.accent ?? "#4F46E5",
+    }),
+    [settings],
+  );
+  const [v, setV, dirty] = useDraft(initial);
+  const accentOk = /^#[0-9a-fA-F]{6}$/.test(v.accent);
+  return (
+    <Section
+      id="visuals"
+      title="Visuals"
+      description="Carousels, flowcharts, comparisons, lists, big numbers and quote cards, written from the post and drawn in the desk. No image model: every word can be edited."
+      onSave={() => accentOk && act({ type: "settings.update", patch: { visuals: { ...v, name_linkedin: v.name_linkedin.trim(), name_x: v.name_x.trim() } } }, { toast: "Saved." })}
+      dirty={dirty && accentOk}
+      pending={pending}
+    >
+      <div className="space-y-4">
+        <Toggle checked={v.enabled} onChange={(b) => setV({ ...v, enabled: b })} label="Offer visuals on cards" />
+        <div className="grid gap-4 md:grid-cols-3">
+          <Field label="Name on LinkedIn images" htmlFor="vis-li" hint="Empty: your display name.">
+            <Input id="vis-li" value={v.name_linkedin} onChange={(e) => setV({ ...v, name_linkedin: e.target.value })} maxLength={60} placeholder="Ankit" />
+          </Field>
+          <Field label="Name on X images" htmlFor="vis-x" hint="For example your @handle.">
+            <Input id="vis-x" value={v.name_x} onChange={(e) => setV({ ...v, name_x: e.target.value })} maxLength={60} placeholder="@yourhandle" />
+          </Field>
+          <Field label="Accent colour" htmlFor="vis-accent" error={accentOk ? undefined : "Use a colour like #4F46E5."}>
+            <div className="flex items-center gap-2">
+              <input type="color" aria-label="Pick the accent colour" value={accentOk ? v.accent : "#4F46E5"} onChange={(e) => setV({ ...v, accent: e.target.value })} className="h-9 w-12 cursor-pointer rounded border border-border bg-surface" />
+              <Input id="vis-accent" value={v.accent} onChange={(e) => setV({ ...v, accent: e.target.value })} className="w-32" maxLength={7} />
+            </div>
+          </Field>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 function StrategySection({ settings }: { settings: S }) {
   const act = useDesk((s) => s.act);
   const pending = useDesk((s) => s.pending.settings);
@@ -520,6 +564,7 @@ export function Settings() {
           <ProfileSection settings={settings} />
           <VolumeSection settings={settings} />
           <HashtagsSection settings={settings} />
+          <VisualsSection settings={settings} />
           <StrategySection settings={settings} />
           <RewardsSection settings={settings} />
           <LearningSection settings={settings} />

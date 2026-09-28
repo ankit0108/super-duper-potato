@@ -20,6 +20,7 @@ CardStatus = Literal["drafting", "suggested", "needs_input", "editing", "posted"
                      "blocked", "failed"]
 CardKind = Literal["news", "evergreen", "interview", "request", "adapt"]
 FormatName = Literal["li_text", "x_single", "x_thread", "x_quote", "x_reply"]
+VisualKind = Literal["carousel", "flow", "compare", "list", "stat", "quote"]
 SkipReason = Literal["not_interesting", "off_brand", "wrong_timing", "too_risky", "already_covered", "other",
                      "wrong_platform"]
 Tier = Literal["world", "india", "bihar", "other"]
@@ -99,8 +100,26 @@ class Answer(_Out):
     at: str | None = None
 
 
+class VisualItem(_Out):
+    title: str = Field("", description="Slide or step heading, column name, the figure, or who is quoted")
+    body: str = Field("", description="Supporting text; a comparison column has one point per line")
+
+
+class Visual(_Out):
+    """A diagram or carousel the desk draws (SVG) and exports as PNG or a PDF carousel. No image model."""
+    kind: VisualKind
+    title: str = ""
+    subtitle: str | None = None
+    items: list[VisualItem] = []
+    caption: str | None = Field(None, description="Source line at the bottom")
+    alt_text: str = ""
+    sources: list[int] = Field([], description="Indexes of the card's sources it draws on")
+    unsourced: list[str] = Field([], description="Figures in it that the sources don't contain")
+    created_at: str | None = None
+
+
 class Work(_Out):
-    kind: Literal["draft", "rewrite", "questions"]
+    kind: Literal["draft", "rewrite", "questions", "visual"]
     note: str | None = None
     chips: list[str] = []
     requested_at: str | None = None
@@ -109,6 +128,7 @@ class Work(_Out):
     target_platform: PlatformName | None = None
     target_format: FormatName | None = None
     crosspost: Literal["both", "switch"] | None = None
+    visual_kind: VisualKind | Literal["auto"] | None = None
 
 
 class Working(_Out):
@@ -117,6 +137,7 @@ class Working(_Out):
     hook_index: int | None = None
     hooks: list[Hook] | None = Field(None, description="The openings as he edited them (same order; his own added last)")
     hashtags: list[str] | None = Field(None, description="The hashtags he kept or added (null: the suggested ones)")
+    visual: Visual | None = Field(None, description="The visual as he edited it")
     updated_at: str | None = None
 
 
@@ -184,6 +205,7 @@ class Card(_Out):
     draft_basis: Literal["sources", "answers"] | None = Field(
         None, description="What the current draft was written from: recent sources, or his answers (plus sources)")
     crosspost_of: str | None = Field(None, description="The card this one was made from for the other platform")
+    visual: Visual | None = None
     created_at: str
     updated_at: str | None = None
     revision: int = 0
@@ -551,6 +573,20 @@ class HookIn(_In):
     text: str = Field(max_length=600)
 
 
+class VisualItemIn(_In):
+    title: str = Field("", max_length=200)
+    body: str = Field("", max_length=1000)
+
+
+class VisualIn(_In):
+    kind: VisualKind
+    title: str = Field("", max_length=200)
+    subtitle: str | None = Field(None, max_length=300)
+    items: list[VisualItemIn] = Field([], max_length=12)
+    caption: str | None = Field(None, max_length=300)
+    alt_text: str = Field("", max_length=1500)
+
+
 class CardEditEvent(_Event):
     type: Literal["card.edit"]
     card_id: str
@@ -559,6 +595,7 @@ class CardEditEvent(_Event):
     hook_index: int | None = None
     hooks: list[HookIn] | None = Field(None, max_length=10)
     hashtags: list[Annotated[str, Field(max_length=60)]] | None = Field(None, max_length=15)
+    visual: VisualIn | None = Field(None, description="The visual's text as he edited it")
 
 
 class CardPostedEvent(_Event):
@@ -572,6 +609,7 @@ class CardPostedEvent(_Event):
     hook_index: int | None = None
     hashtags: list[Annotated[str, Field(max_length=60)]] | None = Field(
         None, max_length=15, description="The hashtags that went out (already included in text/posts)")
+    with_visual: bool | None = Field(None, description="He posted the card's visual with it")
 
 
 class CardSkipEvent(_Event):
@@ -588,6 +626,14 @@ class CardRewriteEvent(_Event):
     chips: list[str] = Field([], max_length=10)
     target_platform: PlatformName | None = None
     target_format: FormatName | None = None
+
+
+class CardVisualEvent(_Event):
+    """Draw a visual for the post: a carousel, flowchart, comparison, list, big number or quote."""
+    type: Literal["card.visual"]
+    card_id: str
+    kind: VisualKind | Literal["auto"] = "auto"
+    note: str = Field("", max_length=1000)
 
 
 class CardCrosspostEvent(_Event):
@@ -785,7 +831,7 @@ class RunRequestEvent(_Event):
 
 InboxEvent = Annotated[
     CardStatusEvent | CardEditEvent | CardPostedEvent | CardSkipEvent | CardRewriteEvent | CardCrosspostEvent
-    | CardAnswersEvent | CardRestoreEvent | CardDraftNowEvent | CardHookEvent | PostUpdateEvent | PostMetricsEvent
+    | CardVisualEvent | CardAnswersEvent | CardRestoreEvent | CardDraftNowEvent | CardHookEvent | PostUpdateEvent | PostMetricsEvent
     | MetricsUploadEvent | MetricsReviewEvent | AccountStatsEvent | RequestCreateEvent | RequestCancelEvent
     | StanceUpsertEvent | StanceDeleteEvent | StanceProposeEvent | SourceUpsertEvent | SourceDeleteEvent
     | SettingsUpdateEvent | ProfileUpdateEvent | ProposalDecideEvent | PlaybookRuleEvent | RunRequestEvent,

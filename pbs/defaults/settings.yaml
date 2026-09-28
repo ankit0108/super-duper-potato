@@ -215,6 +215,14 @@ hashtags:
   avoid: ["#Innovation", "#Motivation", "#Success", "#Business", "#Technology", "#Tech", "#Future", "#Trending",
           "#Viral", "#Inspiration", "#Leadership"]
 
+visuals:
+  # Carousels, flowcharts, comparisons, lists, big numbers and quote cards, written from the post and drawn by
+  # the desk (no image model). The name on every image: empty uses display_name.
+  enabled: true
+  name_linkedin: ""
+  name_x: ""
+  accent: "#4F46E5"
+
 drafting:
   # Cards that ask for his experience arrive already drafted from recent sources; the questions are optional,
   # and answering redrafts the post from his answers plus the sources.
@@ -297,6 +305,7 @@ llm:
     search_plan: [gemini_lite, groq, gemini, openrouter]
     search_rerank: [gemini_lite, groq, gemini, openrouter]
     research: [gemini, groq, gemini_lite]
+    visual: [gemini, groq, gemini_lite, openrouter]
     stances: [gemini, groq, gemini_lite]
     evergreen: [gemini, groq, gemini_lite, openrouter]
   temperature:
@@ -312,6 +321,7 @@ llm:
     search_plan: 0.2
     search_rerank: 0.0
     research: 0.2
+    visual: 0.5
     stances: 0.4
     evergreen: 0.6
 
