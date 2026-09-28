@@ -76,19 +76,18 @@ def ingest(ctx: Ctx) -> dict[str, int]:
                 log.error(f"inbox:{ev.type}", exc)
                 _record(ctx, ev.id, ev.type, "rejected", f"internal error ({type(exc).__name__})", env.id)
                 stats["rejected"] += 1
-        _consumed.setdefault(id(ctx), []).append(path)
+        if path not in ctx.inbox_consumed:
+            ctx.inbox_consumed.append(path)
     if stats["files"]:
         log.info(f"inbox: {stats['applied']} applied, {stats['rejected']} rejected, {stats['skipped']} duplicates "
                  f"from {stats['files']} files")
     return stats
 
 
-_consumed: dict[int, list[Path]] = {}
-
-
 def cleanup(ctx: Ctx) -> int:
-    """Delete inbox files whose events are now in the saved store."""
-    paths = _consumed.pop(id(ctx), [])
+    """Delete inbox files whose events are now in the saved store. The list lives on the run's context (never a
+    module-level map keyed by id(ctx): ids are reused, so a later context could delete another run's files)."""
+    paths, ctx.inbox_consumed = ctx.inbox_consumed, []
     for path in paths:
         path.unlink(missing_ok=True)
     return len(paths)

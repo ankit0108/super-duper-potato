@@ -114,6 +114,8 @@ class Ctx:
     llm_providers: dict[str, Any] | None = None
     sleep: Any = None
     _router: Any = None
+    # Inbox files ingested by this run: deleted once the store that includes them is saved (inbox.cleanup).
+    inbox_consumed: list[Path] = field(default_factory=list)
 
     @classmethod
     def create(cls, data_root: str | Path, task: str = "tick", trigger: str = "manual", hints: set[str] | None = None,
