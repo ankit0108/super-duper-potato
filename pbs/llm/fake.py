@@ -121,6 +121,10 @@ def _hooks(title: str) -> list[dict[str, str]]:
     ]
 
 
+_NOT_TAGS = {"adds", "says", "gets", "makes", "launches", "plans", "reports", "shows", "finds", "about", "after",
+             "into", "with", "from", "this", "that", "what", "when", "your", "their", "more", "less", "than"}
+
+
 def _draft(req: LLMRequest, data: Any) -> Any:
     title = data.get("topic") or data.get("title") or "this topic"
     platform = data.get("platform", "linkedin")
@@ -134,8 +138,12 @@ def _draft(req: LLMRequest, data: Any) -> Any:
     body_core = answer_text or fact
     hooks = _hooks(title)
     claims = [{"text": fact, "source": 0}] if sources else []
+    words = [w for w in textutil.sim_tokens(title) if w.isalpha() and len(w) > 3 and w not in _NOT_TAGS][:3]
+    tags = ["#" + w.capitalize() for w in words]
     out: dict[str, Any] = {"hook_type": "observation", "hooks": hooks, "claims": claims, "format_note": "",
-                           "angle": angle, "posts": [], "text": ""}
+                           "angle": angle, "posts": [], "text": "",
+                           "hashtags": tags if platform == "linkedin" else tags[:1],
+                           "first_comment": f"Source: {first['url']}" if first.get("url") and fmt != "x_reply" else ""}
     if platform == "linkedin":
         out["text"] = (f"{hooks[1]['text']}\n\n{body_core}\n\n{angle}. The useful question for anyone automating "
                        f"real work is what changes in practice, not in the demo.\n\nWhere would this land in your "
@@ -244,6 +252,18 @@ def _search_rerank(req: LLMRequest, data: Any) -> Any:
     return {"keep": [r.get("id") for r in rows if not any(w in str(r.get("title", "")).casefold() for w in off)]}
 
 
+def _research(req: LLMRequest, data: Any) -> Any:
+    """One change, citing the newest article; nothing when there are no articles."""
+    rows = data if isinstance(data, list) else []
+    if not rows:
+        return {"summary": "Nothing new this month.", "changes": []}
+    a = rows[0]
+    return {"summary": "One documented change this month.",
+            "changes": [{"op": "add", "platform": a.get("platform") or "linkedin", "format": None,
+                         "text": textutil.truncate(f"Reflect this month's change: {a.get('title')}", 200),
+                         "why": "Reported this month.", "evidence": [a.get("id")], "confidence": "medium"}]}
+
+
 def _default(req: LLMRequest, data: Any) -> Any:
     return {"ok": True}
 
@@ -262,5 +282,6 @@ DEFAULT_HANDLERS: dict[str, Handler] = {
     "search": _search,
     "search_plan": _search_plan,
     "search_rerank": _search_rerank,
+    "research": _research,
     "default": _default,
 }

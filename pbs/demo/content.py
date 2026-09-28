@@ -6,6 +6,7 @@ experience for Ankit. Interview drafts are built from the answers given.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from .. import textutil
@@ -507,6 +508,58 @@ REFLECTIONS = [
 ]
 
 
+# LinkedIn hashtags for the demo's drafts: one broad tag, up to two specific to the post, one more broad one.
+# (X drafts carry theirs inline, the way early models did; the pipeline moves them out of the text.)
+LI_TAGS = [("agent", "#AIAgents"), ("benchmark", "#AIResearch"), ("paper", "#AIResearch"), ("rpa", "#RPA"),
+           ("uipath", "#RPA"), ("orchestrat", "#ProcessAutomation"), ("process", "#ProcessAutomation"),
+           ("workflow", "#Workflows"), ("open-weight", "#OpenSource"), ("open source", "#OpenSource"),
+           ("mcp", "#MCP"), ("small model", "#SmallModels"), ("regulat", "#AIRegulation"), ("security", "#AISecurity")]
+
+
+def _with_post_extras(handler: Any) -> Any:
+    """Every draft also returns hashtags and the first comment with the source link, as the prompts ask."""
+
+    def run(req: LLMRequest, data: Any) -> Any:
+        out = handler(req, data)
+        if not isinstance(out, dict) or not isinstance(data, dict):
+            return out
+        if data.get("platform") == "linkedin":
+            text = f"{data.get('topic') or ''} {out.get('text') or ''}".casefold()
+            removed = {t.strip().casefold() for m in re.findall(r"He removes ([^.]+)\.", req.prompt)
+                       for t in m.split(",")}
+            specific = list(dict.fromkeys(tag for key, tag in LI_TAGS if key in text))[:2]
+            out["hashtags"] = [t for t in ["#AI", *specific, "#Automation"] if t.casefold() not in removed]
+        sources = [s for s in data.get("sources") or [] if s.get("url")]
+        if not out.get("first_comment") and sources and data.get("format") != "x_reply":
+            out["first_comment"] = f"The source, for anyone who wants the detail: {sources[0]['url']}"
+        return out
+
+    return run
+
+
+def _research(req: LLMRequest, data: Any) -> Any:
+    """The monthly platform research: changes backed by this month's (demo) coverage, citing it."""
+    rows = data if isinstance(data, list) else []
+    li = next((r for r in rows if r.get("platform") == "linkedin"), None)
+    x = next((r for r in rows if r.get("platform") == "x"), None)
+    changes = []
+    if li:
+        changes.append({"op": "modify", "rule_id": "li-save",
+                        "text": "Write something worth saving, sending or discussing: saves, sends and thoughtful "
+                                "comments count for more than reactions.",
+                        "why": "This month's coverage describes comments and saves weighing more than quick "
+                               "reactions.", "evidence": [li["id"]], "confidence": "medium"})
+    if x:
+        changes.append({"op": "add", "platform": "x",
+                        "text": "Answer the first replies within the hour: a conversation under the post helps it "
+                                "reach people who don't follow you yet.",
+                        "why": "Reported this month for small and mid-sized accounts.", "evidence": [x["id"]],
+                        "confidence": "medium"})
+    summary = ("Coverage this month is about conversations: comments, saves and replies count for more than "
+               "reactions on both platforms." if changes else "Nothing new this month.")
+    return {"summary": summary, "changes": changes}
+
+
 def _voice(req: LLMRequest, data: Any) -> Any:
     return {"rules": ["Open with the concrete detail, not the context.",
                       "Cut filler sentences that announce importance instead of showing it.",
@@ -532,5 +585,7 @@ def demo_handlers() -> dict[str, Any]:
         changes = [{**c, "evidence": posts[i * 2:i * 2 + 3]} for i, c in enumerate(out["changes"])]
         return {**out, "changes": changes}
 
-    return {"triage": _triage, "translate": _translate, "draft": _draft, "draft_personal": _draft,
-            "questions": _questions, "reflect": reflect, "voice": _voice, "evergreen": evergreen}
+    draft = _with_post_extras(_draft)
+    return {"triage": _triage, "translate": _translate, "draft": draft, "draft_personal": draft,
+            "questions": _questions, "reflect": reflect, "voice": _voice, "evergreen": evergreen,
+            "research": _research}

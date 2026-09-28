@@ -8,7 +8,7 @@ import re
 import statistics
 from typing import Any
 
-from . import draft, guardrails, ids, log, textutil, timeutil
+from . import draft, guardrails, hashtags, ids, log, textutil, timeutil
 from .context import Ctx
 
 # ---------------------------------------------------------------------------
@@ -87,8 +87,17 @@ def length_band(platform: str, fmt: str, final_text: str, final_posts: list[str]
     return "short" if n <= 140 else "long"
 
 
+def posted_body(fmt: str, final_text: str, final_posts: list[str]) -> tuple[str, list[str]]:
+    """What he posted without the hashtags added at the end: the part comparable with the draft."""
+    if fmt == "x_thread" and final_posts:
+        body_posts, tags = hashtags.strip_from_posts(final_posts)
+        return "\n\n".join(body_posts), tags
+    return hashtags.split_trailing(final_text)
+
+
 def record_post(ctx: Ctx, card: dict[str, Any], *, text: str | None, posts: list[str] | None, post_url: str | None,
-                posted_at: str, editing_seconds: int | None, hook_index: int | None) -> dict[str, Any]:
+                posted_at: str, editing_seconds: int | None, hook_index: int | None,
+                tags: list[str] | None = None) -> dict[str, Any]:
     working = card.get("working") or {}
     system_draft = card.get("draft") or {}
     if card["format"] == "x_thread":
@@ -100,9 +109,16 @@ def record_post(ctx: Ctx, card: dict[str, Any], *, text: str | None, posts: list
         final_text = (text if text is not None else working.get("text")) or system_draft.get("text") or ""
     if hook_index is None and working.get("hook_index") is not None:
         hook_index = working.get("hook_index")
+    body, found = posted_body(card["format"], final_text, final_posts)
+    # The tags that went out are the ones at the end of what he posted (the desk adds the chosen ones there, and
+    # he may still delete them before posting). The event's list only counts when the text itself wasn't sent.
+    sent = text is not None or posts is not None
+    used = hashtags.clean(found if sent or tags is None else tags, 15)
+    offered = list(card.get("hashtags") or [])
     base = _draft_text(system_draft)
-    ratio = textutil.edit_ratio(base, final_text) if base else None
-    changes = textutil.edit_changes(base, final_text) if base else {"removed": [], "added": []}
+    # Tags are chosen on the card, not edited into the text: compare the draft with the body alone.
+    ratio = textutil.edit_ratio(base, body) if base else None
+    changes = textutil.edit_changes(base, body) if base else {"removed": [], "added": []}
     hook_used = detect_hook(card, final_text, hook_index)
     local_posted = timeutil.local(timeutil.parse(posted_at), ctx.tz)  # type: ignore[arg-type]
     delivered = timeutil.parse(card.get("delivered_at") or card.get("created_at"))
@@ -126,6 +142,9 @@ def record_post(ctx: Ctx, card: dict[str, Any], *, text: str | None, posts: list
         "rank": card.get("rank"),
         "versions": card.get("versions") or {},
         "rewrites": int(card.get("rewrite_count") or 0),
+        "hashtags_offered": offered,
+        "hashtags_used": len(used),
+        "crosspost": bool(card.get("crosspost_of")),
     }
     guard = guardrails.check_final(final_text, ctx.blocklist)
     if guard["blocked"]:
@@ -139,12 +158,13 @@ def record_post(ctx: Ctx, card: dict[str, Any], *, text: str | None, posts: list
         "format": card["format"],
         "final_text": final_text,
         "final_posts": final_posts,
+        "hashtags": used,
         "posted_at": posted_at,
         "post_url": (post_url or "").strip() or None,
         "edit_ratio": ratio,
         "edit_stats": {
-            "draft_words": textutil.word_count(base), "final_words": textutil.word_count(final_text),
-            "draft_chars": len(base), "final_chars": len(final_text),
+            "draft_words": textutil.word_count(base), "final_words": textutil.word_count(body),
+            "draft_chars": len(base), "final_chars": len(body),
             "removed": [p for p in changes["removed"] if len(p) < 200][:30],
             "added": [p for p in changes["added"] if len(p) < 200][:30],
         },
@@ -165,7 +185,9 @@ def record_post(ctx: Ctx, card: dict[str, Any], *, text: str | None, posts: list
     card["revision"] = int(card.get("revision") or 0) + 1
     draft.save_card(ctx, card)
     draft.log_interaction(ctx, "posted", card, post_id=post["id"], edit_ratio=ratio, rank=card.get("rank"),
-                          time_to_post_minutes=post["time_to_post_minutes"], hook=hook_used["type"])
+                          time_to_post_minutes=post["time_to_post_minutes"], hook=hook_used["type"],
+                          hashtags={"offered": len(offered), "used": len(used),
+                                    "kept": len({t.casefold() for t in offered} & {t.casefold() for t in used})})
     if card.get("experiment_id"):
         exp = ctx.store.get("experiments", card["experiment_id"])
         if exp:
@@ -188,13 +210,14 @@ def update_post(ctx: Ctx, post_id: str, *, text: str | None = None, posts: list[
         card = ctx.store.get("cards", post["card_id"]) or {}
         final_posts = [p for p in (posts or []) if p.strip()]
         final_text = "\n\n".join(final_posts) if final_posts else (text or "")
+        body, found = posted_body(post.get("format") or card.get("format") or "", final_text, final_posts)
         base = _draft_text(card.get("draft"))
-        patch.update(final_text=final_text, final_posts=final_posts,
-                     edit_ratio=textutil.edit_ratio(base, final_text) if base else None,
+        patch.update(final_text=final_text, final_posts=final_posts, hashtags=hashtags.clean(found, 15),
+                     edit_ratio=textutil.edit_ratio(base, body) if base else None,
                      guard=guardrails.check_final(final_text, ctx.blocklist))
-        changes = textutil.edit_changes(base, final_text) if base else {"removed": [], "added": []}
+        changes = textutil.edit_changes(base, body) if base else {"removed": [], "added": []}
         stats = dict(post.get("edit_stats") or {})
-        stats.update(final_words=textutil.word_count(final_text), final_chars=len(final_text),
+        stats.update(final_words=textutil.word_count(body), final_chars=len(body),
                      removed=changes["removed"][:30], added=changes["added"][:30])
         patch["edit_stats"] = stats
         if card:

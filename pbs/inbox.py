@@ -15,7 +15,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from . import contracts as C
-from . import draft, ids, learn, log, playbook, settings, timeutil
+from . import draft, hashtags, ids, learn, log, playbook, settings, timeutil
 from .context import Ctx
 
 
@@ -149,9 +149,11 @@ def _card_edit(ctx: Ctx, ev: C.CardEditEvent) -> None:
     at = _event_time(ev)
     if card["status"] == "posted":
         raise Reject("card is already posted")
-    hooks = _edited_hooks(card, ev.hooks) if ev.hooks is not None else (card.get("working") or {}).get("hooks")
+    prev = card.get("working") or {}
+    hooks = _edited_hooks(card, ev.hooks) if ev.hooks is not None else prev.get("hooks")
+    tags = hashtags.clean(ev.hashtags, 15) if ev.hashtags is not None else prev.get("hashtags")
     card["working"] = {"text": ev.text, "posts": ev.posts, "hook_index": ev.hook_index, "hooks": hooks,
-                       "updated_at": at}
+                       "hashtags": tags, "updated_at": at}
     if card["status"] in ("suggested", "blocked"):
         draft.log_interaction(ctx, "picked", card, rank=card.get("rank"), via="edit")
         _touch(card, at, "editing")
@@ -191,7 +193,7 @@ def _card_posted(ctx: Ctx, ev: C.CardPostedEvent) -> None:
                           posted_at=posted_at)
         return
     learn.record_post(ctx, card, text=ev.text, posts=ev.posts, post_url=ev.post_url, posted_at=posted_at,
-                      editing_seconds=ev.editing_seconds, hook_index=ev.hook_index)
+                      editing_seconds=ev.editing_seconds, hook_index=ev.hook_index, tags=ev.hashtags)
 
 
 def _card_skip(ctx: Ctx, ev: C.CardSkipEvent) -> None:
@@ -230,6 +232,30 @@ def _card_rewrite(ctx: Ctx, ev: C.CardRewriteEvent) -> None:
     draft.save_card(ctx, card)
     draft.log_interaction(ctx, "rewrite_requested", card, note=ev.note, chips=ev.chips,
                           target_platform=ev.target_platform)
+    ctx.hints.add("work")
+
+
+def _card_crosspost(ctx: Ctx, ev: C.CardCrosspostEvent) -> None:
+    """A version for the other platform. "switch" also skips the original: the topic was right, the platform
+    wasn't, which the ranking learns (skip value wrong_platform); the new card is learned from like any other."""
+    card = _card(ctx, ev.card_id)
+    at = _event_time(ev)
+    if card["platform"] == ev.target_platform:
+        raise Reject(f"the card is already for {ev.target_platform}")
+    if ev.target_format and ctx.settings.formats.get(ev.target_format) and \
+            ctx.settings.formats[ev.target_format].platform != ev.target_platform:
+        raise Reject(f"{ev.target_format} isn't a format for {ev.target_platform}")
+    mode = "both" if card["status"] == "posted" else ev.mode
+    card["work"] = {"kind": "rewrite", "note": ev.note, "chips": [], "requested_at": at, "attempts": 0,
+                    "target_platform": ev.target_platform, "target_format": ev.target_format, "crosspost": mode}
+    if mode == "switch":
+        card["skip"] = {"reason": "wrong_platform", "note": ev.note.strip() or None, "at": at}
+        _touch(card, at, "skipped")
+    else:
+        _touch(card, at)
+    draft.save_card(ctx, card)
+    draft.log_interaction(ctx, "crosspost", card, mode=mode, to=ev.target_platform, format=ev.target_format,
+                          pillar=card.get("pillar"), note=ev.note or None)
     ctx.hints.add("work")
 
 
@@ -565,6 +591,7 @@ APPLY = {
     "card.posted": _card_posted,
     "card.skip": _card_skip,
     "card.rewrite": _card_rewrite,
+    "card.crosspost": _card_crosspost,
     "card.answers": _card_answers,
     "card.restore": _card_restore,
     "card.draft_now": _card_draft_now,

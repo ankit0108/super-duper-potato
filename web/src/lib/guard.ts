@@ -77,7 +77,27 @@ export type LiveFlags = {
   avoid: string[];
   bait: string[];
   firstPerson: string[];
+  platform: string[];
 };
+
+const LINK = /\bhttps?:\/\/\S+|\bwww\.\S+\.\S+/i;
+
+/** What tends to cost reach on each platform (the same guidance the drafter gets). */
+export function platformTips(text: string, o: { platform: string; format: string; hashtags: number; fold: number }): string[] {
+  const tips: string[] = [];
+  const hasLink = LINK.test(text);
+  if (o.platform === "linkedin") {
+    if (hasLink) tips.push("There's a link in the post: LinkedIn tends to show those to fewer people. Put it in the first comment.");
+    const first = text.trim().split("\n")[0] ?? "";
+    if (first.length > o.fold) tips.push(`The first line is ${first.length} characters: only about ${o.fold} show before "see more".`);
+    if (text.split(/\n\s*\n/).some((para) => para.length > 400)) tips.push("A long paragraph: break it up, most people read on a phone.");
+    if (o.hashtags > 5) tips.push(`${o.hashtags} hashtags: 3 to 5 work best on LinkedIn.`);
+  } else {
+    if (hasLink && o.format !== "x_quote") tips.push("There's a link in the post: X tends to show those to fewer people. Put it in a reply.");
+    if (o.hashtags > 2) tips.push(`${o.hashtags} hashtags: 1 or 2 at most on X.`);
+  }
+  return tips;
+}
 
 export function liveFlags(opts: {
   text: string;
@@ -86,6 +106,7 @@ export function liveFlags(opts: {
   avoid: string[];
   bait: string[];
   external: boolean;
+  platform?: { platform: string; format: string; hashtags: number; fold: number };
 }): LiveFlags {
   return {
     blocked: findTerms(opts.text, opts.guardTerms),
@@ -93,5 +114,6 @@ export function liveFlags(opts: {
     avoid: phraseHits(opts.text, opts.avoid),
     bait: phraseHits(opts.text, opts.bait),
     firstPerson: opts.external ? firstPersonClaims(opts.text) : [],
+    platform: opts.platform ? platformTips(opts.text, opts.platform) : [],
   };
 }

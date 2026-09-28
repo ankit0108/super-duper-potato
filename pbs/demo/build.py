@@ -54,9 +54,35 @@ HOOK_PREFERENCE = ["number", "question", "observation", "contrarian", "how-to", 
 SKIP_NOTES = {15: "Too much hype, not enough on how teams actually use it at work.",
               18: "I've seen this angle too often; I'd rather see what changes for operations teams."}
 CLOSERS = ["Where have you seen this play out?", "What would you add?", "Curious where others land on this."]
+DROPPED_TAG = "#Automation"  # too broad: he removes it from LinkedIn posts, and the drafts learn to leave it out
 # What "auto:flash" and "auto:flash-lite" resolved to when this demo was written.
 DEMO_MODELS = {"gemini": "gemini-3.6-flash", "gemini_lite": "gemini-3.5-flash-lite"}
 PINNED = {7: "On this day in 1949", 8: "Engineers' Day"}  # history posts on 14 and 15 September
+
+
+def platform_world(ref: dt.datetime) -> dict[str, tuple[int, str, str]]:
+    """Coverage of both platforms for the monthly research (fictional articles, like the rest of the demo)."""
+
+    def feed(items: list[tuple[str, str, str, float]]) -> tuple[int, str, str]:
+        return 200, "application/rss+xml", rss("Google News", [
+            {"title": f"{title} - {publisher}", "url": f"https://news.google.com/rss/articles/{slug}",
+             "publisher": publisher, "summary": "", "at": ref - dt.timedelta(days=days)}
+            for title, publisher, slug, days in items])
+
+    return {
+        "news.google.com/rss/search?q=%22LinkedIn%20algorithm": feed([
+            ("What creators are seeing in LinkedIn's feed this month: comments and saves over reactions",
+             "Creator Economy Weekly", "li-feed-comments", 6)]),
+        "news.google.com/rss/search?q=LinkedIn%20creators": feed([
+            ("LinkedIn document posts keep readers longer, social media managers say", "Social Media Desk",
+             "li-documents", 12)]),
+        "news.google.com/rss/search?q=%22X%20algorithm": feed([
+            ("Replies in the first hour matter more for small X accounts, analysis finds", "Platform Notes",
+             "x-first-hour", 9)]),
+        "news.google.com/rss/search?q=X%20Twitter": feed([
+            ("Posts with outside links still reach fewer people on X, marketers report", "Marketing Brief",
+             "x-links", 15)]),
+    }
 
 
 def request_world(ref: dt.datetime) -> dict[str, tuple[int, str, str]]:
@@ -387,10 +413,14 @@ class Simulation:
             if platform == "linkedin":
                 secs = self.rng.randint(*[(880, 1300), (480, 780), (240, 470)][week])
                 text, hook_index = self.li_final(card, week)
-                final = {"text": text}
+                tags = [t for t in card.get("hashtags") or [] if t != DROPPED_TAG]
+                final = {"text": text, "hashtags": tags}
+                # The desk adds the chosen tags as the last line when he copies the post.
+                posted = {"text": f"{text}\n\n{' '.join(tags)}" if tags else text, "hashtags": tags}
             else:
                 secs = self.rng.randint(*[(230, 420), (140, 260), (60, 150)][week])
                 final = self.x_final(card, week)
+                posted = {**final, "hashtags": []}  # he removes the suggested tags on X
                 hook_index = None
             events.append({"type": "card.status", "card_id": card["id"], "status": "editing", "at": timeutil.iso(t)})
             mid = t + dt.timedelta(seconds=int(secs * 0.6))
@@ -398,7 +428,7 @@ class Simulation:
                            **({"hook_index": hook_index} if hook_index is not None else {})})
             done = t + dt.timedelta(seconds=secs)
             events.append({"type": "card.posted", "card_id": card["id"], "at": timeutil.iso(done),
-                           "posted_at": timeutil.iso(done), "editing_seconds": secs, **final,
+                           "posted_at": timeutil.iso(done), "editing_seconds": secs, **posted,
                            **({"hook_index": hook_index} if hook_index is not None else {})})
             self.metrics_due.append((day + dt.timedelta(days=2), card["id"]))
             t = done + dt.timedelta(minutes=self.rng.randint(4, 25))
@@ -591,21 +621,32 @@ class Simulation:
     # -- this morning -----------------------------------------------------------------------------
     def today(self) -> None:
         now = self.at(TODAY, "05:43")
-        world = {**build_world(now), **request_world(now)}
+        world = {**build_world(now), **request_world(now), **platform_world(now)}
         self.tick(now, "schedule", web=MockWeb(world=world, filler=True))
         cards = self.delivered(TODAY)
         x_top = next((c for c in cards["x"] if c["status"] == "suggested" and c["format"] != "x_thread"), None)
         skip = next((c for c in reversed(cards["linkedin"]) if c["status"] == "suggested"), None)
+        li_top = next((c for c in cards["linkedin"] if c["status"] == "suggested" and c is not skip), None)
+        move = next((c for c in reversed(cards["x"]) if c["status"] == "suggested" and c is not x_top
+                     and c["format"] in ("x_single", "x_thread") and c.get("mode") != "interview"), None)
         events: list[dict[str, Any]] = []
         t = self.at(TODAY, "06:22")
         if x_top:
-            text = ((x_top.get("draft") or {}).get("text") or "").replace(" #AI #Automation", "")
             events += [{"type": "card.status", "card_id": x_top["id"], "status": "editing", "at": timeutil.iso(t)},
-                       {"type": "card.edit", "card_id": x_top["id"], "text": text,
-                        "at": timeutil.iso(t + dt.timedelta(minutes=3))}]
+                       {"type": "card.edit", "card_id": x_top["id"], "text": (x_top.get("draft") or {}).get("text") or "",
+                        "hashtags": [], "at": timeutil.iso(t + dt.timedelta(minutes=3))}]
         if skip:
             events.append({"type": "card.skip", "card_id": skip["id"], "reason": "already_covered",
                            "at": timeutil.iso(t + dt.timedelta(minutes=5))})
+        if li_top:  # an X thread of the day's top LinkedIn card, as well
+            events.append({"type": "card.crosspost", "card_id": li_top["id"], "target_platform": "x",
+                           "target_format": "x_thread", "mode": "both", "note": "",
+                           "at": timeutil.iso(t + dt.timedelta(minutes=6))})
+        if move:  # right topic, wrong platform
+            events.append({"type": "card.crosspost", "card_id": move["id"], "target_platform": "linkedin",
+                           "mode": "switch", "note": "Too much to say for one X post; this is a LinkedIn post.",
+                           "at": timeutil.iso(t + dt.timedelta(minutes=7))})
+        events.append({"type": "run.request", "tasks": ["platform_research"], "at": timeutil.iso(t)})
         self.session(self.at(TODAY, "06:31"), events, web=MockWeb(world=world, filler=True))
 
     def finish(self) -> None:

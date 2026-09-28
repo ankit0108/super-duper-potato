@@ -138,6 +138,12 @@ def apply_proposal(ctx: Ctx, proposal: dict[str, Any]) -> str | None:
             now = timeutil.now_iso()
             ctx.store.upsert("sources", {**src, "added_by": "system", "active": True, "created_at": now,
                                          "updated_at": now, "consecutive_failures": 0, "items_total": 0})
-    if not (payload.get("patch") or payload.get("rule") or payload.get("source")):
+    if payload.get("guide_change"):
+        from . import platform
+
+        error = platform.apply_update(ctx, payload["guide_change"])
+        if error:
+            return f"can't apply: {error}"
+    if not (payload.get("patch") or payload.get("rule") or payload.get("source") or payload.get("guide_change")):
         return "this proposal has nothing to apply automatically; make the change in Settings"
     return None

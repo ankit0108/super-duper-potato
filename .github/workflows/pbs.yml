@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       hint:
-        description: "Tasks to run now (comma-separated): morning, weekly_batch, reflection, doctor, scout"
+        description: "Tasks to run now (comma-separated): morning, weekly_batch, reflection, doctor, scout, platform_research"
         required: false
         default: ""
       force:

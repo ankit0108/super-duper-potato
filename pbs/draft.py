@@ -11,9 +11,11 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from . import guardrails, ids, log, prompting, textutil, timeutil
+from . import guardrails, hashtags, ids, log, prompting, textutil, timeutil
+from .bandit import arm_id
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest, LLMResponse, json_rows, why_unavailable
+from .platform import render as render_platform_rules
 from .style import Style, render_examples, render_rules, style_for
 
 PLATFORM_LABEL = {"linkedin": "LinkedIn", "x": "X"}
@@ -52,24 +54,60 @@ def format_instructions(ctx: Ctx, fmt: str) -> str:
     x = ctx.settings.platforms.x
     limit = ctx.settings.x_char_limit()
     fold = ctx.settings.platforms.linkedin.fold_chars
+    tags = ctx.settings.hashtags
+    room = 30 if tags.enabled and tags.x.max else 0  # the chosen hashtags are added after the text
     return {
         "li_text": (f"Format: a LinkedIn text post. The first line must earn the click before the 'see more' fold "
                     f"(about {fold} characters): concrete and specific, no throat-clearing. Short paragraphs separated "
-                    "by blank lines. No hashtags unless one is genuinely useful (at most 3, at the end). End on a "
-                    "specific point or a genuine question tied to the post, never bait."),
-        "x_single": (f"Format: a single X post of at most {limit} characters (a link counts as 23). One idea, "
-                     "concrete. No hashtags, at most one emoji."),
-        "x_thread": (f"Format: an X thread of {x.thread_min} to {x.thread_max} posts, each at most {limit} characters. "
-                     "Post 1 is the hook and must stand alone. Each post adds one step. The last post lands the "
-                     "takeaway, with the main source link if useful."),
-        "x_quote": (f"Format: a quote-post comment on the main source (at most {min(limit, 280)} characters). Add "
-                    "what the source doesn't say: context, an implication or a sharp question. Also return "
-                    '"quote_source": the index of the source to quote.'),
+                    "by blank lines. No hashtags and no links in the text: they go in \"hashtags\" and "
+                    "\"first_comment\". End on a specific point or a genuine question tied to the post, never bait."),
+        "x_single": (f"Format: a single X post of at most {limit - room} characters. One idea, concrete. No links or "
+                     "hashtags in the text (they go in \"first_comment\" and \"hashtags\"); at most one emoji."),
+        "x_thread": (f"Format: an X thread of {x.thread_min} to {x.thread_max} posts, each at most {limit} characters "
+                     f"(post 1 at most {limit - room}: its hashtags are added after it). Post 1 is the hook and must "
+                     "stand alone. Each post adds one step. The last post lands the takeaway. No links or hashtags "
+                     "in the posts: the source link goes in \"first_comment\" (a reply)."),
+        "x_quote": (f"Format: a quote-post comment on the main source (at most {min(limit, 280) - room} characters). Add "
+                    "what the source doesn't say: context, an implication or a sharp question. No hashtags in the "
+                    'text. Also return "quote_source": the index of the source to quote.'),
         "x_reply": ("Format: a reply to large accounts' posts about this announcement (at most 200 characters). Add "
                     "one specific thing: a detail from the material, a practical implication or a precise question. "
                     "Never sycophantic ('Great post'), never self-promotional. Also return \"reply_context\" (one "
                     'line: what the reply responds to) and "search_terms" (2 to 4 words to find the thread on X).'),
     }[fmt]
+
+
+def hashtag_rule(ctx: Ctx, platform: str, fmt: str, style: Style) -> str:
+    """What the drafter should return in "hashtags", including what he's shown he keeps and drops."""
+    hs = ctx.settings.hashtags
+    r = hs.range(platform)
+    if not hs.enabled or r.max == 0 or fmt == "x_reply":
+        return "[] (none for this post)"
+    if style.hashtags_off:
+        return f"[] (he removes the suggested ones on {PLATFORM_LABEL[platform]}, so suggest none)"
+    count = f"{r.min} to {r.max}" if r.min else f"at most {r.max}"
+    if platform == "linkedin":
+        rule = (f"{count} hashtags: one or two broad ones people follow (like #AI) and the rest specific to this post "
+                "(like #ProcessAutomation)")
+    else:
+        rule = f"{count} hashtags, only for a topic people actually follow on X ([] is fine)"
+    rule += ". CamelCase, no spaces, never inside the text"
+    if style.hashtags_kept:
+        rule += f". He usually keeps {', '.join(style.hashtags_kept)}"
+    if style.hashtags_dropped:
+        rule += f". He removes {', '.join(style.hashtags_dropped)}"
+    if style.hashtags_added:
+        rule += f". He adds {', '.join(style.hashtags_added)} himself"
+    return rule + "."
+
+
+def first_comment_rule(platform: str, fmt: str) -> str:
+    if fmt == "x_reply":
+        return '"" (a reply needs no follow-up)'
+    if platform == "linkedin":
+        return ("the comment he posts right after the post: the main source link with one short line of context "
+                '("" if there is no source)')
+    return 'a reply to his own post with the source link and at most one short line ("" if there is no source)'
 
 
 def _extra_fields(fmt: str) -> str:
@@ -109,11 +147,20 @@ class DraftOut(BaseModel):
     hook_type: str | None = None
     hooks: list[HookOut] = Field(default_factory=list)
     claims: list[ClaimOut] = Field(default_factory=list)
+    hashtags: list[str] = Field(default_factory=list)
+    first_comment: str | None = ""
     format_note: str | None = ""
     angle: str | None = ""
     reply_context: str | None = None
     search_terms: list[str] = Field(default_factory=list)
     quote_source: int | None = None
+
+    @field_validator("hashtags", mode="before")
+    @classmethod
+    def _tags(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            v = re.split(r"[\s,]+", v)
+        return [str(t) for t in v or [] if isinstance(t, (str, int)) and str(t).strip()]
 
     @field_validator("claims", mode="before")
     @classmethod
@@ -176,11 +223,37 @@ def _fallback_hooks(title: str) -> list[dict[str, str]]:
     ]
 
 
-def normalize_output(ctx: Ctx, card: dict[str, Any], out: DraftOut, sources: list[dict[str, Any]]) -> dict[str, Any]:
+_URL = re.compile(r"https?://[^\s<>\"')\]]+")
+
+
+def first_comment(text: str, sources: list[dict[str, Any]]) -> str:
+    """The comment (LinkedIn) or reply (X) with the source link: only links to the card's own sources are kept,
+    the main source is added when the model left it out, and without sources there is nothing to add."""
+    known = {s["url"] for s in sources if s.get("url")}
+    if not known:
+        return ""
+    text = _URL.sub(lambda m: m.group(0) if m.group(0).rstrip(".,;:!?") in known else "", text or "")
+    text = re.sub(r"[ \t]{2,}", " ", text).strip(" \t:-–—")
+    if not any(u in text for u in known):
+        main = next(s["url"] for s in sources if s.get("url"))
+        text = f"{text}: {main}" if text else f"Source: {main}"
+    if len(text) > 500:  # keep the link whole: shorten the words before it
+        text = textutil.truncate(text, 500)
+    return text
+
+
+def normalize_output(ctx: Ctx, card: dict[str, Any], out: DraftOut, sources: list[dict[str, Any]],
+                     style: Style | None = None) -> dict[str, Any]:
     fmt = card["format"]
     x = ctx.settings.platforms.x
-    text = clean_text(out.text)
-    posts = [clean_text(_THREAD_NUM.sub("", p)) for p in out.posts if p and p.strip()]
+    text, stray = hashtags.split_trailing(clean_text(out.text))
+    posts, stray_in_posts = hashtags.strip_from_posts(
+        [clean_text(_THREAD_NUM.sub("", p)) for p in out.posts if p and p.strip()])
+    hs = ctx.settings.hashtags
+    tag_limit = hs.range(card["platform"]).max if hs.enabled and fmt != "x_reply" else 0
+    if style is not None and style.hashtags_off:
+        tag_limit = 0  # he removes them on this platform; he can still add his own on the card
+    tags = hashtags.clean([*out.hashtags, *stray, *stray_in_posts], tag_limit, hs.avoid, ctx.blocklist)
     if fmt == "x_thread":
         if not posts and text:
             posts = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
@@ -194,6 +267,9 @@ def normalize_output(ctx: Ctx, card: dict[str, Any], out: DraftOut, sources: lis
     if not text and not posts:
         raise ValueError("draft is empty")
     draft: dict[str, Any] = {"text": text, "posts": posts}
+    first = first_comment(clean_text(out.first_comment), sources) if fmt != "x_reply" else ""
+    if first:
+        draft["first_comment"] = first
     if fmt == "x_reply":
         lane_accounts = ctx.settings.watchlist.get(card.get("pillar") or "", []) or ctx.settings.watchlist.get("tech", [])
         terms = [t for t in (out.search_terms or []) if isinstance(t, str) and t.strip()][:4]
@@ -226,6 +302,7 @@ def normalize_output(ctx: Ctx, card: dict[str, Any], out: DraftOut, sources: lis
         "draft": draft,
         "hooks": hooks[:3],
         "hook_type": _norm_hook_type(ctx, out.hook_type),
+        "hashtags": tags,
         "claims": claims,
         "format_note": clean_text(out.format_note) if card["platform"] == "linkedin" else None,
         "angle": clean_text(out.angle) or card.get("angle"),
@@ -353,6 +430,9 @@ def _common_vars(ctx: Ctx, card: dict[str, Any], style: Style) -> dict[str, Any]
         "hook_prefs": ", ".join(style.hook_prefs[:3]),
         "hook_types": ", ".join(ctx.settings.hooks.types),
         "examples": render_examples(style.examples),
+        "platform_guide": render_platform_rules(style.platform_rules),
+        "hashtag_rule": hashtag_rule(ctx, card["platform"], card["format"], style),
+        "first_comment_rule": first_comment_rule(card["platform"], card["format"]),
         "thread_min": x.thread_min,
         "thread_max": x.thread_max,
         "x_limit": ctx.settings.x_char_limit(),
@@ -443,7 +523,7 @@ def draft_external(ctx: Ctx, card: dict[str, Any], avoid_angles: list[str] | Non
     req = LLMRequest(task="draft", system=_system(ctx), prompt=prompting.render("draft", **vars_),
                      max_output_tokens=3000, prompt_version=version)
     out, resp = ctx.llm.call_json(req, DraftOut)
-    norm = normalize_output(ctx, card, out, card.get("sources") or [])
+    norm = normalize_output(ctx, card, out, card.get("sources") or [], style)
     card["draft_basis"] = "sources"
     return _apply(ctx, card, norm, resp, style, version, stance, keep_status=True)
 
@@ -579,7 +659,7 @@ def draft_from_answers(ctx: Ctx, card: dict[str, Any]) -> dict[str, Any]:
     req = LLMRequest(task="draft_personal", system=_system(ctx), prompt=prompting.render("draft_interview", **vars_),
                      max_output_tokens=3000, personal=True, prompt_version=version)
     out, resp = ctx.llm.call_json(req, DraftOut)
-    norm = normalize_output(ctx, card, out, card.get("sources") or [])
+    norm = normalize_output(ctx, card, out, card.get("sources") or [], style)
     card["draft_basis"] = "answers"
     card = _apply(ctx, card, norm, resp, style, version, stance)
     log_interaction(ctx, "drafted_from_answers", card, sources=len(card.get("sources") or []))
@@ -611,7 +691,8 @@ def rewrite(ctx: Ctx, card: dict[str, Any], work: dict[str, Any]) -> dict[str, A
     stance = _stance_for(ctx, card)
     hooks = (card.get("working") or {}).get("hooks") or card.get("hooks") or []
     extra: dict[str, Any] = {"current_draft": {"text": current_text, "posts": current_posts},
-                             "current_hooks": [h.get("text") for h in hooks]}
+                             "current_hooks": [h.get("text") for h in hooks],
+                             "current_hashtags": (card.get("working") or {}).get("hashtags") or card.get("hashtags") or []}
     if card.get("answers"):
         by_q = {q["id"]: q["q"] for q in card.get("questions") or []}
         extra["questions_and_answers"] = [{"question": by_q.get(a["question_id"], ""), "answer": a["answer"]}
@@ -632,7 +713,7 @@ def rewrite(ctx: Ctx, card: dict[str, Any], work: dict[str, Any]) -> dict[str, A
                      prompt=prompting.render("rewrite", **vars_), max_output_tokens=3000, personal=personal,
                      prompt_version=version)
     out, resp = ctx.llm.call_json(req, DraftOut)
-    norm = normalize_output(ctx, card, out, card.get("sources") or [])
+    norm = normalize_output(ctx, card, out, card.get("sources") or [], style)
     card["rewrite_count"] = int(card.get("rewrite_count") or 0) + 1
     card = _apply(ctx, card, norm, resp, style, version, stance, keep_status=True)
     log_interaction(ctx, "rewritten", card, note=work.get("note"), chips=chips)
@@ -640,18 +721,27 @@ def rewrite(ctx: Ctx, card: dict[str, Any], work: dict[str, Any]) -> dict[str, A
 
 
 def adapt(ctx: Ctx, source_card: dict[str, Any], work: dict[str, Any]) -> dict[str, Any]:
-    """Create a card for the other platform from an existing card (a 'rewrite' with a target platform)."""
+    """Create a card for the other platform from an existing card (a cross-post, or a rewrite with a target
+    platform). It's delivered with the original's set, so the ranking learns from it like any other card."""
     target = work["target_platform"]
-    fmt = work.get("target_format") or ("li_text" if target == "linkedin" else "x_single")
     pillar_map = {"research": "tech", "industry": "tech", "receipts": "tech", "learning": "tech",
                   "tech": "industry", "startups": "industry", "affairs": "industry", "life": "learning"}
     pillar = source_card["pillar"] if ctx.settings.pillar(target, source_card["pillar"]) else pillar_map.get(
         source_card["pillar"], next(iter(ctx.settings.pillars(target))))
+    if ctx.settings.pillar(target, pillar) is None:
+        pillar = next(iter(ctx.settings.pillars(target)))
+    formats = ctx.settings.pillar(target, pillar).formats  # type: ignore[union-attr]
+    fmt = work.get("target_format") or ("li_text" if target == "linkedin" else "x_single")
+    if fmt not in formats:
+        fmt = formats[0]
     now = timeutil.now_iso()
+    # A retry after a failed attempt drafts the same card again instead of adding a second one.
+    prior = next((c for c in ctx.store.select("cards", "crosspost_of = ? AND status IN ('drafting', 'failed')",
+                                              (source_card["id"],)) if c["platform"] == target), None)
     card = {
         **{k: source_card.get(k) for k in ("topic_id", "request_id", "title", "why_now", "angle", "sources",
-                                            "questions", "answers", "issue_key", "affairs_type")},
-        "id": ids.new_id("crd"),
+                                            "questions", "answers", "issue_key", "affairs_type", "draft_basis")},
+        "id": prior["id"] if prior else ids.new_id("crd"),
         "kind": "adapt",
         "platform": target,
         "mode": source_card.get("mode") or "external",
@@ -659,6 +749,9 @@ def adapt(ctx: Ctx, source_card: dict[str, Any], work: dict[str, Any]) -> dict[s
         "format": fmt,
         "status": "drafting",
         "flags": {"sensitive": (source_card.get("flags") or {}).get("sensitive", False)},
+        "crosspost_of": source_card["id"],
+        "delivery_id": source_card.get("delivery_id"),
+        "arm": arm_id(target, pillar, fmt),
         "created_at": now,
         "updated_at": now,
         "delivered_at": now,
@@ -666,15 +759,22 @@ def adapt(ctx: Ctx, source_card: dict[str, Any], work: dict[str, Any]) -> dict[s
         "revision": 0,
         "draft_state": "pending",
     }
-    base = source_card.get("working") or source_card.get("draft") or {}
+    card["working"] = source_card.get("working") or source_card.get("draft") or {}
     save_card(ctx, card)
-    work2 = {"kind": "rewrite", "note": (work.get("note") or "") + f" Adapt this {PLATFORM_LABEL[source_card['platform']]} "
-             f"post for {PLATFORM_LABEL[target]}.", "chips": work.get("chips") or []}
-    card["working"] = base
-    card = rewrite(ctx, card, work2)
+    work2 = {"kind": "rewrite", "note": ((work.get("note") or "") + f" Adapt this {PLATFORM_LABEL[source_card['platform']]} "
+             f"post for {PLATFORM_LABEL[target]}: rewrite it the way that works on {PLATFORM_LABEL[target]}, "
+             "not just shorter or longer.").strip(), "chips": work.get("chips") or []}
+    try:
+        card = rewrite(ctx, card, work2)
+    except BudgetExhausted:
+        raise  # stays "drafting": the original's work retries it on the next run
+    except Exception:
+        card["status"] = "failed"  # shown as "Drafting failed" with the original text to work from
+        save_card(ctx, card)
+        raise
     card["rewrite_count"] = 0
     save_card(ctx, card)
-    log_interaction(ctx, "adapted", card, from_card=source_card["id"])
+    log_interaction(ctx, "adapted", card, from_card=source_card["id"], mode=work.get("crosspost") or "both")
     return card
 
 

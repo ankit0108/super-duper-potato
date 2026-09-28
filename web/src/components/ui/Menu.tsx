@@ -3,8 +3,9 @@ import { cx } from "./Button";
 
 type Item = { label: ReactNode; hint?: ReactNode; onSelect: () => void; tone?: "default" | "danger" };
 
-/** Small click-to-open menu with keyboard support and click-outside closing. */
-export function Menu({ trigger, items, align = "right", label }: { trigger: (props: { onClick: () => void; "aria-expanded": boolean; "aria-haspopup": "menu"; "aria-controls": string }) => ReactNode; items: Item[]; align?: "left" | "right"; label: string }) {
+/** Small click-to-open menu with keyboard support and click-outside closing. `side="top"` opens it above the
+ * trigger (for triggers in a bar fixed to the bottom of the screen). */
+export function Menu({ trigger, items, align = "right", side = "bottom", label }: { trigger: (props: { onClick: () => void; "aria-expanded": boolean; "aria-haspopup": "menu"; "aria-controls": string }) => ReactNode; items: Item[]; align?: "left" | "right"; side?: "top" | "bottom"; label: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
@@ -46,7 +47,8 @@ export function Menu({ trigger, items, align = "right", label }: { trigger: (pro
           aria-label={label}
           onKeyDown={onKeyDown}
           className={cx(
-            "absolute z-40 mt-1 min-w-52 overflow-hidden rounded-xl border border-border bg-surface py-1 shadow-xl",
+            "absolute z-40 max-h-[70dvh] min-w-52 overflow-y-auto rounded-xl border border-border bg-surface py-1 shadow-xl",
+            side === "top" ? "bottom-full mb-1" : "mt-1",
             align === "right" ? "right-0" : "left-0",
           )}
         >

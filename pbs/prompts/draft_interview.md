@@ -12,6 +12,8 @@ Angle: {{angle}}
 
 Style guide learned from his edits (follow it):
 {{style_rules}}
+What works on {{platform_label}} now (follow it unless his style guide says otherwise):
+{{platform_guide}}
 Target length: {{length_target}}
 Never use: {{avoid}}
 Hook types he keeps most on {{platform_label}}: {{hook_prefs}}
@@ -25,6 +27,6 @@ Material:
 </input>
 
 Reply with JSON only:
-{"text": "…", "posts": [], "hook_type": "…", "hooks": [{"type": "…", "text": "…"}, {"type": "…", "text": "…"}, {"type": "…", "text": "…"}], "claims": [{"text": "…", "source": 0}], "format_note": "", "angle": "…"{{extra_fields}}}
+{"text": "…", "posts": [], "hook_type": "…", "hooks": [{"type": "…", "text": "…"}, {"type": "…", "text": "…"}, {"type": "…", "text": "…"}], "claims": [{"text": "…", "source": 0}], "hashtags": ["#…"], "first_comment": "…", "format_note": "", "angle": "…"{{extra_fields}}}
 
-Field rules: as for any draft. "posts" only for threads ({{thread_min}}–{{thread_max}} posts of at most {{x_limit}} characters, no numbering); "hooks" are three alternative openings of different types from: {{hook_types}}; "claims" list facts taken from the sources (his own statements need no source).
+Field rules: as for any draft. "posts" only for threads ({{thread_min}}–{{thread_max}} posts of at most {{x_limit}} characters, no numbering); "hooks" are three alternative openings of different types from: {{hook_types}}; "claims" list facts taken from the sources (his own statements need no source); "hashtags": {{hashtag_rule}}; "first_comment": {{first_comment_rule}}.

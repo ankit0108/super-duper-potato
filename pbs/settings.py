@@ -146,6 +146,21 @@ class Learning(_Strict):
     edit_ratio_review_weeks: int = 4
 
 
+class HashtagRange(_Strict):
+    min: int = Field(0, ge=0, le=10)
+    max: int = Field(3, ge=0, le=10)
+
+
+class Hashtags(_Strict):
+    enabled: bool = True
+    linkedin: HashtagRange = HashtagRange(min=3, max=5)
+    x: HashtagRange = HashtagRange(min=0, max=2)
+    avoid: list[str] = []
+
+    def range(self, platform: str) -> HashtagRange:
+        return getattr(self, platform)
+
+
 class Drafting(_Strict):
     interview_draft_now: bool = True
     questions_per_card: int = Field(2, ge=1, le=3)
@@ -234,6 +249,7 @@ class Settings(BaseModel):
     rewards: dict[str, dict[str, float]]
     expiry: Expiry = Expiry()
     drafting: Drafting = Drafting()
+    hashtags: Hashtags = Hashtags()
     weekly_batch: WeeklyBatch
     llm: LLM
     notify: Notify = Notify()

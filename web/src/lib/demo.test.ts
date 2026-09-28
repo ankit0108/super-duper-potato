@@ -1,5 +1,5 @@
-import { desk } from "@/test/fixtures";
-import { demoShiftDays, isoWeek, rebaseDemo } from "./demo";
+import { card, desk, event } from "@/test/fixtures";
+import { demoShiftDays, isoWeek, processDemoEvents, rebaseDemo } from "./demo";
 
 describe("isoWeek", () => {
   it.each([
@@ -37,5 +37,28 @@ describe("rebaseDemo", () => {
     expect(out.cards?.[0].title).toBe("Keeps 2026-09-28 in prose");
     expect((out.stats as { weekly: Array<{ week: string }> }).weekly[0].week).toBe("2026-W41");
     expect(Date.parse(out.meta!.next_delivery_local!)).toBe(Date.parse("2026-10-07T04:00+10:00"));
+  });
+});
+
+describe("processDemoEvents: cross-posts", () => {
+  const settings = { strategy: { linkedin: { industry: { formats: ["li_text"] } }, x: { tech: { formats: ["x_single", "x_thread"] } } } };
+  const source = card({ pillar: "industry", delivery_id: "dly_2026-09-28", hashtags: ["#AI", "#RPA", "#Workflows"], draft: { text: "First point here. Second point there.\n\nThird point.", posts: [], first_comment: "Source: https://example.com/a" } });
+
+  it("makes the other platform's version, linked to the original, like the pipeline's adapt()", () => {
+    const out = processDemoEvents(desk({ settings, cards: [source] } as never), [event("card.crosspost", { card_id: source.id, target_platform: "x", target_format: "x_thread", mode: "both" })]);
+    const made = out.cards!.find((c) => c.crosspost_of === source.id)!;
+    expect(made).toMatchObject({ kind: "adapt", platform: "x", pillar: "tech", format: "x_thread", status: "suggested", delivery_id: "dly_2026-09-28" });
+    expect(made.draft?.posts?.length).toBeGreaterThan(0);
+    expect(made.draft?.posts?.every((p) => p.length <= 270)).toBe(true);
+    expect(made.draft?.first_comment).toBe("Source: https://example.com/a");
+    const original = out.cards!.find((c) => c.id === source.id)!;
+    expect(original.status).toBe("suggested");
+    expect(original.work).toBeNull();
+  });
+
+  it("switching skips the original as the wrong platform", () => {
+    const out = processDemoEvents(desk({ settings, cards: [source] } as never), [event("card.crosspost", { card_id: source.id, target_platform: "x", mode: "switch" })]);
+    expect(out.cards!.find((c) => c.id === source.id)!.skip?.reason).toBe("wrong_platform");
+    expect(out.cards!.find((c) => c.crosspost_of === source.id)!.format).toBe("x_single");
   });
 });

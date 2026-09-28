@@ -715,7 +715,8 @@ def parse_style(prompt: str) -> PromptStyle:
     prefs_line = _line_after(prompt, "Hook types he keeps most on")
     prefs = [p.strip() for p in prefs_line.split(":", 1)[-1].split(",") if p.strip()] if prefs_line else []
     rules: list[str] = []
-    m = re.search(r"Style guide learned from his edits \(follow it\):\n(.*?)\nTarget length:", prompt, re.DOTALL)
+    m = re.search(r"Style guide learned from his edits \(follow it\):\n(.*?)\n(?:What works on|Target length:)", prompt,
+                  re.DOTALL)
     if m:
         rules = [r[2:].strip() for r in m.group(1).splitlines() if r.startswith("- ")]
     return PromptStyle(avoid=avoid, rules=rules, hook_prefs=prefs)
