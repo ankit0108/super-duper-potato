@@ -5,8 +5,9 @@ timezone: Australia/Melbourne
 display_name: Ankit
 
 delivery:
-  # The morning set is delivered by the first run on or after this local time each day.
-  earliest_local_time: "04:00"
+  # The morning set is delivered by the first run on or after this local time each day. GitHub can start
+  # scheduled runs hours late, so the schedule starts early (see .github/workflows/pbs.yml) to land by 6am.
+  earliest_local_time: "01:00"
   # After this local time a missed morning delivery is skipped (tomorrow's comes instead).
   latest_local_time: "21:00"
   # Saturday batch (evergreen + interview cards for the week).
@@ -202,6 +203,14 @@ rewards:
   linkedin: {followers_gained: 0.30, profile_views: 0.25, comments: 0.25, reposts: 0.15, impressions: 0.05}
   x: {comments: 0.30, reposts: 0.25, followers_gained: 0.25, impressions: 0.10, reactions: 0.10}
 
+drafting:
+  # Cards that ask for his experience arrive already drafted from recent sources; the questions are optional,
+  # and answering redrafts the post from his answers plus the sources.
+  interview_draft_now: true
+  questions_per_card: 2
+  # How far back a search for sources may reach when a card has none (interview-bank and Saturday cards).
+  source_search_days: 30
+
 expiry:
   interview_days: 7
   evergreen_days: 7
@@ -273,6 +282,8 @@ llm:
     voice: [groq, gemini, gemini_lite]
     vision: [gemini, gemini_lite]
     search: [gemini]
+    search_plan: [gemini_lite, groq, gemini, openrouter]
+    search_rerank: [gemini_lite, groq, gemini, openrouter]
     stances: [gemini, groq, gemini_lite]
     evergreen: [gemini, groq, gemini_lite, openrouter]
   temperature:
@@ -285,6 +296,8 @@ llm:
     voice: 0.3
     vision: 0.0
     search: 0.2
+    search_plan: 0.2
+    search_rerank: 0.0
     stances: 0.4
     evergreen: 0.6
 

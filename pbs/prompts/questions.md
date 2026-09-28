@@ -1,4 +1,4 @@
-Task: {{display_name}} could post about this on {{platform_label}} ({{pillar_label}}), but the post has to come from his own experience or view. Ask him {{n_questions}} short, specific questions whose answers would make a strong post.
+Task: {{display_name}} could post about this on {{platform_label}} ({{pillar_label}}). A version drafted from recent sources may already exist; his own experience or view is what makes it his. Ask him {{n_questions}} short, specific questions whose answers would make the post personal and stronger. Answering is optional for him, so make each question worth his time.
 
 Topic: {{title}}
 Why now: {{why_now}}

@@ -116,7 +116,8 @@ def _parse_hn(source: dict[str, Any], content: bytes) -> list[RawItem]:
         data = json.loads(content)
     except json.JSONDecodeError:
         return []
-    min_points = 60 if source.get("kind") == "hn_front" else 30
+    # The front page and Show HN keep only stories people noticed; a search keeps anything on topic.
+    min_points = {"hn_front": 60, "hn_show": 30}.get(source.get("kind") or "", 5)
     items: list[RawItem] = []
     for hit in data.get("hits", []):
         title = textutil.normalize_ws(hit.get("title") or hit.get("story_title"))

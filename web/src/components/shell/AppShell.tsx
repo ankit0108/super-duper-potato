@@ -23,6 +23,7 @@ import { useNow, useToday, useTz } from "@/state/hooks";
 import { localDateKey } from "@/lib/time";
 import { cx } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
+import { SkipDialogHost } from "../card/SkipDialog";
 import { Banners } from "./Banners";
 
 type NavItem = { to: string; label: string; icon: ReactNode; match: (p: string) => boolean; count?: number; mobile?: boolean };
@@ -194,6 +195,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
       </nav>
 
+      <SkipDialogHost />
       <Dialog open={more} onClose={() => setMore(false)} title="More">
         <div className="grid grid-cols-2 gap-2">
           {items

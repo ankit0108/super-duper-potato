@@ -5,8 +5,12 @@ name: pbs
 
 on:
   schedule:
-    - cron: "11 18 * * *"      # morning delivery: 04:11 AEST / 05:11 AEDT (room for Actions delays before 6am)
-    - cron: "47 19 * * *"      # catch-up if GitHub dropped or delayed it: 05:47 AEST / 06:47 AEDT
+    # Morning delivery. GitHub often starts scheduled runs hours late (3 h on 28 Sep 2026), so the first tries
+    # are early; the first run after 01:00 Melbourne time delivers and the rest do nothing more.
+    - cron: "11 15 * * *"      # 01:11 AEST / 02:11 AEDT
+    - cron: "41 16 * * *"      # 02:41 AEST / 03:41 AEDT
+    - cron: "11 18 * * *"      # catch-up: 04:11 AEST / 05:11 AEDT
+    - cron: "47 19 * * *"      # catch-up: 05:47 AEST / 06:47 AEDT
     - cron: "7 1,7,13 * * *"   # light ticks: ingest desk events, expire, learn, catch up
     - cron: "23 9 * * 6"       # Saturday batch: 19:23 AEST / 20:23 AEDT
   workflow_dispatch:
@@ -80,7 +84,7 @@ jobs:
           HINT="$INPUT_HINT"
           if [ "$EVENT" = "schedule" ]; then
             case "$SCHEDULE" in
-              "11 18 * * *"|"47 19 * * *") HINT="morning" ;;
+              "11 15 * * *"|"41 16 * * *"|"11 18 * * *"|"47 19 * * *") HINT="morning" ;;
               "23 9 * * 6") HINT="weekly_batch" ;;
               *) HINT="" ;;
             esac

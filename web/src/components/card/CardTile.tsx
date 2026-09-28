@@ -1,6 +1,6 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import { Compass, FlaskConical, Loader2, MessageCircleQuestion, OctagonAlert, ShieldAlert, Sigma, UserRound, HeartHandshake, Ruler } from "lucide-react";
-import type { Card, SkipReason } from "@/types";
+import type { Card } from "@/types";
 import { FORMAT_LABEL, SKIP_REASONS, draftText } from "@/lib/format";
 import { navigate } from "@/lib/router";
 import { useDesk } from "@/state/store";
@@ -13,7 +13,8 @@ export function workLabel(card: Card): string | null {
   if (!card.work) return null;
   if (card.work.kind === "rewrite") return card.work.target_platform && card.work.target_platform !== card.platform ? "Adapting…" : "Rewriting…";
   if (card.work.kind === "questions") return "Preparing questions…";
-  return (card.answers?.length ?? 0) > 0 ? "Drafting from your answers…" : "Drafting…";
+  if ((card.answers?.length ?? 0) > 0) return "Drafting from your answers + sources…";
+  return card.mode === "interview" ? "Drafting from recent sources…" : "Drafting…";
 }
 
 export function FlagIcons({ card }: { card: Card }) {
@@ -41,7 +42,14 @@ export function FlagIcons({ card }: { card: Card }) {
 
 export function SkipMenu({ card, size = "sm" }: { card: Card; size?: "sm" | "md" }) {
   const act = useDesk((s) => s.act);
-  const skip = (reason: SkipReason) => act({ type: "card.skip", card_id: card.id, reason }, { toast: "Skipped. The ranker will learn from this." });
+  const toast = useDesk((s) => s.toast);
+  const askWhy = useDesk((s) => s.askSkipReason);
+  const skip = (r: (typeof SKIP_REASONS)[number]) => {
+    // "Other" says nothing without the reason, so it asks first; the rest skip in one tap and can add a reason.
+    if (r.needsNote) return askWhy(card.id, r.value);
+    act({ type: "card.skip", card_id: card.id, reason: r.value });
+    toast("ok", `Skipped. ${r.learns}`, { label: "Add why", onAction: () => askWhy(card.id, r.value) });
+  };
   return (
     <Menu
       label="Skip reasons"
@@ -50,7 +58,7 @@ export function SkipMenu({ card, size = "sm" }: { card: Card; size?: "sm" | "md"
           Skip
         </Button>
       )}
-      items={SKIP_REASONS.map((r) => ({ label: r.label, hint: r.help, onSelect: () => skip(r.value) }))}
+      items={SKIP_REASONS.map((r) => ({ label: r.needsNote ? `${r.label}…` : r.label, hint: r.help, onSelect: () => skip(r) }))}
     />
   );
 }
@@ -65,6 +73,8 @@ export function CardTile({ card, pending }: { card: Card; pending?: boolean }) {
   };
   const brief = card.draft_state === "brief";
   const questions = card.status === "needs_input" ? card.questions?.length ?? 0 : 0;
+  // Drafted from sources, with questions he may answer to make it his own.
+  const optional = card.status !== "needs_input" && card.mode === "interview" && !card.answers?.length ? card.questions?.length ?? 0 : 0;
   return (
     <article
       data-tile
@@ -105,7 +115,7 @@ export function CardTile({ card, pending }: { card: Card; pending?: boolean }) {
           <span className="flex items-start gap-2 text-warn">
             <MessageCircleQuestion className="mt-0.5 size-4 shrink-0" />
             <span>
-              {questions} question{questions === 1 ? "" : "s"} for you: <span className="text-text">{card.questions?.[0]?.q}</span>
+              {questions} optional question{questions === 1 ? "" : "s"}: <span className="text-text">{card.questions?.[0]?.q}</span>
             </span>
           </span>
         ) : brief ? (
@@ -115,7 +125,14 @@ export function CardTile({ card, pending }: { card: Card; pending?: boolean }) {
         )}
       </div>
       <div className="mt-2.5 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
-        <span className="truncate text-[12px] text-faint">{card.angle && !brief ? `Angle: ${card.angle}` : ""}</span>
+        <span className="flex min-w-0 items-center gap-1.5 truncate text-[12px] text-faint">
+          {optional > 0 && (
+            <Badge tone="info" icon={<MessageCircleQuestion className="size-3" />} title="Answer them to add your own experience; the draft works without them">
+              {optional} optional question{optional === 1 ? "" : "s"}
+            </Badge>
+          )}
+          <span className="truncate">{card.angle && !brief ? `Angle: ${card.angle}` : ""}</span>
+        </span>
         <div className="flex shrink-0 items-center gap-1">
           {["suggested", "needs_input", "blocked", "editing"].includes(card.status) && <SkipMenu card={card} />}
           <Button size="sm" variant={card.status === "needs_input" ? "primary" : "secondary"} onClick={open}>

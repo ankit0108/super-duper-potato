@@ -149,7 +149,9 @@ def _card_edit(ctx: Ctx, ev: C.CardEditEvent) -> None:
     at = _event_time(ev)
     if card["status"] == "posted":
         raise Reject("card is already posted")
-    card["working"] = {"text": ev.text, "posts": ev.posts, "hook_index": ev.hook_index, "updated_at": at}
+    hooks = _edited_hooks(card, ev.hooks) if ev.hooks is not None else (card.get("working") or {}).get("hooks")
+    card["working"] = {"text": ev.text, "posts": ev.posts, "hook_index": ev.hook_index, "hooks": hooks,
+                       "updated_at": at}
     if card["status"] in ("suggested", "blocked"):
         draft.log_interaction(ctx, "picked", card, rank=card.get("rank"), via="edit")
         _touch(card, at, "editing")
@@ -160,6 +162,18 @@ def _card_edit(ctx: Ctx, ev: C.CardEditEvent) -> None:
     if not recent:
         draft.log_interaction(ctx, "edited", card)
     draft.save_card(ctx, card)
+
+
+def _edited_hooks(card: dict[str, Any], hooks: list[C.HookIn]) -> list[dict[str, str]] | None:
+    """His openings, typed: an edit keeps the drafter's label while the text is mostly the same."""
+    original = card.get("hooks") or []
+    out = []
+    for i, h in enumerate(hooks):
+        text = h.text.strip()
+        if not text:
+            continue
+        out.append({"type": learn.hook_type_for(original[i] if i < len(original) else None, text), "text": text})
+    return out or None
 
 
 def _minutes(n: int):
@@ -185,11 +199,20 @@ def _card_skip(ctx: Ctx, ev: C.CardSkipEvent) -> None:
     at = _event_time(ev)
     if card["status"] == "posted":
         raise Reject("card is already posted")
-    card["skip"] = {"reason": ev.reason, "note": ev.note, "at": at}
+    note = (ev.note or "").strip() or None
+    earlier = card.get("skip") if card["status"] == "skipped" else None
+    if earlier:
+        # He added (or changed) the reason after a one-tap skip: same skip, now with his words.
+        card["skip"] = {"reason": ev.reason, "note": note or earlier.get("note"), "at": earlier.get("at") or at}
+        _touch(card, at)
+        draft.save_card(ctx, card)
+        draft.log_interaction(ctx, "skip_reason", card, reason=ev.reason, note=note)
+        return
+    card["skip"] = {"reason": ev.reason, "note": note, "at": at}
     card["work"] = None
     _touch(card, at, "skipped")
     draft.save_card(ctx, card)
-    draft.log_interaction(ctx, "skipped", card, reason=ev.reason, note=ev.note, rank=card.get("rank"))
+    draft.log_interaction(ctx, "skipped", card, reason=ev.reason, note=note, rank=card.get("rank"))
 
 
 def _card_rewrite(ctx: Ctx, ev: C.CardRewriteEvent) -> None:
@@ -278,10 +301,19 @@ def _card_draft_now(ctx: Ctx, ev: C.CardDraftNowEvent) -> None:
 
 def _card_hook(ctx: Ctx, ev: C.CardHookEvent) -> None:
     card = _card(ctx, ev.card_id)
-    hooks = card.get("hooks") or []
-    if ev.hook_index >= len(hooks):
+    original = card.get("hooks") or []
+    hooks = learn.card_hooks(card)
+    text = (ev.text or "").strip()
+    if text:
+        # An opening he edited or wrote himself (the desk sends its text, so it needn't be synced yet).
+        known = original[ev.hook_index] if ev.hook_index < len(original) else None
+        hook_type = learn.hook_type_for(known, text)
+        edited = known is None or text != (known.get("text") or "").strip()
+    elif ev.hook_index < len(hooks):
+        hook_type, edited = hooks[ev.hook_index].get("type") or "observation", False
+    else:
         raise Reject("unknown hook")
-    draft.log_interaction(ctx, "hook_swapped", card, hook_index=ev.hook_index, hook_type=hooks[ev.hook_index]["type"])
+    draft.log_interaction(ctx, "hook_swapped", card, hook_index=ev.hook_index, hook_type=hook_type, edited=edited)
 
 
 # ---------------------------------------------------------------------------

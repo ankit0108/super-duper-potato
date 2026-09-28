@@ -230,11 +230,13 @@ def check_card(card: dict[str, Any], *, settings: Any, blocklist: list[str], evi
     hooks_text = "\n".join(h.get("text", "") for h in (card.get("hooks") or []))
     everything = "\n".join([body, hooks_text, card.get("angle") or "", card.get("title") or ""])
     prev = card.get("flags") or {}
+    # Anything not written from his own answers is analysis: experiences and opinions in it are flagged.
+    external = card.get("mode") == "external" or card.get("draft_basis") == "sources" or not card.get("answers")
     flags: dict[str, Any] = {
         "blocked": find_terms(everything, blocklist),
         "unsourced": unsourced_numbers(body + "\n" + hooks_text, evidence),
-        "first_person": first_person_claims(body) if card.get("mode") == "external" else [],
-        "opinion": opinion_framing(body) if card.get("mode") == "external" else [],
+        "first_person": first_person_claims(body) if external else [],
+        "opinion": opinion_framing(body) if external else [],
         "avoid_phrases": phrase_hits(body + "\n" + hooks_text, avoid_phrases),
         "bait": phrase_hits(body, bait_phrases),
         "length": length_flags(card["platform"], card["format"], draft, settings),

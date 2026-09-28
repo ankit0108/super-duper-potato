@@ -80,7 +80,7 @@ def card_from_candidate(ctx: Ctx, cand: Candidate, dlv_id: str | None, rank: int
     }
     if cand.bank:
         card["questions"] = [{"id": f"q{i}", "q": q, "why": None} for i, q in
-                             enumerate(cand.bank.get("questions") or [], 1)]
+                             enumerate((cand.bank.get("questions") or [])[:ctx.settings.drafting.questions_per_card], 1)]
     draft.save_card(ctx, card)
     return card
 
@@ -89,13 +89,7 @@ def fill_card(ctx: Ctx, card: dict[str, Any], cand: Candidate | None = None) -> 
     """Draft (external) or ask questions (interview). Falls back to a brief card when out of budget."""
     try:
         if card["mode"] == "interview":
-            if card.get("questions"):
-                card["status"] = "needs_input"
-                card["draft_state"] = "pending"
-                card["updated_at"] = timeutil.now_iso()
-                draft.save_card(ctx, card)
-                return card
-            return draft.ask_questions(ctx, card)
+            return draft.fill_interview(ctx, card)
         return draft.draft_external(ctx, card, experiment=cand.experiment if cand else None)
     except BudgetExhausted as exc:
         ctx.run.degrade("brief_cards")
@@ -137,7 +131,8 @@ def deliver_plan(ctx: Ctx, plan: dict[str, list[Candidate]], dlv_id: str) -> dic
     """Create and fill the cards for a ranked plan, within the model budget, and record the delivery."""
     local_date = ctx.local_date_str()
     # Budget: trim lowest-ranked beyond the minimum when the model budget can't cover the whole set.
-    need = sum(1 for cs in plan.values() for c in cs if not (c.mode == "interview" and c.bank))
+    draft_now = ctx.settings.drafting.interview_draft_now
+    need = sum(1 for cs in plan.values() for c in cs if draft_now or not (c.mode == "interview" and c.bank))
     available = ctx.llm.remaining("draft")
     # Out of budget: fewer cards. Providers failing with errors: the full set, as briefs, so nothing is lost.
     if available < need and not ctx.llm.chain_broken("draft"):
@@ -253,7 +248,8 @@ def _create_interview(ctx: Ctx, platform: str, prop: dict[str, Any], key: str) -
         pillar = next(k for k, p in ctx.settings.pillars(platform).items() if p.mode == "interview")
         spec = ctx.settings.pillar(platform, pillar)
     now = timeutil.now_iso()
-    questions = [q for q in (prop.get("questions") or []) if isinstance(q, dict) and q.get("q")][:3]
+    questions = [q for q in (prop.get("questions") or [])
+                 if isinstance(q, dict) and q.get("q")][:ctx.settings.drafting.questions_per_card]
     card = {
         "id": ids.new_id("crd"),
         "topic_id": f"bank:{prop['bank_id']}" if prop.get("bank_id") else None,

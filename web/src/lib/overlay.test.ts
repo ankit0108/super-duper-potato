@@ -43,6 +43,37 @@ describe("applyEvents", () => {
     expect(next.work).toBeNull();
   });
 
+  it("a skip reason added later keeps the skip and adds his note", () => {
+    const c = card();
+    const { desk: out } = applyEvents(desk({ cards: [c] }), [
+      event("card.skip", { card_id: c.id, reason: "wrong_timing" }),
+      event("card.skip", { card_id: c.id, reason: "other", note: "Industrial automation, not my focus" }),
+    ]);
+    const next = out.cards!.find((x) => x.id === c.id)!;
+    expect(next.status).toBe("skipped");
+    expect(next.skip).toMatchObject({ reason: "other", note: "Industrial automation, not my focus" });
+  });
+
+  it("edited openings ride along with the working copy and survive an edit without them", () => {
+    const c = card({ hooks: [{ type: "question", text: "Why now?" }] });
+    const hooks = [{ type: "question", text: "Why now, really?" }, { type: "custom", text: "My own line." }];
+    const { desk: out } = applyEvents(desk({ cards: [c] }), [
+      event("card.edit", { card_id: c.id, text: "My own line.\n\nBody", hook_index: 1, hooks }),
+      event("card.edit", { card_id: c.id, text: "My own line.\n\nBody, edited", hook_index: 1 }),
+    ]);
+    const next = out.cards!.find((x) => x.id === c.id)!;
+    expect(next.working?.hooks).toEqual(hooks);
+    expect(next.working?.text).toBe("My own line.\n\nBody, edited");
+  });
+
+  it("a stance in his own words replaces a chosen position", () => {
+    const { desk: out, pending } = applyEvents(desk({ stances: [{ id: "s1", issue: "Issue", tier: "india", chosen: { position_key: "a", custom_text: null } }] as never }), [
+      event("stance.upsert", { stance_id: "s1", chosen_key: null, custom_text: "  My view.  " }),
+    ]);
+    expect(out.stances![0].chosen).toEqual({ position_key: null, custom_text: "My view." });
+    expect(pending.stances.has("s1")).toBe(true);
+  });
+
   it("events for unknown cards are ignored, not thrown", () => {
     const d = desk({ cards: [card()] });
     expect(() => applyEvents(d, [event("card.skip", { card_id: "nope", reason: "other" })])).not.toThrow();

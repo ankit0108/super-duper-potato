@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { Check, CircleDashed, Plus, Trash2, X } from "lucide-react";
 import type { DeskState, Platform, PlaybookRule, Proposal } from "@/types";
-import { num, pct } from "@/lib/format";
+import { SKIP_REASONS, num, pct } from "@/lib/format";
 import { formatDate, localDateKey } from "@/lib/time";
-import { useRoute, navigate } from "@/lib/router";
+import { Link, useRoute, navigate } from "@/lib/router";
 import { useDesk } from "@/state/store";
 import { usePillarLabels, useTz } from "@/state/hooks";
-import { Badge, type Tone } from "@/components/ui/Badge";
+import { Badge, PlatformMark, type Tone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Empty, Panel } from "@/components/ui/Feedback";
 import { Field, Select, Textarea } from "@/components/ui/Field";
@@ -492,6 +492,56 @@ function VoiceTab({ view }: { view: DeskState }) {
   );
 }
 
+type FeedbackRow = { at?: string | null; card_id: string; title: string; platform: Platform; pillar: string; reason?: string | null; note?: string | null };
+const TOPIC_REASONS = new Set(["not_interesting", "off_brand", "too_risky", "other"]);
+
+/** Skip reasons the ranking learns from: the pipeline's list plus skips made on this device since the last run. */
+function useFeedback(view: DeskState): FeedbackRow[] {
+  return useMemo(() => {
+    const rows = new Map<string, FeedbackRow>();
+    for (const r of (((view.stats ?? {}) as { feedback?: FeedbackRow[] }).feedback ?? [])) rows.set(r.card_id, r);
+    for (const c of view.cards ?? []) {
+      if (c.status !== "skipped" || !c.skip || !(TOPIC_REASONS.has(c.skip.reason) || c.skip.note)) continue;
+      rows.set(c.id, { at: c.skip.at ?? c.status_changed_at, card_id: c.id, title: c.title, platform: c.platform, pillar: c.pillar, reason: c.skip.reason, note: c.skip.note });
+    }
+    return [...rows.values()].sort((a, b) => (b.at ?? "").localeCompare(a.at ?? "")).slice(0, 15);
+  }, [view]);
+}
+
+function FeedbackPanel({ view }: { view: DeskState }) {
+  const tz = useTz();
+  const pillar = usePillarLabels();
+  const rows = useFeedback(view);
+  return (
+    <Panel
+      title="Your recent feedback"
+      description="Skips with a reason from the last 30 days. The next morning's ranking reads them (your own words count most), similar topics rank lower, and the weekly review uses them to adjust the playbook."
+    >
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted">No skip reasons yet. When you skip a card, pick a reason; for "Other", say why.</p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {rows.map((r) => (
+            <li key={r.card_id} className="flex flex-wrap items-start gap-x-3 gap-y-1 py-2.5 text-[13.5px]">
+              <PlatformMark platform={r.platform} className="mt-0.5 size-4 text-[9px]" />
+              <div className="min-w-0 flex-1">
+                <Link to={`/card/${r.card_id}`} className="font-medium hover:underline">
+                  {r.title}
+                </Link>
+                <div className="text-[12.5px] text-muted">
+                  {r.at ? formatDate(r.at, tz) : ""} · {pillar(r.platform, r.pillar)}
+                </div>
+                {r.note && <p className="mt-1 text-text/90">“{r.note}”</p>}
+              </div>
+              <Badge tone="neutral">{SKIP_REASONS.find((x) => x.value === r.reason)?.label ?? r.reason ?? "Skipped"}</Badge>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
 function LearningTab({ view }: { view: DeskState }) {
   const pillar = usePillarLabels();
   const arms = view.arms ?? [];
@@ -515,6 +565,7 @@ function LearningTab({ view }: { view: DeskState }) {
   }, [arms, view.settings]);
   return (
     <div className="space-y-5">
+      <FeedbackPanel view={view} />
       <Panel title="How the mix is chosen" description="Each pillar × format is an arm. Picks and posts raise an arm, skips lower it (except 'wrong timing' and 'already covered'), and old results fade with a six-week half-life. About 20% of slots explore.">
         <div className="-mx-4 overflow-x-auto px-4">
           <DataTable

@@ -112,6 +112,7 @@ class Working(_Out):
     text: str | None = None
     posts: list[str] | None = None
     hook_index: int | None = None
+    hooks: list[Hook] | None = Field(None, description="The openings as he edited them (same order; his own added last)")
     updated_at: str | None = None
 
 
@@ -175,6 +176,8 @@ class Card(_Out):
     status_changed_at: str | None = None
     post_id: str | None = None
     draft_state: Literal["full", "brief", "pending"] = "full"
+    draft_basis: Literal["sources", "answers"] | None = Field(
+        None, description="What the current draft was written from: recent sources, or his answers (plus sources)")
     created_at: str
     updated_at: str | None = None
     revision: int = 0
@@ -287,6 +290,8 @@ class Request(_Out):
     completed_at: str | None = None
     card_ids: list[str] = []
     error: str | None = None
+    search: dict[str, Any] | None = Field(None, description="What the search understood and found: interpretation, "
+                                          "queries, exclude, recency_days, results, kept, checked, items")
 
 
 class SourceHealth(_Out):
@@ -531,12 +536,18 @@ class CardStatusEvent(_Event):
     status: Literal["editing", "suggested"]
 
 
+class HookIn(_In):
+    type: str = Field("observation", max_length=24)
+    text: str = Field(max_length=600)
+
+
 class CardEditEvent(_Event):
     type: Literal["card.edit"]
     card_id: str
     text: str | None = Field(None, max_length=30000)
     posts: list[Annotated[str, Field(max_length=30000)]] | None = Field(None, max_length=25)
     hook_index: int | None = None
+    hooks: list[HookIn] | None = Field(None, max_length=10)
 
 
 class CardPostedEvent(_Event):
@@ -600,6 +611,7 @@ class CardHookEvent(_Event):
     type: Literal["card.hook"]
     card_id: str
     hook_index: int = Field(ge=0, le=10)
+    text: str | None = Field(None, max_length=600)
 
 
 class PostUpdateEvent(_Event):

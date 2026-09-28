@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Copy, ExternalLink, GitCompare, Loader2, RotateCcw, Send, Sparkle, Undo2 } from "lucide-react";
-import type { Card } from "@/types";
+import { ArrowLeft, ChevronDown, Copy, ExternalLink, GitCompare, Loader2, MessageCircleQuestion, RotateCcw, Send, Sparkle, Undo2 } from "lucide-react";
+import type { Card, EventInput } from "@/types";
 import { FORMAT_LABEL, PLATFORM_LABEL, SKIP_REASONS, draftText, pct } from "@/lib/format";
 import { copyText, linkedInComposeUrl, safeUrl, xComposeUrl } from "@/lib/compose";
 import { liveFlags, parseTerms } from "@/lib/guard";
@@ -15,11 +15,22 @@ import { Button, LinkButton, cx } from "@/components/ui/Button";
 import { Banner, Empty, Panel } from "@/components/ui/Feedback";
 import { Tabs } from "@/components/ui/Tabs";
 import { FlagIcons, SkipMenu, workLabel } from "@/components/card/CardTile";
-import { DiffPanel, HooksPanel, LinkedInEditor, LiveChecks, ThreadEditor, XPostEditor, numbered, replaceOpening } from "./card/Editor";
+import { DiffPanel, HooksPanel, LinkedInEditor, LiveChecks, ThreadEditor, XPostEditor, numbered, replaceOpening, swapOpening } from "./card/Editor";
 import { Details, PipelineFlags, ReplyHelper, Sources, WhyAngle } from "./card/Context";
 import { PostedDialog, RewriteDialog, type PostedPayload } from "./card/Dialogs";
 import { Interview } from "./card/Interview";
-import { useWorkingCopy } from "./card/useWorkingCopy";
+import { useWorkingCopy, type WorkingCopy } from "./card/useWorkingCopy";
+
+/** The working copy as a card.edit event: text or thread posts, the opening in use and his edited openings. */
+function editEvent(card: Card, copy: WorkingCopy): EventInput {
+  return {
+    type: "card.edit",
+    card_id: card.id,
+    ...(card.format === "x_thread" ? { posts: copy.posts } : { text: copy.text }),
+    hook_index: copy.hookIndex,
+    ...(copy.hooks ? { hooks: copy.hooks.map((h) => ({ type: h.type ?? "observation", text: h.text })) } : {}),
+  };
+}
 
 export function CardPage({ id }: { id: string }) {
   const card = useCard(id);
@@ -81,12 +92,7 @@ function CardView({ card }: { card: Card }) {
     const sync = () => {
       const { wc: w, card: c } = latest.current;
       if (!w.dirtyVsServer || !["suggested", "editing", "blocked"].includes(c.status)) return;
-      act({
-        type: "card.edit",
-        card_id: c.id,
-        ...(c.format === "x_thread" ? { posts: w.copy.posts } : { text: w.copy.text }),
-        hook_index: w.copy.hookIndex,
-      });
+      act(editEvent(c, w.copy));
     };
     const onHide = () => document.visibilityState === "hidden" && sync();
     document.addEventListener("visibilitychange", onHide);
@@ -104,8 +110,9 @@ function CardView({ card }: { card: Card }) {
     markEditing();
     wc.update({ posts: p });
   };
+  const hooks = wc.copy.hooks ?? card.hooks ?? [];
   const useHook = (i: number) => {
-    const hook = card.hooks?.[i]?.text;
+    const hook = hooks[i]?.text;
     if (!hook) return;
     markEditing();
     if (card.format === "x_thread") {
@@ -115,7 +122,34 @@ function CardView({ card }: { card: Card }) {
     } else {
       wc.update({ text: replaceOpening(wc.copy.text, hook), hookIndex: i });
     }
-    act({ type: "card.hook", card_id: card.id, hook_index: i });
+    act({ type: "card.hook", card_id: card.id, hook_index: i, text: hook });
+  };
+  const editHook = (i: number, text: string) => {
+    const before = hooks[i]?.text ?? "";
+    const next = hooks.map((h, j) => (j === i ? { ...h, text } : h));
+    markEditing();
+    if (wc.copy.hookIndex !== i) return wc.update({ hooks: next });
+    // The opening in use changes in the draft too.
+    if (card.format === "x_thread") {
+      const posts = [...wc.copy.posts];
+      posts[0] = swapOpening(posts[0] ?? "", before, text);
+      wc.update({ hooks: next, posts });
+    } else {
+      wc.update({ hooks: next, text: swapOpening(wc.copy.text, before, text) });
+    }
+  };
+  const addHook = (text: string) => {
+    const next = [...hooks, { type: "custom", text }];
+    const i = next.length - 1;
+    markEditing();
+    if (card.format === "x_thread") {
+      const posts = [...wc.copy.posts];
+      posts[0] = replaceOpening(posts[0] ?? "", text);
+      wc.update({ hooks: next, posts, hookIndex: i });
+    } else {
+      wc.update({ hooks: next, text: replaceOpening(wc.copy.text, text), hookIndex: i });
+    }
+    act({ type: "card.hook", card_id: card.id, hook_index: i, text });
   };
 
   const copyAll = async () => {
@@ -129,7 +163,10 @@ function CardView({ card }: { card: Card }) {
 
   const confirmPosted = (p: PostedPayload) => {
     act(
-      {
+      [
+        // Edited openings reach the pipeline before the post, so it learns which one went out.
+        ...(wc.dirtyVsServer ? [editEvent(card, wc.copy)] : []),
+        {
         type: "card.posted",
         card_id: card.id,
         ...(card.format === "x_thread" && p.posts ? { posts: p.posts } : { text: p.text }),
@@ -137,7 +174,8 @@ function CardView({ card }: { card: Card }) {
         posted_at: p.posted_at,
         editing_seconds: p.editing_seconds,
         hook_index: wc.copy.hookIndex,
-      },
+        },
+      ],
       { toast: baseline ? `Posted. You changed ${pct(editRatio(baseline, p.text))} of the draft.` : "Posted." },
     );
     wc.clear();
@@ -146,15 +184,8 @@ function CardView({ card }: { card: Card }) {
   };
 
   const confirmRewrite = (r: { note: string; chips: string[]; target_platform?: Card["platform"]; target_format?: Card["format"] }) => {
-    const events = [];
-    if (wc.dirtyVsServer) {
-      events.push({
-        type: "card.edit" as const,
-        card_id: card.id,
-        ...(card.format === "x_thread" ? { posts: wc.copy.posts } : { text: wc.copy.text }),
-        hook_index: wc.copy.hookIndex,
-      });
-    }
+    const events: EventInput[] = [];
+    if (wc.dirtyVsServer) events.push(editEvent(card, wc.copy));
     events.push({ type: "card.rewrite" as const, card_id: card.id, note: r.note, chips: r.chips, target_platform: r.target_platform ?? null, target_format: r.target_format ?? null });
     act(events, { toast: r.target_platform ? "Adapting it. The new card appears on the board in about two minutes." : "Rewrite requested. The new draft arrives in about two minutes." });
     setRewriting(false);
@@ -327,7 +358,8 @@ function CardView({ card }: { card: Card }) {
                 <span className="ml-auto text-xs text-muted">Saved on this device · synced when you leave</span>
               </div>
               {showDiff && <DiffPanel before={baseline} after={text} />}
-              <HooksPanel hooks={card.hooks ?? []} selected={wc.copy.hookIndex} onUse={useHook} />
+              {card.mode === "interview" && (card.questions?.length ?? 0) > 0 && <OptionalQuestions card={card} />}
+              <HooksPanel hooks={hooks} selected={wc.copy.hookIndex} onUse={useHook} onEdit={editHook} onAdd={addHook} />
             </>
           )}
           <div className="lg:hidden">{sidePanel}</div>
@@ -374,6 +406,33 @@ function CardView({ card }: { card: Card }) {
         onConfirm={confirmPosted}
       />
       <RewriteDialog open={rewriting} onClose={() => setRewriting(false)} card={card} onConfirm={confirmRewrite} />
+    </div>
+  );
+}
+
+/** A drafted card's questions, folded away: answering makes the post his own, but it's optional. */
+function OptionalQuestions({ card }: { card: Card }) {
+  const [open, setOpen] = useState(false);
+  const n = card.questions?.length ?? 0;
+  const answered = (card.answers?.length ?? 0) > 0;
+  return (
+    <div className="rounded-2xl border border-border bg-surface">
+      <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+        <span className="flex items-center gap-2">
+          <MessageCircleQuestion className="size-4 text-accent" aria-hidden />
+          <span className="text-[14px] font-semibold">Make it yours</span>
+          <span className="text-[13px] text-muted">
+            · {n} optional question{n === 1 ? "" : "s"}
+            {answered ? " · answered" : ""}
+          </span>
+        </span>
+        <ChevronDown className={cx("size-4 text-muted transition-transform", open && "rotate-180")} aria-hidden />
+      </button>
+      {open && (
+        <div className="border-t border-border p-4">
+          <Interview card={card} />
+        </div>
+      )}
     </div>
   );
 }

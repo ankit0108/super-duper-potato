@@ -38,6 +38,44 @@ tech:
   - {id: gnews-ai-regulation, name: "Google News: AI regulation", kind: gnews, query: '"AI regulation" OR "AI Act" OR "AI policy" when:2d', pillar_hints: [industry]}
   - {id: gnews-mcp, name: "Google News: Model Context Protocol", kind: gnews, query: '"Model Context Protocol" OR "MCP server" when:7d', pillar_hints: [learning]}
   - {id: gnews-indiaai, name: "Google News: IndiaAI and DPI", kind: gnews, query: 'IndiaAI OR "digital public infrastructure" OR MeitY AI when:3d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [industry]}
+  # Labs and big-tech AI research. Anthropic has no official feed; a community-maintained mirror of its news,
+  # engineering and research pages is used (best effort), alongside the Google News query above.
+  - {id: anthropic-news, name: Anthropic news, kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml", best_effort: true, pillar_hints: [industry, research]}
+  - {id: anthropic-engineering, name: Anthropic engineering, kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_engineering.xml", best_effort: true, pillar_hints: [learning, research]}
+  - {id: anthropic-research, name: Anthropic research, kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_research.xml", best_effort: true, pillar_hints: [research]}
+  - {id: gnews-xai, name: "Google News: xAI", kind: gnews, query: '"xAI" Grok when:3d', pillar_hints: [industry]}
+  - {id: gnews-mistral, name: "Google News: Mistral AI", kind: gnews, query: '"Mistral AI" when:3d', pillar_hints: [industry]}
+  - {id: gnews-meta-ai, name: "Google News: Meta AI", kind: gnews, query: '"Meta AI" OR "Meta Superintelligence" when:3d', pillar_hints: [industry]}
+  - {id: google-research, name: Google Research blog, kind: rss, url: "https://research.google/blog/rss/", best_effort: true, pillar_hints: [research]}
+  - {id: microsoft-research, name: Microsoft Research blog, kind: rss, url: "https://www.microsoft.com/en-us/research/feed/", pillar_hints: [research]}
+  - {id: apple-ml-research, name: Apple Machine Learning Research, kind: rss, url: "https://machinelearning.apple.com/rss.xml", best_effort: true, pillar_hints: [research]}
+  - {id: nvidia-blog, name: NVIDIA blog, kind: rss, url: "https://blogs.nvidia.com/feed/", pillar_hints: [industry]}
+  - {id: nvidia-developer, name: NVIDIA technical blog, kind: rss, url: "https://developer.nvidia.com/blog/feed/", pillar_hints: [learning, research]}
+  - {id: amazon-science, name: Amazon Science, kind: rss, url: "https://www.amazon.science/index.rss", best_effort: true, pillar_hints: [research]}
+  - {id: aws-news, name: AWS News blog, kind: rss, url: "https://aws.amazon.com/blogs/aws/feed/", pillar_hints: [industry]}
+  # Engineering blogs: how large companies build and run AI and software systems.
+  - {id: uber-engineering, name: Uber engineering, kind: rss, url: "https://www.uber.com/blog/engineering/rss/", best_effort: true, pillar_hints: [learning]}
+  - {id: netflix-tech, name: Netflix TechBlog, kind: rss, url: "https://netflixtechblog.com/feed", pillar_hints: [learning]}
+  - {id: airbnb-engineering, name: Airbnb engineering, kind: rss, url: "https://medium.com/feed/airbnb-engineering", pillar_hints: [learning]}
+  - {id: meta-engineering, name: Engineering at Meta, kind: rss, url: "https://engineering.fb.com/feed/", pillar_hints: [learning]}
+  - {id: cloudflare-blog, name: Cloudflare blog, kind: rss, url: "https://blog.cloudflare.com/rss/", pillar_hints: [learning, industry]}
+  - {id: github-blog, name: GitHub blog, kind: rss, url: "https://github.blog/feed/", pillar_hints: [learning, industry]}
+  - {id: stripe-blog, name: Stripe blog, kind: rss, url: "https://stripe.com/blog/feed.rss", best_effort: true, pillar_hints: [industry]}
+  - {id: spotify-engineering, name: Spotify engineering, kind: rss, url: "https://engineering.atspotify.com/feed/", pillar_hints: [learning]}
+  - {id: databricks-blog, name: Databricks blog, kind: rss, url: "https://www.databricks.com/feed", best_effort: true, pillar_hints: [learning, industry]}
+  # Automating business processes (his focus): tools, orchestration, agents at work, and the research on it.
+  - {id: langchain-blog, name: LangChain blog, kind: rss, url: "https://blog.langchain.com/rss/", best_effort: true, pillar_hints: [learning]}
+  - {id: n8n-blog, name: n8n blog, kind: rss, url: "https://blog.n8n.io/rss/", best_effort: true, pillar_hints: [learning, receipts]}
+  - {id: zapier-blog, name: Zapier blog, kind: rss, url: "https://zapier.com/blog/feeds/latest/", best_effort: true, pillar_hints: [receipts]}
+  - {id: camunda-blog, name: Camunda blog, kind: rss, url: "https://camunda.com/feed/", best_effort: true, pillar_hints: [receipts, learning]}
+  - {id: gnews-bpa, name: "Google News: business process automation", kind: gnews, query: '"business process automation" OR "intelligent automation" OR "hyperautomation" when:3d', pillar_hints: [receipts, industry]}
+  - {id: gnews-agents-at-work, name: "Google News: AI agents in business processes", kind: gnews, query: '"AI agents" "business process" OR "back office" OR "document processing" when:7d', pillar_hints: [receipts, industry]}
+  - id: arxiv-business-process
+    name: arXiv (business processes and agents)
+    kind: arxiv
+    query: '(cat:cs.AI OR cat:cs.CL OR cat:cs.SE OR cat:cs.MA) AND (abs:"business process" OR abs:"process mining" OR abs:"robotic process automation" OR abs:"workflow automation" OR abs:"document understanding")'
+    max_items: 20
+    pillar_hints: [research, receipts]
   - {id: reddit-localllama, name: r/LocalLLaMA, kind: reddit, url: "https://www.reddit.com/r/LocalLLaMA/top/.rss?t=day", best_effort: true, pillar_hints: [learning, research]}
   - {id: reddit-machinelearning, name: r/MachineLearning, kind: reddit, url: "https://www.reddit.com/r/MachineLearning/top/.rss?t=day", best_effort: true, pillar_hints: [research]}
 
