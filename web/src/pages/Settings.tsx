@@ -123,9 +123,61 @@ function VolumeSection({ settings }: { settings: S }) {
         })}
       </div>
       <div className="mt-5 border-t border-border pt-4">
-        <Field label="Deliver from (Melbourne time)" htmlFor="earliest" hint="The morning run delivers on or after this time. The schedule runs at about 5:10am AEDT / 4:10am AEST, with a catch-up run about 90 minutes later.">
+        <Field label="Deliver from (Melbourne time)" htmlFor="earliest" hint="The morning run delivers on or after this time. Runs start at about 1:10am AEST (2:10am AEDT), with catch-up runs later in the night in case GitHub starts one late.">
           <Input id="earliest" type="time" value={v.earliest} onChange={(e) => setV({ ...v, earliest: e.target.value })} className="w-32" />
         </Field>
+      </div>
+    </Section>
+  );
+}
+
+function HashtagsSection({ settings }: { settings: S }) {
+  const act = useDesk((s) => s.act);
+  const pending = useDesk((s) => s.pending.settings);
+  const initial = useMemo(
+    () => ({
+      enabled: settings.hashtags?.enabled ?? true,
+      linkedin: { min: settings.hashtags?.linkedin?.min ?? 3, max: settings.hashtags?.linkedin?.max ?? 5 },
+      x: { min: settings.hashtags?.x?.min ?? 0, max: settings.hashtags?.x?.max ?? 2 },
+    }),
+    [settings],
+  );
+  const [v, setV, dirty] = useDraft(initial);
+  const save = () =>
+    act(
+      {
+        type: "settings.update",
+        patch: {
+          hashtags: {
+            enabled: v.enabled,
+            linkedin: { min: Math.min(v.linkedin.min, v.linkedin.max), max: v.linkedin.max },
+            x: { min: Math.min(v.x.min, v.x.max), max: v.x.max },
+          },
+        },
+      },
+      { toast: "Saved. New drafts use it." },
+    );
+  return (
+    <Section
+      id="hashtags"
+      title="Hashtags"
+      description="Suggested with every draft as chips under the editor: keep, drop or add your own, and the ones you keep are added at the end when you copy or open the app. The system learns which ones you keep."
+      onSave={save}
+      dirty={dirty}
+      pending={pending}
+    >
+      <div className="space-y-4">
+        <Toggle checked={v.enabled} onChange={(b) => setV({ ...v, enabled: b })} label="Suggest hashtags" />
+        {v.enabled && (
+          <div className="grid gap-6 md:grid-cols-2">
+            {(["linkedin", "x"] as const).map((p) => (
+              <div key={p} className="grid grid-cols-2 gap-3">
+                <NumberField id={`tags-${p}-min`} label={`${NAMES[p]}: at least`} value={v[p].min} min={0} max={10} onChange={(n) => setV({ ...v, [p]: { ...v[p], min: n } })} />
+                <NumberField id={`tags-${p}-max`} label="at most" value={v[p].max} min={0} max={10} onChange={(n) => setV({ ...v, [p]: { ...v[p], max: n } })} />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </Section>
   );
@@ -467,6 +519,7 @@ export function Settings() {
         <>
           <ProfileSection settings={settings} />
           <VolumeSection settings={settings} />
+          <HashtagsSection settings={settings} />
           <StrategySection settings={settings} />
           <RewardsSection settings={settings} />
           <LearningSection settings={settings} />

@@ -196,12 +196,24 @@ learning:
     wrong_timing: null
     already_covered: null
     other: 0.1
+    # Moved to the other platform: the topic was fine, the platform wasn't.
+    wrong_platform: 0.3
   edit_ratio_review_weeks: 4
 
 rewards:
   # Ankit's to change; the learner never changes these.
   linkedin: {followers_gained: 0.30, profile_views: 0.25, comments: 0.25, reposts: 0.15, impressions: 0.05}
   x: {comments: 0.30, reposts: 0.25, followers_gained: 0.25, impressions: 0.10, reactions: 0.10}
+
+hashtags:
+  # Suggested with every draft and shown as chips on the card: he keeps, drops or adds his own, and the
+  # selection is added at the end when he copies or opens the app. Learned from what he keeps.
+  enabled: true
+  linkedin: {min: 3, max: 5}
+  x: {min: 0, max: 2}
+  # Tags too broad to help anyone find a post.
+  avoid: ["#Innovation", "#Motivation", "#Success", "#Business", "#Technology", "#Tech", "#Future", "#Trending",
+          "#Viral", "#Inspiration", "#Leadership"]
 
 drafting:
   # Cards that ask for his experience arrive already drafted from recent sources; the questions are optional,
@@ -284,6 +296,7 @@ llm:
     search: [gemini]
     search_plan: [gemini_lite, groq, gemini, openrouter]
     search_rerank: [gemini_lite, groq, gemini, openrouter]
+    research: [gemini, groq, gemini_lite]
     stances: [gemini, groq, gemini_lite]
     evergreen: [gemini, groq, gemini_lite, openrouter]
   temperature:
@@ -298,6 +311,7 @@ llm:
     search: 0.2
     search_plan: 0.2
     search_rerank: 0.0
+    research: 0.2
     stances: 0.4
     evergreen: 0.6
 

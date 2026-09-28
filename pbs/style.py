@@ -10,7 +10,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
-from . import textutil
+from . import hashtags, textutil
 from .context import Ctx
 
 
@@ -21,6 +21,11 @@ class Style:
     length_target: str = ""
     hook_prefs: list[str] = field(default_factory=list)
     examples: list[str] = field(default_factory=list)
+    platform_rules: list[str] = field(default_factory=list)  # what works on the platform now (platform.py)
+    hashtags_kept: list[str] = field(default_factory=list)  # suggested tags he keeps, most often first
+    hashtags_dropped: list[str] = field(default_factory=list)  # suggested tags he removes
+    hashtags_added: list[str] = field(default_factory=list)  # tags he adds himself
+    hashtags_off: bool = False  # he removes nearly all suggested tags on this platform: suggest none
     playbook_version: str | None = None
     voice_version: str | None = None
     experiment: dict[str, Any] | None = None
@@ -62,6 +67,11 @@ def style_for(ctx: Ctx, platform: str, pillar: str, fmt: str) -> Style:
         st.voice_version = f"v{voice['version']}"
         st.rules.extend(voice.get("rules") or [])
         voice_avoid = list(voice.get("avoid") or [])
+        tags = (((voice.get("stats") or {}).get(platform) or {}).get("hashtags") or {})
+        st.hashtags_kept = list(tags.get("kept") or [])[:6]
+        st.hashtags_dropped = list(tags.get("dropped") or [])[:6]
+        st.hashtags_added = list(tags.get("added") or [])[:6]
+        st.hashtags_off = hashtags.mostly_removed(tags)
         lengths = ((voice.get("stats") or {}).get(platform) or {}).get("final_length_median")
         if lengths and fmt in ("li_text", "x_single"):
             unit = "characters"
@@ -70,6 +80,9 @@ def style_for(ctx: Ctx, platform: str, pillar: str, fmt: str) -> Style:
     st.length_target = st.length_target or DEFAULT_LENGTH.get(fmt, "")
     st.hook_prefs = hook_preferences(ctx, platform)
     st.examples = recent_examples(ctx, platform, ctx.settings.voice.examples_per_prompt)
+    from .platform import rules_for
+
+    st.platform_rules = rules_for(ctx, platform, fmt)
     return st
 
 

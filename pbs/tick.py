@@ -1,8 +1,8 @@
 """The tick: every run does whatever is due, so no work depends on one particular run firing (FR-28).
 
 Order: ingest desk events → doctor if asked → expire → work Ankit is waiting on (answers, rewrites,
-'draft this') → requests → metrics → morning delivery if due → Saturday batch if due → reflection if due →
-learning → prune → export.
+'draft this', cross-posts) → requests → metrics → morning delivery if due → Saturday batch if due → reflection
+if due → monthly platform research → learning → prune → export.
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ from . import (
     log,
     metrics,
     notify,
+    platform,
     playbook,
     reflect,
     requests,
@@ -34,7 +35,7 @@ from .scout.sources import sync_seeds
 from .topics import build_topics
 
 TASKS = {"morning", "weekly_batch", "reflection", "doctor", "report", "scout", "work", "requests", "metrics",
-         "stances", "rewards"}
+         "stances", "rewards", "platform_research"}
 
 
 def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | None = None, force: bool = False,
@@ -98,6 +99,10 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
     if reflect.reflection_due(ctx) or {"reflection", "report"} & ctx.hints:
         with ctx.run.step("reflection") as s:
             s["result"] = reflect.weekly_reflection(ctx)
+    if "platform_research" in ctx.hints or (platform.research_due(ctx) and not ctx.run.degraded):
+        # Monthly: what's changed on LinkedIn and X, proposed as guide updates for him to approve.
+        with ctx.run.step("platform_research") as s:
+            s["result"] = platform.research(ctx)
     with ctx.run.step("learn"):
         learn.update_rewards(ctx)
         voice.update_voice(ctx, weekly=False)

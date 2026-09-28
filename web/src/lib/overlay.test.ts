@@ -34,6 +34,43 @@ describe("applyEvents", () => {
     expect(out.posts![0].final_posts).toEqual(["a!", "b"]);
   });
 
+  it("an edit keeps the chosen hashtags, and posting records them without counting them as edits", () => {
+    const c = card({ hashtags: ["#AI", "#RPA"], draft: { text: "one two three four", posts: [] } });
+    const { desk: out } = applyEvents(desk({ cards: [c] }), [
+      event("card.edit", { card_id: c.id, text: "one two three four", hashtags: ["#AI"] }),
+      event("card.posted", { card_id: c.id, text: "one two three four\n\n#AI", hashtags: ["#AI"] }),
+    ]);
+    expect(out.cards!.find((x) => x.id === c.id)!.working?.hashtags).toEqual(["#AI"]);
+    expect(out.posts![0].hashtags).toEqual(["#AI"]);
+    expect(out.posts![0].edit_ratio).toBe(0);
+  });
+
+  it("a cross-post queues the other platform's version; switching also skips this card", () => {
+    const li = card();
+    const x = card({ platform: "x", format: "x_single" });
+    const { desk: out, pending } = applyEvents(desk({ cards: [li, x] }), [
+      event("card.crosspost", { card_id: li.id, target_platform: "x", target_format: "x_thread", mode: "both" }),
+      event("card.crosspost", { card_id: x.id, target_platform: "linkedin", mode: "switch", note: "Needs room" }),
+      event("card.crosspost", { card_id: x.id, target_platform: "x" }),
+    ]);
+    const both = out.cards!.find((c) => c.id === li.id)!;
+    expect(both.status).toBe("suggested");
+    expect(both.work).toMatchObject({ kind: "rewrite", target_platform: "x", target_format: "x_thread", crosspost: "both" });
+    const moved = out.cards!.find((c) => c.id === x.id)!;
+    expect(moved.status).toBe("skipped");
+    expect(moved.skip).toMatchObject({ reason: "wrong_platform", note: "Needs room" });
+    expect(moved.work?.target_platform).toBe("linkedin"); // the same-platform event changed nothing
+    expect(pending.cards.has(li.id) && pending.cards.has(x.id)).toBe(true);
+  });
+
+  it("a posted card can only be copied to the other platform, never moved", () => {
+    const c = card({ status: "posted" });
+    const { desk: out } = applyEvents(desk({ cards: [c] }), [event("card.crosspost", { card_id: c.id, target_platform: "x", mode: "switch" })]);
+    const next = out.cards!.find((x) => x.id === c.id)!;
+    expect(next.status).toBe("posted");
+    expect(next.work?.crosspost).toBe("both");
+  });
+
   it("skipping records the reason and clears pending work", () => {
     const c = card({ work: { kind: "rewrite" } });
     const { desk: out } = applyEvents(desk({ cards: [c] }), [event("card.skip", { card_id: c.id, reason: "off_brand" })]);

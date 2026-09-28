@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { Check, CircleDashed, Plus, Trash2, X } from "lucide-react";
-import type { DeskState, Platform, PlaybookRule, Proposal } from "@/types";
-import { SKIP_REASONS, num, pct } from "@/lib/format";
+import { Check, CircleDashed, ExternalLink, Plus, Search, Trash2, X } from "lucide-react";
+import type { DeskState, FormatName, Platform, PlaybookRule, Proposal } from "@/types";
+import { safeUrl } from "@/lib/compose";
+import { FORMAT_LABEL, SKIP_REASONS, num, pct } from "@/lib/format";
 import { formatDate, localDateKey } from "@/lib/time";
 import { Link, useRoute, navigate } from "@/lib/router";
 import { useDesk } from "@/state/store";
@@ -264,6 +265,7 @@ function PlaybookTab({ view }: { view: DeskState }) {
           </Button>
         </div>
       </Panel>
+      <PlatformGuidePanel view={view} />
       <Panel title="Version history">
         <ol className="space-y-2">
           {(view.playbook_history ?? []).map((v) => (
@@ -293,11 +295,97 @@ function PlaybookTab({ view }: { view: DeskState }) {
   );
 }
 
+type Article = { url: string; title?: string | null; publisher?: string | null };
+type GuideRule = { id: string; platform: Platform; format?: FormatName | null; text: string; source?: string; sources?: string[]; articles?: Article[] };
+type Guide = { reviewed?: string | null; rules?: GuideRule[]; research?: { month?: string; summary?: string; articles?: number; proposals?: number } | null };
+
+/** The articles a rule or proposal is based on: their titles when known, else the site. Only http(s) links. */
+function SourceLinks({ urls, articles }: { urls: string[]; articles?: Article[] }) {
+  const items = (articles?.length ? articles : urls.map((url) => ({ url })))
+    .map((a) => ({ ...a, href: safeUrl(a.url) }))
+    .filter((a): a is Article & { href: string } => !!a.href);
+  if (!items.length) return null;
+  return (
+    <span className="inline-flex max-w-full min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+      {items.map((a, i) => (
+        <a key={a.href} href={a.href} target="_blank" rel="noreferrer" className="inline-flex max-w-full min-w-0 items-center gap-0.5 text-[12px] text-accent hover:underline" title={a.href}>
+          <span className="truncate">
+            {a.title ? `${a.title}${a.publisher ? ` (${a.publisher})` : ""}` : `${new URL(a.href).hostname.replace(/^www\./, "")}${items.length > 1 ? ` ${i + 1}` : ""}`}
+          </span>
+          <ExternalLink className="size-3 shrink-0" aria-hidden />
+        </a>
+      ))}
+    </span>
+  );
+}
+
+/** What works on LinkedIn and X: sent with every draft; researched monthly, changed only with his approval. */
+function PlatformGuidePanel({ view }: { view: DeskState }) {
+  const act = useDesk((s) => s.act);
+  const requested = useDesk((s) => s.pending.runRequested.includes("platform_research"));
+  const guide = view.platform_guide as Guide | null | undefined;
+  if (!guide?.rules?.length) return null;
+  const research = guide.research;
+  return (
+    <Panel
+      title="What works on each platform"
+      description={`Sent with every draft, rewrite and cross-post, after your own rules (yours win when they disagree). Reviewed ${guide.reviewed ?? "–"}. Once a month the system reads recent coverage of both platforms and proposes changes here for you to approve.`}
+      actions={
+        <Button
+          size="sm"
+          icon={<Search className="size-4" />}
+          disabled={requested}
+          onClick={() => act({ type: "run.request", tasks: ["platform_research"] }, { toast: "Research requested. Proposed changes appear under Proposals after the run." })}
+        >
+          {requested ? "Research requested" : "Research now"}
+        </Button>
+      }
+    >
+      {research?.summary && (
+        <p className="mb-4 rounded-xl bg-surface-2 p-3 text-[13px]">
+          <b>Latest research ({research.month}):</b> {research.summary}{" "}
+          <span className="text-muted">
+            ({research.articles ?? 0} articles read, {research.proposals ?? 0} changes proposed)
+          </span>
+        </p>
+      )}
+      <div className="grid gap-5 lg:grid-cols-2">
+        {(["linkedin", "x"] as const).map((p) => (
+          <div key={p} className="min-w-0">
+            <h3 className="mb-2 flex items-center gap-2 text-[13px] font-semibold">
+              <PlatformMark platform={p} className="size-4 text-[9px]" /> {NAMES[p]}
+            </h3>
+            <ul className="space-y-1.5">
+              {(guide.rules ?? [])
+                .filter((r) => r.platform === p)
+                .map((r) => (
+                  <li key={r.id} className="rounded-xl border border-border p-2.5 text-[13px]">
+                    <p>{r.text}</p>
+                    {(r.format || r.source === "research") && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {r.format && <Badge tone="neutral">{FORMAT_LABEL[r.format] ?? r.format}</Badge>}
+                        {r.source === "research" && <Badge tone="accent">From research, approved</Badge>}
+                        <SourceLinks urls={r.sources ?? []} articles={r.articles} />
+                      </div>
+                    )}
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+type GuideChange = { op?: string; rule_id?: string | null; platform?: Platform; format?: FormatName | null; text?: string | null; articles?: Article[] };
+
 function ProposalCard({ p }: { p: Proposal }) {
   const act = useDesk((s) => s.act);
   const tz = useTz();
   const [note, setNote] = useState("");
   const pending = p.status === "pending";
+  const guideChange = p.kind === "platform_guide" ? ((p.payload as { guide_change?: GuideChange } | null)?.guide_change ?? null) : null;
   return (
     <li className="rounded-2xl border border-border bg-surface p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -310,8 +398,23 @@ function ProposalCard({ p }: { p: Proposal }) {
         <Badge tone={pending ? "warn" : p.status === "rejected" ? "neutral" : "ok"}>{pending ? "Waiting for you" : p.status}</Badge>
       </div>
       {p.detail && <p className="mt-2 text-[13.5px]">{p.detail}</p>}
-      {p.payload && Object.keys(p.payload).length > 0 && (
-        <pre className="mt-2 overflow-x-auto rounded-lg bg-surface-2 p-2 text-[11.5px] text-muted">{JSON.stringify(p.payload.patch ?? p.payload, null, 1)}</pre>
+      {guideChange ? (
+        <div className="mt-2 rounded-lg bg-surface-2 p-3 text-[13px]">
+          <div className="mb-1 flex flex-wrap items-center gap-1.5">
+            <Badge tone="neutral">{guideChange.platform ? NAMES[guideChange.platform] : "Both platforms"}</Badge>
+            {guideChange.format && <Badge tone="neutral">{FORMAT_LABEL[guideChange.format] ?? guideChange.format}</Badge>}
+            <Badge tone={guideChange.op === "remove" ? "warn" : "info"}>{guideChange.op === "add" ? "New rule" : guideChange.op === "remove" ? "Remove rule" : "Updated rule"}</Badge>
+          </div>
+          {guideChange.text && <p>{guideChange.text}</p>}
+          {!!p.evidence?.length && (
+            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-[12px] text-muted">
+              Based on: <SourceLinks urls={p.evidence.map(String)} articles={guideChange.articles} />
+            </div>
+          )}
+        </div>
+      ) : (
+        p.payload &&
+        Object.keys(p.payload).length > 0 && <pre className="mt-2 overflow-x-auto rounded-lg bg-surface-2 p-2 text-[11.5px] text-muted">{JSON.stringify(p.payload.patch ?? p.payload, null, 1)}</pre>
       )}
       {pending && (
         <div className="mt-3 flex flex-wrap items-end gap-2">
@@ -338,7 +441,7 @@ function ProposalsTab({ view }: { view: DeskState }) {
       <section className="space-y-2.5">
         <h2 className="text-[15px] font-semibold">Waiting for you</h2>
         {pending.length === 0 ? (
-          <Empty title="Nothing to decide">Changes to pillars, reward weights and guardrails appear here after the weekly review. Everything else the system handles itself.</Empty>
+          <Empty title="Nothing to decide">Changes to pillars, reward weights and guardrails appear here after the weekly review, and changes to the platform guide after the monthly research. Everything else the system handles itself.</Empty>
         ) : (
           <ul className="space-y-2.5">
             {pending.map((p) => (
@@ -492,20 +595,54 @@ function VoiceTab({ view }: { view: DeskState }) {
   );
 }
 
-type FeedbackRow = { at?: string | null; card_id: string; title: string; platform: Platform; pillar: string; reason?: string | null; note?: string | null };
+type FeedbackRow = {
+  kind?: "skip" | "crosspost";
+  at?: string | null;
+  card_id: string;
+  title: string;
+  platform: Platform;
+  pillar: string;
+  reason?: string | null;
+  to?: Platform | null;
+  note?: string | null;
+};
 const TOPIC_REASONS = new Set(["not_interesting", "off_brand", "too_risky", "other"]);
+const rowKey = (r: FeedbackRow) => `${r.kind ?? "skip"}:${r.card_id}`;
 
-/** Skip reasons the ranking learns from: the pipeline's list plus skips made on this device since the last run. */
+/** What the ranking learns from: the pipeline's list plus skips and cross-posts made on this device since the last run. */
 function useFeedback(view: DeskState): FeedbackRow[] {
   return useMemo(() => {
     const rows = new Map<string, FeedbackRow>();
-    for (const r of (((view.stats ?? {}) as { feedback?: FeedbackRow[] }).feedback ?? [])) rows.set(r.card_id, r);
+    const byId = new Map((view.cards ?? []).map((c) => [c.id, c]));
+    // Versions made for the other platform, from the cards themselves (the pipeline's list below adds his note).
     for (const c of view.cards ?? []) {
-      if (c.status !== "skipped" || !c.skip || !(TOPIC_REASONS.has(c.skip.reason) || c.skip.note)) continue;
-      rows.set(c.id, { at: c.skip.at ?? c.status_changed_at, card_id: c.id, title: c.title, platform: c.platform, pillar: c.pillar, reason: c.skip.reason, note: c.skip.note });
+      const src = c.crosspost_of ? byId.get(c.crosspost_of) : undefined;
+      if (!src) continue;
+      const moved = src.skip?.reason === "wrong_platform";
+      const r: FeedbackRow = { kind: "crosspost", at: c.created_at, card_id: src.id, title: src.title, platform: src.platform, pillar: src.pillar, reason: moved ? "switch" : "both", to: c.platform, note: moved ? (src.skip?.note ?? null) : null };
+      rows.set(rowKey(r), r);
+    }
+    for (const r of (((view.stats ?? {}) as { feedback?: FeedbackRow[] }).feedback ?? [])) rows.set(rowKey(r), r);
+    for (const c of view.cards ?? []) {
+      if (c.work?.crosspost && c.work.target_platform) {
+        const r: FeedbackRow = { kind: "crosspost", at: c.work.requested_at, card_id: c.id, title: c.title, platform: c.platform, pillar: c.pillar, reason: c.work.crosspost, to: c.work.target_platform, note: c.work.note || null };
+        rows.set(rowKey(r), r);
+      }
+      // A move to the other platform is listed as the cross-post itself.
+      if (c.status !== "skipped" || !c.skip || c.skip.reason === "wrong_platform" || !(TOPIC_REASONS.has(c.skip.reason) || c.skip.note)) continue;
+      const r: FeedbackRow = { kind: "skip", at: c.skip.at ?? c.status_changed_at, card_id: c.id, title: c.title, platform: c.platform, pillar: c.pillar, reason: c.skip.reason, note: c.skip.note };
+      rows.set(rowKey(r), r);
     }
     return [...rows.values()].sort((a, b) => (b.at ?? "").localeCompare(a.at ?? "")).slice(0, 15);
   }, [view]);
+}
+
+function feedbackBadge(r: FeedbackRow): string {
+  if (r.kind === "crosspost") {
+    const to = r.to ? NAMES[r.to] : "the other platform";
+    return r.reason === "switch" ? `Moved to ${to}` : `Also on ${to}`;
+  }
+  return SKIP_REASONS.find((x) => x.value === r.reason)?.label ?? r.reason ?? "Skipped";
 }
 
 function FeedbackPanel({ view }: { view: DeskState }) {
@@ -515,14 +652,14 @@ function FeedbackPanel({ view }: { view: DeskState }) {
   return (
     <Panel
       title="Your recent feedback"
-      description="Skips with a reason from the last 30 days. The next morning's ranking reads them (your own words count most), similar topics rank lower, and the weekly review uses them to adjust the playbook."
+      description="Skips with a reason, and cards you moved or copied to the other platform, from the last 30 days. The next morning's ranking reads them (your own words count most): similar topics rank lower, a move says the topic was right but the platform wasn't, and the weekly review uses them to adjust the playbook."
     >
       {rows.length === 0 ? (
-        <p className="text-sm text-muted">No skip reasons yet. When you skip a card, pick a reason; for "Other", say why.</p>
+        <p className="text-sm text-muted">No feedback yet. When you skip a card, pick a reason; for "Other", say why. To move a card to the other platform, use Skip → Move to… on the card.</p>
       ) : (
         <ul className="divide-y divide-border">
           {rows.map((r) => (
-            <li key={r.card_id} className="flex flex-wrap items-start gap-x-3 gap-y-1 py-2.5 text-[13.5px]">
+            <li key={rowKey(r)} className="flex flex-wrap items-start gap-x-3 gap-y-1 py-2.5 text-[13.5px]">
               <PlatformMark platform={r.platform} className="mt-0.5 size-4 text-[9px]" />
               <div className="min-w-0 flex-1">
                 <Link to={`/card/${r.card_id}`} className="font-medium hover:underline">
@@ -533,11 +670,31 @@ function FeedbackPanel({ view }: { view: DeskState }) {
                 </div>
                 {r.note && <p className="mt-1 text-text/90">“{r.note}”</p>}
               </div>
-              <Badge tone="neutral">{SKIP_REASONS.find((x) => x.value === r.reason)?.label ?? r.reason ?? "Skipped"}</Badge>
+              <Badge tone={r.kind === "crosspost" ? "info" : "neutral"}>{feedbackBadge(r)}</Badge>
             </li>
           ))}
         </ul>
       )}
+    </Panel>
+  );
+}
+
+type Crossposts = { linkedin_to_x?: number; x_to_linkedin?: number; both?: number; switch?: number; made?: number; posted?: number };
+
+function CrosspostStats({ view }: { view: DeskState }) {
+  const c = ((view.stats ?? {}) as { crossposts?: Crossposts }).crossposts;
+  if (!c || !((c.linkedin_to_x ?? 0) + (c.x_to_linkedin ?? 0) + (c.made ?? 0))) return null;
+  return (
+    <Panel
+      title="Cross-posts (last 30 days)"
+      description="Versions made for the other platform. Each is learned from like any other card; a move also marks the original platform's lane down a little (the topic was fine)."
+    >
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile label="LinkedIn → X" value={num(c.linkedin_to_x ?? 0)} />
+        <StatTile label="X → LinkedIn" value={num(c.x_to_linkedin ?? 0)} />
+        <StatTile label="Kept both / moved" value={`${c.both ?? 0} / ${c.switch ?? 0}`} hint="Moved: the original was skipped as the wrong platform" />
+        <StatTile label="Versions posted" value={`${c.posted ?? 0} / ${c.made ?? 0}`} />
+      </div>
     </Panel>
   );
 }
@@ -566,6 +723,7 @@ function LearningTab({ view }: { view: DeskState }) {
   return (
     <div className="space-y-5">
       <FeedbackPanel view={view} />
+      <CrosspostStats view={view} />
       <Panel title="How the mix is chosen" description="Each pillar × format is an arm. Picks and posts raise an arm, skips lower it (except 'wrong timing' and 'already covered'), and old results fade with a six-week half-life. About 20% of slots explore.">
         <div className="-mx-4 overflow-x-auto px-4">
           <DataTable

@@ -41,7 +41,7 @@ test.afterEach(async ({ page }) => {
 
 test("the board shows today's set in rank order, this week's cards and what's done", async ({ page }) => {
   await expect(page.getByText(/Delivered \d{1,2}:\d{2}/)).toBeVisible();
-  await expect(todaySection(page).locator("[data-tile]")).toHaveCount(8);
+  await expect(todaySection(page).locator("[data-tile]")).toHaveCount(9);
   await expect(page.getByRole("heading", { name: /This week/ })).toBeVisible();
   await expect(doneSection(page).getByText("Already covered")).toBeVisible();
   await noSidewaysScroll(page);
@@ -62,7 +62,7 @@ test("edit a draft, swap the opening and mark it posted", async ({ page }) => {
 
   await page.goto("/#/");
   await expect(doneSection(page).getByText("Posted", { exact: true })).toBeVisible();
-  await expect(todaySection(page).locator("[data-tile]")).toHaveCount(7);
+  await expect(todaySection(page).locator("[data-tile]")).toHaveCount(8);
   await page.goto("/#/metrics");
   await expect(page.getByRole("button", { name: "Add numbers" }).first()).toBeVisible();
 });
@@ -135,6 +135,71 @@ test("edit an opening, write your own, and they go into the draft", async ({ pag
   await page.getByRole("button", { name: "Add and use" }).click();
   await expect(editor).toHaveValue(/^Last week I rebuilt a bot from scratch\./);
   await expect(page.getByText("Your own")).toBeVisible();
+});
+
+test("hashtags are suggested as chips, and the ones you keep go out at the end of the post", async ({ page }) => {
+  await todaySection(page).locator("[data-tile]").first().click();
+  const tags = page.getByRole("group", { name: "Hashtags" });
+  const chips = tags.locator("button[aria-pressed]");
+  await expect(chips.first()).toBeVisible();
+  expect(await chips.count()).toBeGreaterThanOrEqual(3);
+  const dropped = (await chips.first().textContent())!.trim();
+  await chips.first().click();
+  await expect(chips.first()).toHaveAttribute("aria-pressed", "false");
+  await page.getByRole("textbox", { name: "Add a hashtag" }).fill("process mining");
+  await page.getByRole("button", { name: "Add hashtag" }).click();
+  await expect(tags.getByRole("button", { name: "#ProcessMining", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Copy the first comment" })).toBeVisible();
+  await page.getByRole("button", { name: "Posted", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Mark as posted" });
+  const lastLine = (await dialog.getByRole("textbox", { name: "Final text" }).inputValue()).trim().split("\n").pop()!.split(" ");
+  expect(lastLine).toContain("#ProcessMining");
+  expect(lastLine).not.toContain(dropped);
+  await dialog.getByRole("button", { name: "Mark posted" }).click();
+  await expect(page.getByText("Posted. You changed 0% of the draft.")).toBeVisible();
+});
+
+test("move a card to the other platform from the Skip menu", async ({ page }) => {
+  const tile = todaySection(page).getByRole("article", { name: /^X card:/ }).first();
+  const title = (await tile.locator("h3").textContent())!;
+  await tile.getByRole("button", { name: "Skip" }).click();
+  await page.getByRole("menuitem", { name: /^Move to LinkedIn instead/ }).click();
+  await expect(page.getByText(/^Moving it to LinkedIn/)).toBeVisible();
+  await expect(todaySection(page).getByRole("article", { name: `LinkedIn card: ${title}` }).getByText("Cross-post")).toBeVisible();
+  await expect(doneSection(page).getByRole("listitem").filter({ hasText: title }).getByText("Wrong platform")).toBeVisible();
+  await page.goto("/#/insights?tab=learning");
+  await expect(page.getByRole("listitem").filter({ hasText: title }).getByText("Moved to LinkedIn")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Cross-posts (last 30 days)" })).toBeVisible();
+});
+
+test("make an X version of a LinkedIn card, and the two link to each other", async ({ page }) => {
+  await todaySection(page).locator("[data-tile]").first().click();
+  const title = (await page.getByRole("heading", { level: 1 }).textContent())!;
+  await page.getByRole("button", { name: "Also for X" }).click();
+  const dialog = page.getByRole("dialog", { name: "Make an X version" });
+  await dialog.getByLabel("Format on X").selectOption("x_thread");
+  await dialog.getByRole("button", { name: "Make the X version" }).click();
+  await expect(page.getByText(/^Making the X version/)).toBeVisible();
+  await page.getByRole("link", { name: "X version" }).first().click();
+  await expect(page.getByText(/Cross-post of the LinkedIn card/)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+  await expect(page.getByRole("textbox", { name: /^Post 1 of/ })).toBeVisible();
+});
+
+test("the platform guide drafts follow, and researched changes wait for approval", async ({ page }) => {
+  await page.goto("/#/insights?tab=playbook");
+  await expect(page.getByRole("heading", { name: "What works on each platform" })).toBeVisible();
+  await expect(page.getByText(/Latest research/)).toBeVisible();
+  await noSidewaysScroll(page);
+  await page.getByRole("button", { name: "Research now" }).click();
+  await expect(page.getByText("Research requested. Proposed changes appear under Proposals after the run.")).toBeVisible();
+  await page.goto("/#/insights?tab=proposals");
+  const proposal = page.getByRole("listitem").filter({ hasText: "LinkedIn guide: update" });
+  await expect(proposal.getByText("Based on:")).toBeVisible();
+  await expect(proposal.getByRole("link", { name: /What creators are seeing in LinkedIn's feed/ })).toBeVisible();
+  await noSidewaysScroll(page);
+  await proposal.getByRole("button", { name: "Approve" }).click();
+  await expect(page.getByText("Approved. It applies on the next run.")).toBeVisible();
 });
 
 test("ask for a topic and get drafts back", async ({ page }) => {

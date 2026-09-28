@@ -11,11 +11,11 @@ X affairs post types: history (history behind the news), tracker (what actually 
 Recorded stances (issue key: his position):
 {{stances}}
 
-His recent feedback on suggestions (why he skipped them, newest and most specific first):
+His recent feedback on suggestions (why he skipped them, and what he moved or copied to the other platform; his own words first):
 {{feedback}}
 
 How to judge:
-- Learn from his feedback: a topic like one he skipped gets a lower angle_potential, or "none" on that platform, for the reason he gave. His own words say most about what he wants.
+- Learn from his feedback: a topic like one he skipped gets a lower angle_potential, or "none" on that platform, for the reason he gave. His own words say most about what he wants. A topic like one he moved to the other platform belongs there; one he wanted on both platforms suits both.
 - angle_potential 1–5: can he add something specific and non-generic, given his profile? 5 = only someone with his background would say this. 1 = generic news anyone could repost.
 - Use "none" when a topic doesn't fit a platform. Affairs belong on X; on LinkedIn only where affairs meet tech (for example {{linkedin_affairs}}), under the industry pillar.
 - Interview-mode pillars and lanes (firsthand, learning in public, life) need his own experience: the angle must be a link to his work worth asking him about, never a claim.

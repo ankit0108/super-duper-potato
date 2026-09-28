@@ -1,7 +1,7 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import { Compass, FlaskConical, Loader2, MessageCircleQuestion, OctagonAlert, ShieldAlert, Sigma, UserRound, HeartHandshake, Ruler } from "lucide-react";
 import type { Card } from "@/types";
-import { FORMAT_LABEL, SKIP_REASONS, draftText } from "@/lib/format";
+import { FORMAT_LABEL, MENU_SKIP_REASONS, PLATFORM_LABEL, draftText } from "@/lib/format";
 import { navigate } from "@/lib/router";
 import { useDesk } from "@/state/store";
 import { usePillarLabels } from "@/state/hooks";
@@ -11,7 +11,9 @@ import { Menu } from "../ui/Menu";
 
 export function workLabel(card: Card): string | null {
   if (!card.work) return null;
-  if (card.work.kind === "rewrite") return card.work.target_platform && card.work.target_platform !== card.platform ? "Adapting…" : "Rewriting…";
+  if (card.work.kind === "rewrite" && card.work.target_platform && card.work.target_platform !== card.platform)
+    return card.work.crosspost === "switch" ? `Moving to ${PLATFORM_LABEL[card.work.target_platform]}…` : `Making the ${PLATFORM_LABEL[card.work.target_platform]} version…`;
+  if (card.work.kind === "rewrite") return "Rewriting…";
   if (card.work.kind === "questions") return "Preparing questions…";
   if ((card.answers?.length ?? 0) > 0) return "Drafting from your answers + sources…";
   return card.mode === "interview" ? "Drafting from recent sources…" : "Drafting…";
@@ -40,25 +42,36 @@ export function FlagIcons({ card }: { card: Card }) {
   );
 }
 
-export function SkipMenu({ card, size = "sm" }: { card: Card; size?: "sm" | "md" }) {
+export function SkipMenu({ card, size = "sm", side = "bottom" }: { card: Card; size?: "sm" | "md"; side?: "top" | "bottom" }) {
   const act = useDesk((s) => s.act);
   const toast = useDesk((s) => s.toast);
   const askWhy = useDesk((s) => s.askSkipReason);
-  const skip = (r: (typeof SKIP_REASONS)[number]) => {
+  const skip = (r: (typeof MENU_SKIP_REASONS)[number]) => {
     // "Other" says nothing without the reason, so it asks first; the rest skip in one tap and can add a reason.
     if (r.needsNote) return askWhy(card.id, r.value);
     act({ type: "card.skip", card_id: card.id, reason: r.value });
     toast("ok", `Skipped. ${r.learns}`, { label: "Add why", onAction: () => askWhy(card.id, r.value) });
   };
+  // Right topic, wrong platform: a version for the other one is drafted and this card is skipped.
+  const other = card.platform === "linkedin" ? "x" : "linkedin";
+  const move = () =>
+    act(
+      { type: "card.crosspost", card_id: card.id, target_platform: other, mode: "switch", note: "" },
+      { toast: `Moving it to ${PLATFORM_LABEL[other]}: the new card appears in about two minutes. The topic counts as a good pick, only the platform as wrong.` },
+    );
   return (
     <Menu
       label="Skip reasons"
+      side={side}
       trigger={(p) => (
         <Button size={size} variant="ghost" {...p} onClick={(e) => { e.stopPropagation(); p.onClick(); }}>
           Skip
         </Button>
       )}
-      items={SKIP_REASONS.map((r) => ({ label: r.needsNote ? `${r.label}…` : r.label, hint: r.help, onSelect: () => skip(r) }))}
+      items={[
+        ...MENU_SKIP_REASONS.map((r) => ({ label: r.needsNote ? `${r.label}…` : r.label, hint: r.help, onSelect: () => skip(r) })),
+        { label: `Move to ${PLATFORM_LABEL[other]} instead`, hint: "Right topic, wrong platform", onSelect: move },
+      ]}
     />
   );
 }
@@ -92,7 +105,11 @@ export function CardTile({ card, pending }: { card: Card; pending?: boolean }) {
         {card.rank != null && card.kind === "news" && <span className="text-[12px] font-semibold tabular-nums text-muted">#{card.rank}</span>}
         <Badge tone="neutral">{pillar(card.platform, card.pillar)}</Badge>
         <Badge tone="neutral">{FORMAT_LABEL[card.format]}</Badge>
-        {card.kind && card.kind !== "news" && <Badge tone="info">{card.kind === "adapt" ? "Adapted" : card.kind[0].toUpperCase() + card.kind.slice(1)}</Badge>}
+        {card.kind && card.kind !== "news" && (
+          <Badge tone="info" title={card.crosspost_of ? "Made from a card for the other platform" : undefined}>
+            {card.kind === "adapt" ? (card.crosspost_of ? "Cross-post" : "Adapted") : card.kind[0].toUpperCase() + card.kind.slice(1)}
+          </Badge>
+        )}
         {card.explore && (
           <Badge tone="accent" icon={card.experiment_id ? <FlaskConical className="size-3" /> : <Compass className="size-3" />} title={card.experiment_id ? "An experiment the weekly review is testing" : "An exploration slot: the system is testing this mix"}>
             {card.experiment_id ? "Experiment" : "Exploring"}

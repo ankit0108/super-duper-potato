@@ -20,7 +20,8 @@ CardStatus = Literal["drafting", "suggested", "needs_input", "editing", "posted"
                      "blocked", "failed"]
 CardKind = Literal["news", "evergreen", "interview", "request", "adapt"]
 FormatName = Literal["li_text", "x_single", "x_thread", "x_quote", "x_reply"]
-SkipReason = Literal["not_interesting", "off_brand", "wrong_timing", "too_risky", "already_covered", "other"]
+SkipReason = Literal["not_interesting", "off_brand", "wrong_timing", "too_risky", "already_covered", "other",
+                     "wrong_platform"]
 Tier = Literal["world", "india", "bihar", "other"]
 
 
@@ -68,6 +69,7 @@ class Draft(_Out):
     posts: list[str] = []
     quote_url: str | None = None
     reply: ReplyTarget | None = None
+    first_comment: str | None = Field(None, description="Posted right after (LinkedIn comment / X reply): the link")
 
 
 class Flags(_Out):
@@ -106,6 +108,7 @@ class Work(_Out):
     last_error: str | None = None
     target_platform: PlatformName | None = None
     target_format: FormatName | None = None
+    crosspost: Literal["both", "switch"] | None = None
 
 
 class Working(_Out):
@@ -113,6 +116,7 @@ class Working(_Out):
     posts: list[str] | None = None
     hook_index: int | None = None
     hooks: list[Hook] | None = Field(None, description="The openings as he edited them (same order; his own added last)")
+    hashtags: list[str] | None = Field(None, description="The hashtags he kept or added (null: the suggested ones)")
     updated_at: str | None = None
 
 
@@ -153,6 +157,7 @@ class Card(_Out):
     draft_original: Draft | None = None
     hooks: list[Hook] = []
     hook_type: str | None = None
+    hashtags: list[str] = []
     sources: list[SourceRef] = []
     claims: list[Claim] = []
     flags: Flags = Flags()
@@ -178,6 +183,7 @@ class Card(_Out):
     draft_state: Literal["full", "brief", "pending"] = "full"
     draft_basis: Literal["sources", "answers"] | None = Field(
         None, description="What the current draft was written from: recent sources, or his answers (plus sources)")
+    crosspost_of: str | None = Field(None, description="The card this one was made from for the other platform")
     created_at: str
     updated_at: str | None = None
     revision: int = 0
@@ -220,6 +226,7 @@ class Post(_Out):
     title: str | None = None
     final_text: str = ""
     final_posts: list[str] = []
+    hashtags: list[str] = []
     posted_at: str
     post_url: str | None = None
     edit_ratio: float | None = None
@@ -518,6 +525,9 @@ class DeskState(_Out):
     processed_event_ids: list[str] = []
     doctor: DoctorReport | None = None
     archive_months: list[str] = []
+    platform_guide: dict[str, Any] | None = Field(
+        None, description="What works on each platform: {reviewed, rules: [{id, platform, format, text, source, "
+                          "sources}], research: {month, summary, articles, proposals}}")
 
 
 # ---------------------------------------------------------------------------
@@ -548,6 +558,7 @@ class CardEditEvent(_Event):
     posts: list[Annotated[str, Field(max_length=30000)]] | None = Field(None, max_length=25)
     hook_index: int | None = None
     hooks: list[HookIn] | None = Field(None, max_length=10)
+    hashtags: list[Annotated[str, Field(max_length=60)]] | None = Field(None, max_length=15)
 
 
 class CardPostedEvent(_Event):
@@ -559,6 +570,8 @@ class CardPostedEvent(_Event):
     posted_at: str | None = None
     editing_seconds: int | None = Field(None, ge=0, le=86400)
     hook_index: int | None = None
+    hashtags: list[Annotated[str, Field(max_length=60)]] | None = Field(
+        None, max_length=15, description="The hashtags that went out (already included in text/posts)")
 
 
 class CardSkipEvent(_Event):
@@ -575,6 +588,16 @@ class CardRewriteEvent(_Event):
     chips: list[str] = Field([], max_length=10)
     target_platform: PlatformName | None = None
     target_format: FormatName | None = None
+
+
+class CardCrosspostEvent(_Event):
+    """Make a version of the card for the other platform: keep both, or switch (the original is skipped)."""
+    type: Literal["card.crosspost"]
+    card_id: str
+    target_platform: PlatformName
+    target_format: FormatName | None = None
+    mode: Literal["both", "switch"] = "both"
+    note: str = Field("", max_length=1000)
 
 
 class AnswerIn(_In):
@@ -755,13 +778,14 @@ class PlaybookRuleEvent(_Event):
 
 class RunRequestEvent(_Event):
     type: Literal["run.request"]
-    tasks: list[Literal["morning", "weekly_batch", "reflection", "doctor", "report", "scout"]] = []
+    tasks: list[Literal["morning", "weekly_batch", "reflection", "doctor", "report", "scout",
+                        "platform_research"]] = []
     force: bool = False
 
 
 InboxEvent = Annotated[
-    CardStatusEvent | CardEditEvent | CardPostedEvent | CardSkipEvent | CardRewriteEvent | CardAnswersEvent
-    | CardRestoreEvent | CardDraftNowEvent | CardHookEvent | PostUpdateEvent | PostMetricsEvent
+    CardStatusEvent | CardEditEvent | CardPostedEvent | CardSkipEvent | CardRewriteEvent | CardCrosspostEvent
+    | CardAnswersEvent | CardRestoreEvent | CardDraftNowEvent | CardHookEvent | PostUpdateEvent | PostMetricsEvent
     | MetricsUploadEvent | MetricsReviewEvent | AccountStatsEvent | RequestCreateEvent | RequestCancelEvent
     | StanceUpsertEvent | StanceDeleteEvent | StanceProposeEvent | SourceUpsertEvent | SourceDeleteEvent
     | SettingsUpdateEvent | ProfileUpdateEvent | ProposalDecideEvent | PlaybookRuleEvent | RunRequestEvent,

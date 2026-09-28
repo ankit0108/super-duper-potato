@@ -1,0 +1,33 @@
+# What tends to work on each platform, sent with every draft, rewrite and adaptation (after his own style rules,
+# which win when they disagree). Written from widely reported platform guidance; the monthly research step
+# reads recent coverage of both platforms and proposes changes, each one waiting for Ankit's approval.
+reviewed: 2026-09
+
+linkedin:
+  all:
+    - {id: li-fold, text: "The first two lines (about 210 characters, before \"…see more\") decide whether anyone reads on: open with the most specific, surprising or useful line, not a preamble."}
+    - {id: li-phone, text: "Short paragraphs of one to three lines with a blank line between them: most people read on a phone."}
+    - {id: li-save, text: "Write something worth saving or sending to a colleague (a practical lesson, a clear explanation, a useful framework): those signals count for more than likes."}
+    - {id: li-links, text: "Keep outside links out of the post: LinkedIn tends to show posts with links to fewer people. The source link goes in the first comment."}
+    - {id: li-end, text: "End on a specific takeaway or a question people can answer from their own work; never \"Agree?\" or other bait."}
+    - {id: li-tags, text: "Three to five hashtags at the end: one or two broad ones people follow, the rest specific to the post."}
+    - {id: li-visual, text: "When the idea has steps or a framework, a document carousel or a simple diagram holds attention longer than text alone."}
+    - {id: li-tone, text: "Professional but personal: first-hand specifics and plain words read better than corporate language."}
+  li_text: []
+
+x:
+  all:
+    - {id: x-first, text: "The first line carries the whole point; many people read nothing else."}
+    - {id: x-plain, text: "Plain, direct and specific: numbers, names and concrete details beat adjectives."}
+    - {id: x-links, text: "Keep outside links out of the main post: X tends to show posts with links to fewer people. Put the link in a reply."}
+    - {id: x-tags, text: "One or two hashtags at most, and only for a topic people actually follow; none is fine."}
+    - {id: x-small, text: "For a small account, replies and quote posts that add one specific thing to a big conversation are how people find you."}
+    - {id: x-visual, text: "An image, chart or diagram helps a post stop the scroll."}
+  x_single: []
+  x_thread:
+    - {id: x-thread-hook, text: "The first post must stand alone and make people want the rest; say what the thread delivers."}
+    - {id: x-thread-steps, text: "One idea per post; the last post sums up. Links go in a reply, not in the posts."}
+  x_quote:
+    - {id: x-quote-add, text: "Add what the quoted post doesn't say: context, an implication or a sharp question."}
+  x_reply:
+    - {id: x-reply-add, text: "Add one specific thing (a detail, an implication, a precise question); never flattery or self-promotion."}

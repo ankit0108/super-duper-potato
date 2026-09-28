@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ChevronDown, Copy, ExternalLink, GitCompare, Loader2, MessageCircleQuestion, RotateCcw, Send, Sparkle, Undo2 } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, ChevronDown, Copy, ExternalLink, GitCompare, Loader2, MessageCircleQuestion, RotateCcw, Send, Sparkle, Undo2 } from "lucide-react";
 import type { Card, EventInput } from "@/types";
 import { FORMAT_LABEL, PLATFORM_LABEL, SKIP_REASONS, draftText, pct } from "@/lib/format";
 import { copyText, linkedInComposeUrl, safeUrl, xComposeUrl } from "@/lib/compose";
 import { liveFlags, parseTerms } from "@/lib/guard";
+import { withHashtags, withoutHashtags } from "@/lib/hashtags";
 import { navigate, Link } from "@/lib/router";
 import { editRatio } from "@/lib/text";
 import { formatDateTime } from "@/lib/time";
@@ -17,7 +18,9 @@ import { Tabs } from "@/components/ui/Tabs";
 import { FlagIcons, SkipMenu, workLabel } from "@/components/card/CardTile";
 import { DiffPanel, HooksPanel, LinkedInEditor, LiveChecks, ThreadEditor, XPostEditor, numbered, replaceOpening, swapOpening } from "./card/Editor";
 import { Details, PipelineFlags, ReplyHelper, Sources, WhyAngle } from "./card/Context";
-import { PostedDialog, RewriteDialog, type PostedPayload } from "./card/Dialogs";
+import { CrosspostDialog, PostedDialog, RewriteDialog, type CrosspostPayload, type PostedPayload } from "./card/Dialogs";
+import { FirstComment } from "./card/FirstComment";
+import { HashtagsBar } from "./card/Hashtags";
 import { Interview } from "./card/Interview";
 import { useWorkingCopy, type WorkingCopy } from "./card/useWorkingCopy";
 
@@ -29,6 +32,7 @@ function editEvent(card: Card, copy: WorkingCopy): EventInput {
     ...(card.format === "x_thread" ? { posts: copy.posts } : { text: copy.text }),
     hook_index: copy.hookIndex,
     ...(copy.hooks ? { hooks: copy.hooks.map((h) => ({ type: h.type ?? "observation", text: h.text })) } : {}),
+    ...(copy.hashtags ? { hashtags: copy.hashtags } : {}),
   };
 }
 
@@ -57,6 +61,7 @@ function CardView({ card }: { card: Card }) {
   const [seconds] = useEditingTimer(card.id, editable);
   const [posting, setPosting] = useState(false);
   const [rewriting, setRewriting] = useState(false);
+  const [crossposting, setCrossposting] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
   const [side, setSide] = useState<"context" | "sources" | "checks" | "details">("context");
   const startedEditing = useRef(card.status === "editing");
@@ -71,11 +76,33 @@ function CardView({ card }: { card: Card }) {
   const bait: string[] = settings?.voice?.bait_phrases ?? [];
   const guardTerms = useMemo(() => parseTerms(guardRaw), [guardRaw]);
   const baseline = draftText(card);
-  const text = wc.finalText;
+  const body = wc.finalText; // what he's editing: the post without hashtags
+  const suggestedTags = useMemo(() => card.hashtags ?? [], [card.hashtags]);
+  const tagsOn = (view?.settings as { hashtags?: { enabled?: boolean } } | undefined)?.hashtags?.enabled !== false;
+  const chosenTags = wc.copy.hashtags ?? suggestedTags;
+  const tagLine = chosenTags.join(" ");
+  // What goes out: the post with the chosen hashtags at the end (post 1 of a thread).
+  const composed = withHashtags(card.format, { text: wc.copy.text, posts: wc.copy.posts }, chosenTags);
+  const text = card.format === "x_thread" ? composed.posts.filter((p) => p.trim()).join("\n\n") : composed.text;
+  // Anything not written from his own answers is analysis: experiences in it are flagged (as in the pipeline).
+  const external = card.mode === "external" || card.draft_basis === "sources" || !(card.answers?.length ?? 0);
   const flags = useMemo(
-    () => liveFlags({ text, evidence: evidenceFor(card), guardTerms, avoid, bait, external: card.mode === "external" }),
-    [text, card, guardTerms, avoid, bait],
+    () =>
+      liveFlags({
+        text: body,
+        evidence: evidenceFor(card),
+        guardTerms,
+        avoid,
+        bait,
+        external,
+        platform: { platform: card.platform, format: card.format, hashtags: chosenTags.length, fold },
+      }),
+    [body, card, guardTerms, avoid, bait, external, chosenTags.length, fold],
   );
+  const setTags = (tags: string[]) => {
+    markEditing();
+    wc.update({ hashtags: tags });
+  };
 
   // First keystroke picks the card (the ranker learns from picks).
   const markEditing = useCallback(() => {
@@ -153,13 +180,13 @@ function CardView({ card }: { card: Card }) {
   };
 
   const copyAll = async () => {
-    const ok = await copyText(card.format === "x_thread" ? numbered(wc.copy.posts.filter((p) => p.trim())).join("\n\n") : text);
+    const ok = await copyText(card.format === "x_thread" ? numbered(composed.posts.filter((p) => p.trim())).join("\n\n") : text);
     toast(ok ? "ok" : "bad", ok ? "Copied. Paste it into the app, then come back and tap Posted." : "Couldn't copy. Select the text and copy it manually.");
   };
   const composeUrl =
     card.platform === "linkedin"
       ? linkedInComposeUrl(text)
-      : xComposeUrl(card.format === "x_thread" ? (wc.copy.posts[0] ?? "") : text, card.format === "x_quote" ? safeUrl(card.draft?.quote_url) : undefined);
+      : xComposeUrl(card.format === "x_thread" ? (composed.posts[0] ?? "") : text, card.format === "x_quote" ? safeUrl(card.draft?.quote_url) : undefined);
 
   const confirmPosted = (p: PostedPayload) => {
     act(
@@ -174,9 +201,10 @@ function CardView({ card }: { card: Card }) {
         posted_at: p.posted_at,
         editing_seconds: p.editing_seconds,
         hook_index: wc.copy.hookIndex,
+        hashtags: chosenTags,
         },
       ],
-      { toast: baseline ? `Posted. You changed ${pct(editRatio(baseline, p.text))} of the draft.` : "Posted." },
+      { toast: baseline ? `Posted. You changed ${pct(editRatio(baseline, withoutHashtags(p.text, chosenTags)))} of the draft.` : "Posted." },
     );
     wc.clear();
     setPosting(false);
@@ -186,9 +214,25 @@ function CardView({ card }: { card: Card }) {
   const confirmRewrite = (r: { note: string; chips: string[]; target_platform?: Card["platform"]; target_format?: Card["format"] }) => {
     const events: EventInput[] = [];
     if (wc.dirtyVsServer) events.push(editEvent(card, wc.copy));
-    events.push({ type: "card.rewrite" as const, card_id: card.id, note: r.note, chips: r.chips, target_platform: r.target_platform ?? null, target_format: r.target_format ?? null });
-    act(events, { toast: r.target_platform ? "Adapting it. The new card appears on the board in about two minutes." : "Rewrite requested. The new draft arrives in about two minutes." });
+    if (r.target_platform && r.target_platform !== card.platform) {
+      // Adapting for the other platform is a cross-post: this card stays, a new one is made and learned from.
+      events.push({ type: "card.crosspost", card_id: card.id, target_platform: r.target_platform, target_format: r.target_format ?? null, mode: "both", note: r.note });
+    } else {
+      events.push({ type: "card.rewrite", card_id: card.id, note: r.note, chips: r.chips, target_platform: null, target_format: r.target_format ?? null });
+    }
+    act(events, { toast: r.target_platform ? `Making the ${PLATFORM_LABEL[r.target_platform]} version. It appears on the board in about two minutes.` : "Rewrite requested. The new draft arrives in about two minutes." });
     setRewriting(false);
+  };
+  const confirmCrosspost = (c: CrosspostPayload) => {
+    const events: EventInput[] = [];
+    if (wc.dirtyVsServer && editable) events.push(editEvent(card, wc.copy));
+    events.push({ type: "card.crosspost", card_id: card.id, target_platform: c.target_platform, target_format: c.target_format, mode: c.mode, note: c.note });
+    const other = PLATFORM_LABEL[c.target_platform];
+    act(events, {
+      toast: c.mode === "switch" ? `Moving it to ${other}: the new card appears in about two minutes, and this one is skipped as the wrong platform.` : `Making the ${other} version. It appears on the board in about two minutes.`,
+    });
+    setCrossposting(false);
+    if (c.mode === "switch") navigate("/");
   };
 
   // Keyboard: Cmd/Ctrl+Enter → Posted, Cmd/Ctrl+Shift+C → copy.
@@ -267,6 +311,7 @@ function CardView({ card }: { card: Card }) {
           <FlagIcons card={card} />
         </div>
         <h1 className="mt-2 text-xl leading-snug font-semibold tracking-tight">{card.title}</h1>
+        <CrosspostLinks card={card} />
       </header>
 
       {work && (
@@ -326,7 +371,7 @@ function CardView({ card }: { card: Card }) {
               </div>
             </Panel>
           ) : card.status === "posted" ? (
-            <PostedSummary card={card} post={post} tz={tz} />
+            <PostedSummary card={card} post={post} tz={tz} onCrosspost={() => setCrossposting(true)} />
           ) : ["skipped", "expired", "failed"].includes(card.status) ? (
             <Panel
               title={card.status === "skipped" ? "Skipped" : card.status === "failed" ? "Drafting failed" : "Expired"}
@@ -342,12 +387,16 @@ function CardView({ card }: { card: Card }) {
           ) : (
             <>
               {card.format === "li_text" ? (
-                <LinkedInEditor value={wc.copy.text} onChange={setText} limit={liLimit} fold={fold} />
+                <LinkedInEditor value={wc.copy.text} onChange={setText} limit={liLimit} fold={fold} suffix={tagLine} />
               ) : card.format === "x_thread" ? (
-                <ThreadEditor posts={wc.copy.posts} onChange={setPosts} limit={xLimit} min={threadMin} max={threadMax} />
+                <ThreadEditor posts={wc.copy.posts} onChange={setPosts} limit={xLimit} min={threadMin} max={threadMax} firstSuffix={tagLine} />
               ) : (
-                <XPostEditor value={wc.copy.text} onChange={setText} limit={xLimit} label={`${FORMAT_LABEL[card.format]} text`} minRows={5} />
+                <XPostEditor value={wc.copy.text} onChange={setText} limit={xLimit} label={`${FORMAT_LABEL[card.format]} text`} minRows={5} suffix={tagLine} />
               )}
+              {(suggestedTags.length > 0 || chosenTags.length > 0 || (tagsOn && card.format !== "x_reply")) && (
+                <HashtagsBar platform={card.platform} suggested={suggestedTags} chosen={chosenTags} onChange={setTags} />
+              )}
+              {card.draft?.first_comment && <FirstComment platform={card.platform} text={card.draft.first_comment} />}
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" variant={showDiff ? "soft" : "ghost"} icon={<GitCompare className="size-4" />} onClick={() => setShowDiff((v) => !v)} aria-pressed={showDiff}>
                   {showDiff ? "Hide changes" : "Show changes"}
@@ -385,8 +434,11 @@ function CardView({ card }: { card: Card }) {
             <Button variant="ghost" onClick={() => setRewriting(true)} disabled={!!card.work}>
               Rewrite
             </Button>
+            <Button variant="ghost" icon={<ArrowLeftRight className="size-4" />} onClick={() => setCrossposting(true)} disabled={!!card.work}>
+              {card.platform === "linkedin" ? "Also for X" : "Also for LinkedIn"}
+            </Button>
             <span className="ml-auto">
-              <SkipMenu card={card} size="md" />
+              <SkipMenu card={card} size="md" side="top" />
             </span>
           </div>
           {card.format === "x_thread" && <p className="mx-auto mt-1 max-w-6xl text-xs text-muted">Open X posts the first post; add the rest as replies to it, using each post's copy button.</p>}
@@ -400,12 +452,50 @@ function CardView({ card }: { card: Card }) {
         onClose={() => setPosting(false)}
         card={card}
         text={text}
-        posts={wc.copy.posts}
+        posts={composed.posts}
+        tags={chosenTags}
         baseline={baseline}
         editingSeconds={seconds}
         onConfirm={confirmPosted}
       />
       <RewriteDialog open={rewriting} onClose={() => setRewriting(false)} card={card} onConfirm={confirmRewrite} />
+      <CrosspostDialog open={crossposting} onClose={() => setCrossposting(false)} card={card} onConfirm={confirmCrosspost} />
+    </div>
+  );
+}
+
+/** "Cross-post of …" on a version made for the other platform, and links from the original to its versions. */
+function CrosspostLinks({ card }: { card: Card }) {
+  const cards = useDesk((s) => s.view?.cards);
+  const original = card.crosspost_of ? cards?.find((c) => c.id === card.crosspost_of) : undefined;
+  const versions = (cards ?? []).filter((c) => c.crosspost_of === card.id);
+  if (!card.crosspost_of && !versions.length) return null;
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted">
+      {card.crosspost_of && (
+        <span className="inline-flex items-center gap-1">
+          <ArrowLeftRight className="size-3.5" aria-hidden />
+          {original ? (
+            <>
+              Cross-post of the {PLATFORM_LABEL[original.platform]} card{" "}
+              <Link to={`/card/${original.id}`} className="font-medium text-accent hover:underline">
+                {original.title}
+              </Link>
+            </>
+          ) : (
+            "Cross-post of a card from the other platform"
+          )}
+        </span>
+      )}
+      {versions.map((v) => (
+        <span key={v.id} className="inline-flex items-center gap-1">
+          <ArrowLeftRight className="size-3.5" aria-hidden />
+          <Link to={`/card/${v.id}`} className="font-medium text-accent hover:underline">
+            {PLATFORM_LABEL[v.platform]} version
+          </Link>
+          <span>({FORMAT_LABEL[v.format].toLowerCase()})</span>
+        </span>
+      ))}
     </div>
   );
 }
@@ -437,7 +527,7 @@ function OptionalQuestions({ card }: { card: Card }) {
   );
 }
 
-function PostedSummary({ card, post, tz }: { card: Card; post: import("@/types").Post | undefined; tz: string }) {
+function PostedSummary({ card, post, tz, onCrosspost }: { card: Card; post: import("@/types").Post | undefined; tz: string; onCrosspost: () => void }) {
   const url = safeUrl(post?.post_url);
   return (
     <Panel
@@ -445,6 +535,9 @@ function PostedSummary({ card, post, tz }: { card: Card; post: import("@/types")
       description={post ? `${formatDateTime(post.posted_at, tz)}${post.edit_ratio != null ? ` · edit ratio ${pct(post.edit_ratio)}` : ""}` : undefined}
       actions={
         <>
+          <Button size="sm" variant="ghost" icon={<ArrowLeftRight className="size-4" />} onClick={onCrosspost} disabled={!!card.work}>
+            {card.platform === "linkedin" ? "Also for X" : "Also for LinkedIn"}
+          </Button>
           {url && (
             <LinkButton size="sm" href={url} target="_blank" rel="noreferrer" icon={<ExternalLink className="size-4" />}>
               View post

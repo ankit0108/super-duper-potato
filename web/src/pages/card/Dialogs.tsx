@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Card, FormatName, Platform } from "@/types";
 import { FORMAT_LABEL, REWRITE_CHIPS, pct } from "@/lib/format";
+import { withoutHashtags } from "@/lib/hashtags";
 import { editRatio } from "@/lib/text";
 import { fromLocalInput, toLocalInput } from "@/lib/time";
 import { safeUrl } from "@/lib/compose";
@@ -18,6 +19,7 @@ export function PostedDialog({
   card,
   text,
   posts,
+  tags = [],
   baseline,
   editingSeconds,
   onConfirm,
@@ -27,6 +29,7 @@ export function PostedDialog({
   card: Card;
   text: string;
   posts: string[];
+  tags?: string[];
   baseline: string;
   editingSeconds: number;
   onConfirm: (p: PostedPayload) => void;
@@ -44,7 +47,7 @@ export function PostedDialog({
     }
   }, [open, text, tz, editingSeconds]);
   const urlOk = !url || !!safeUrl(url);
-  const ratio = baseline ? editRatio(baseline, final) : null;
+  const ratio = baseline ? editRatio(baseline, withoutHashtags(final, tags)) : null;
   const isThread = card.format === "x_thread";
   const confirm = () => {
     const changedInDialog = final !== text;
@@ -209,6 +212,81 @@ export function RewriteDialog({
           )}
         </div>
         {target && <p className="text-[13px] text-muted">A new card is created for the other platform; this one stays as it is.</p>}
+      </div>
+    </Dialog>
+  );
+}
+
+export type CrosspostPayload = { target_platform: Platform; target_format: FormatName; mode: "both" | "switch"; note: string };
+
+/**
+ * A version of the post for the other platform. "Both" keeps this card; "switch" skips it as the wrong platform,
+ * which teaches the ranking that the topic was right and the platform wasn't.
+ */
+export function CrosspostDialog({ open, onClose, card, onConfirm }: { open: boolean; onClose: () => void; card: Card; onConfirm: (c: CrosspostPayload) => void }) {
+  const target: Platform = card.platform === "linkedin" ? "x" : "linkedin";
+  const other = target === "x" ? "X" : "LinkedIn";
+  const a = target === "x" ? "an" : "a";
+  const long = (card.draft?.text ?? "").length > 600 || (card.draft?.posts?.length ?? 0) > 2;
+  const [mode, setMode] = useState<"both" | "switch">("both");
+  const [format, setFormat] = useState<FormatName>(target === "linkedin" ? "li_text" : long ? "x_thread" : "x_single");
+  const [note, setNote] = useState("");
+  const posted = card.status === "posted";
+  useEffect(() => {
+    if (open) {
+      setMode("both");
+      setFormat(target === "linkedin" ? "li_text" : long ? "x_thread" : "x_single");
+      setNote("");
+    }
+  }, [open, target, long]);
+  const options: Array<{ value: "both" | "switch"; label: string; help: string }> = [
+    { value: "both", label: `Post it on both`, help: `Keep this ${card.platform === "x" ? "X" : "LinkedIn"} card and make ${a} ${other} version.` },
+    ...(posted ? [] : [{ value: "switch" as const, label: `Move it to ${other} instead`, help: `This card is skipped as the wrong platform; the ranking learns that topics like it suit ${other}.` }]),
+  ];
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={`Make ${a} ${other} version`}
+      description={`Rewritten for how ${other} works, not just trimmed. It arrives in about two minutes.`}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={() => onConfirm({ target_platform: target, target_format: format, mode, note: note.trim() })}>
+            {mode === "switch" ? `Move to ${other}` : `Make the ${other} version`}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div role="radiogroup" aria-label="Where it goes" className="grid gap-2">
+          {options.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              role="radio"
+              aria-checked={mode === o.value}
+              onClick={() => setMode(o.value)}
+              className={cx("rounded-xl border p-3 text-left transition-colors", mode === o.value ? "border-accent bg-accent-soft/50" : "border-border hover:bg-surface-2")}
+            >
+              <div className="text-[13.5px] font-semibold">{o.label}</div>
+              <div className="mt-0.5 text-[13px] text-muted">{o.help}</div>
+            </button>
+          ))}
+        </div>
+        {target === "x" && (
+          <Field label="Format on X" htmlFor="cp-format">
+            <Select id="cp-format" value={format} onChange={(e) => setFormat(e.target.value as FormatName)}>
+              <option value="x_single">{FORMAT_LABEL.x_single}</option>
+              <option value="x_thread">{FORMAT_LABEL.x_thread}</option>
+            </Select>
+          </Field>
+        )}
+        <Field label="Anything to change for it? (optional)" htmlFor="cp-note" hint="For example “lead with the number” or “more casual”.">
+          <Textarea id="cp-note" value={note} onChange={(e) => setNote(e.target.value)} minRows={2} maxLength={1000} />
+        </Field>
       </div>
     </Dialog>
   );

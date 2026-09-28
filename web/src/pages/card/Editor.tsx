@@ -234,6 +234,16 @@ export function LiveChecks({ flags, hasGuardTerms }: { flags: LiveFlags; hasGuar
   return (
     <div className="space-y-2" aria-live="polite">
       <h3 className="text-[13px] font-semibold">Live checks</h3>
+      {flags.platform.length > 0 && (
+        <div className="rounded-xl border border-info/30 bg-info-soft px-3 py-2 text-[13px]">
+          <div className="font-medium text-info">Platform tips</div>
+          <ul className="mt-0.5 list-disc pl-4 text-text">
+            {flags.platform.map((it) => (
+              <li key={it}>{it}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {shown.length === 0 ? (
         <p className="text-[13px] text-ok">Nothing flagged in the current text.</p>
       ) : (
@@ -257,7 +267,8 @@ export function LiveChecks({ flags, hasGuardTerms }: { flags: LiveFlags; hasGuar
 // Editors
 // ---------------------------------------------------------------------------
 
-export function LinkedInEditor({ value, onChange, limit, fold }: { value: string; onChange: (v: string) => void; limit: number; fold: number }) {
+export function LinkedInEditor({ value, onChange, limit, fold, suffix }: { value: string; onChange: (v: string) => void; limit: number; fold: number; suffix?: string }) {
+  const counted = suffix ? `${value.trimEnd()}\n\n${suffix}` : value;
   return (
     <div className="space-y-3">
       <div className="rounded-2xl border border-border bg-surface focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15">
@@ -269,7 +280,7 @@ export function LinkedInEditor({ value, onChange, limit, fold }: { value: string
           className="border-0 bg-transparent text-[15px] shadow-none focus:ring-0"
         />
         <div className="flex items-center justify-end border-t border-border px-3 py-1.5">
-          <LinkedInCounter text={value} limit={limit} />
+          <LinkedInCounter text={counted} limit={limit} />
         </div>
       </div>
       <FeedPreview text={value} fold={fold} />
@@ -277,8 +288,9 @@ export function LinkedInEditor({ value, onChange, limit, fold }: { value: string
   );
 }
 
-export function XPostEditor({ value, onChange, limit, label, minRows = 4, footer }: { value: string; onChange: (v: string) => void; limit: number; label: string; minRows?: number; footer?: React.ReactNode }) {
-  const used = xWeightedLength(value);
+export function XPostEditor({ value, onChange, limit, label, minRows = 4, footer, suffix }: { value: string; onChange: (v: string) => void; limit: number; label: string; minRows?: number; footer?: React.ReactNode; suffix?: string }) {
+  // The chosen hashtags count too: they're added after the text.
+  const used = xWeightedLength(suffix ? `${value.trimEnd()} ${suffix}` : value);
   return (
     <div className={cx("rounded-2xl border bg-surface focus-within:ring-2 focus-within:ring-accent/15", used > limit ? "border-bad/50" : "border-border focus-within:border-accent")}>
       <Textarea aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} minRows={minRows} className="border-0 bg-transparent text-[15px] shadow-none focus:ring-0" />
@@ -290,7 +302,7 @@ export function XPostEditor({ value, onChange, limit, label, minRows = 4, footer
   );
 }
 
-export function ThreadEditor({ posts, onChange, limit, min, max }: { posts: string[]; onChange: (p: string[]) => void; limit: number; min: number; max: number }) {
+export function ThreadEditor({ posts, onChange, limit, min, max, firstSuffix }: { posts: string[]; onChange: (p: string[]) => void; limit: number; min: number; max: number; firstSuffix?: string }) {
   const refs = useRef<Array<HTMLTextAreaElement | null>>([]);
   const [numbering, setNumbering] = useState(false);
   const toast = useDesk((s) => s.toast);
@@ -320,7 +332,7 @@ export function ThreadEditor({ posts, onChange, limit, min, max }: { posts: stri
     onChange(next);
   };
   const autoSplit = () => onChange(splitIntoPosts(posts.join("\n\n"), limit - (numbering ? 6 : 0)));
-  const label = (i: number) => (numbering ? `\n\n${i + 1}/${posts.length}` : "");
+  const label = (i: number) => (i === 0 && firstSuffix ? ` ${firstSuffix}` : "") + (numbering ? `\n\n${i + 1}/${posts.length}` : "");
   const copyOne = async (i: number) => {
     const ok = await copyText(posts[i] + label(i));
     toast(ok ? "ok" : "bad", ok ? `Post ${i + 1} copied` : "Couldn't copy");

@@ -7,6 +7,7 @@ export type WorkingCopy = {
   posts: string[];
   hookIndex: number | null;
   hooks: Hook[] | null; // the openings as edited here; null = the drafter's, untouched
+  hashtags: string[] | null; // the hashtags he kept or added; null = the suggested ones
   baseKey: string; // which server version these edits started from
   baseText: string; // that version's text/posts, to tell whether Ankit changed anything
   basePosts: string[];
@@ -31,6 +32,7 @@ function fromCard(card: Card): WorkingCopy {
     posts,
     hookIndex: card.working?.hook_index ?? null,
     hooks: card.working?.hooks?.length ? card.working.hooks.map((h) => ({ type: h.type ?? "observation", text: h.text })) : null,
+    hashtags: card.working?.hashtags ?? null,
     baseKey: draftKey(card),
     baseText: text,
     basePosts: posts,
@@ -45,7 +47,7 @@ const sameHooks = (a: Hook[] | null | undefined, b: Hook[] | null | undefined) =
 export function useWorkingCopy(card: Card) {
   const [copy, setCopy] = useState<WorkingCopy>(() => {
     const saved = readJSON<WorkingCopy | null>(keyOf(card.id), null);
-    return saved ? { ...saved, hooks: saved.hooks ?? null } : fromCard(card);
+    return saved ? { ...saved, hooks: saved.hooks ?? null, hashtags: saved.hashtags ?? null } : fromCard(card);
   });
   const [newDraft, setNewDraft] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -116,7 +118,14 @@ export function useWorkingCopy(card: Card) {
   /** Differs from what the server last saw (so a card.edit event is worth sending). */
   const dirtyVsServer = useMemo(() => {
     const server = fromCard(card);
-    return copy.text !== server.text || !same(copy.posts, server.posts) || copy.hookIndex !== server.hookIndex || !sameHooks(copy.hooks, server.hooks);
+    return (
+      copy.text !== server.text ||
+      !same(copy.posts, server.posts) ||
+      copy.hookIndex !== server.hookIndex ||
+      !sameHooks(copy.hooks, server.hooks) ||
+      !same(copy.hashtags ?? [], server.hashtags ?? []) ||
+      (copy.hashtags == null) !== (server.hashtags == null)
+    );
   }, [copy, card]);
 
   return { copy, update, newDraft, acceptNewDraft, keepMine, resetToDraft, clear, finalText, dirtyVsServer };

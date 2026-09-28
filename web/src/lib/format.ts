@@ -22,15 +22,19 @@ export const STATUS_LABEL: Record<CardStatus, string> = {
   failed: "Failed",
 };
 
-/** Skip reasons: `learns` is what the ranking does with each one (shown after a skip). */
-export const SKIP_REASONS: Array<{ value: SkipReason; label: string; help: string; learns: string; needsNote?: boolean }> = [
+/** Skip reasons: `learns` is what the ranking does with each one (shown after a skip). `menu: false` is set by an
+ * action elsewhere (moving a card to the other platform), not picked from the Skip menu. */
+export const SKIP_REASONS: Array<{ value: SkipReason; label: string; help: string; learns: string; needsNote?: boolean; menu?: boolean }> = [
   { value: "not_interesting", label: "Not interesting", help: "Fewer topics like this", learns: "Similar topics will rank lower." },
   { value: "off_brand", label: "Off-brand", help: "Doesn't fit this platform", learns: "Similar topics will rank lower on this platform." },
   { value: "wrong_timing", label: "Wrong timing", help: "Fine idea, not today (no penalty)", learns: "No penalty: it was only the timing." },
   { value: "too_risky", label: "Too risky", help: "Flag similar topics as sensitive", learns: "Similar topics will be flagged as sensitive." },
   { value: "already_covered", label: "Already covered", help: "You've said this before", learns: "Topics like this are held back for a while." },
   { value: "other", label: "Other", help: "Tell it why: used in tomorrow's ranking", learns: "Your reason feeds tomorrow's ranking and the weekly review.", needsNote: true },
+  { value: "wrong_platform", label: "Wrong platform", help: "Moved to the other platform", learns: "The topic was right: only this platform's lane is marked down.", menu: false },
 ];
+
+export const MENU_SKIP_REASONS = SKIP_REASONS.filter((r) => r.menu !== false);
 
 export const REWRITE_CHIPS = [
   "Shorter",

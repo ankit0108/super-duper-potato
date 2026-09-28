@@ -228,7 +228,8 @@ def check_card(card: dict[str, Any], *, settings: Any, blocklist: list[str], evi
     draft = card.get("draft") or {}
     body = draft_text(draft)
     hooks_text = "\n".join(h.get("text", "") for h in (card.get("hooks") or []))
-    everything = "\n".join([body, hooks_text, card.get("angle") or "", card.get("title") or ""])
+    extras = [draft.get("first_comment") or "", " ".join(t.lstrip("#") for t in card.get("hashtags") or [])]
+    everything = "\n".join([body, hooks_text, card.get("angle") or "", card.get("title") or "", *extras])
     prev = card.get("flags") or {}
     # Anything not written from his own answers is analysis: experiences and opinions in it are flagged.
     external = card.get("mode") == "external" or card.get("draft_basis") == "sources" or not card.get("answers")

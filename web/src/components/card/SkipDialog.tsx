@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { SkipReason } from "@/types";
-import { SKIP_REASONS } from "@/lib/format";
+import { MENU_SKIP_REASONS, SKIP_REASONS } from "@/lib/format";
 import { useDesk } from "@/state/store";
 import { Button, cx } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
@@ -54,7 +54,7 @@ export function SkipDialogHost() {
     >
       <div className="space-y-4">
         <div role="radiogroup" aria-label="Reason" className="flex flex-wrap gap-1.5">
-          {SKIP_REASONS.map((r) => (
+          {MENU_SKIP_REASONS.map((r) => (
             <button
               key={r.value}
               type="button"

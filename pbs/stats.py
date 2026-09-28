@@ -114,7 +114,22 @@ def compute(ctx: Ctx) -> dict[str, Any]:
     return {"weekly": list(weeks.values()), "daily": daily, "pillar_mix": mix, "followers": followers,
             "streak": _streak(daily), "gates": _gates(ctx, daily, weeks),
             # What the ranking learns from tomorrow (Insights shows it, so he can see his reasons being used).
-            "feedback": feedback.recent_feedback(ctx, days=30, limit=15)}
+            "feedback": feedback.recent_feedback(ctx, days=30, limit=15),
+            "crossposts": _crossposts(ctx)}
+
+
+def _crossposts(ctx: Ctx) -> dict[str, Any]:
+    """Versions made for the other platform in the last 30 days, and how many went out."""
+    since = timeutil.iso(timeutil.now() - dt.timedelta(days=30))
+    out: dict[str, Any] = {"linkedin_to_x": 0, "x_to_linkedin": 0, "both": 0, "switch": 0, "made": 0, "posted": 0}
+    for i in ctx.store.select("interactions", "type = 'crosspost' AND at >= ?", (since,)):
+        data = i.get("data") or {}
+        out["x_to_linkedin" if data.get("to") == "linkedin" else "linkedin_to_x"] += 1
+        out["switch" if data.get("mode") == "switch" else "both"] += 1
+    for c in ctx.store.select("cards", "crosspost_of IS NOT NULL AND created_at >= ?", (since,)):
+        out["made"] += 1
+        out["posted"] += 1 if c["status"] == "posted" else 0
+    return out
 
 
 def _streak(daily: list[dict[str, Any]]) -> dict[str, int]:

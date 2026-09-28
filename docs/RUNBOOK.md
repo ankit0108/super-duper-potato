@@ -3,11 +3,18 @@
 ## The routine
 
 **Every morning (10–15 minutes).** Open the desk. *Today's picks* is ranked best first. Open a card, tweak the
-draft (swap or edit an opening, trim, use the thread tools), tap **Copy**, then **Open LinkedIn/X**, post it,
-come back and tap **Posted**. Skip what you won't use, with a reason: it's the most useful signal you can give the
-ranker. "Other" asks you to say why in a line, and any skip can get a reason afterwards (**Add why** on the
-toast). The next morning's ranking reads your reasons; **Insights → Learning** lists the ones in use. Cards you
-don't touch expire when the next morning's set arrives, and that's fine.
+draft (swap or edit an opening, trim, use the thread tools), keep or drop the suggested hashtags, tap **Copy**,
+then **Open LinkedIn/X**, post it, and post the **First comment** (the source link) right after it. Come back and
+tap **Posted**. The hashtags you keep are added at the end of what you copy, and they don't count as edits. Skip
+what you won't use, with a reason: it's the most useful signal you can give the ranker. "Other" asks you to say
+why in a line, and any skip can get a reason afterwards (**Add why** on the toast). The next morning's ranking
+reads your reasons; **Insights → Learning** lists the ones in use. Cards you don't touch expire when the next
+morning's set arrives, and that's fine.
+
+**Right topic, other platform.** On a card, **Also for X** (or **Also for LinkedIn**) makes a version for the
+other platform and keeps both; **Skip → Move to X instead** makes it and skips this one as "wrong platform". The
+new card arrives in about two minutes, rewritten for that platform, and links back to the original. Both teach the
+ranking which topics suit which platform.
 
 **When a card has questions.** Firsthand and learning-in-public cards arrive already drafted from recent
 sources, with one or two optional questions under **Make it yours**. Post the draft as it is, or answer a
@@ -17,6 +24,10 @@ answers plus the sources. A card with no recent sources waits for your answers.
 **Sunday (15 minutes).** Metrics: upload the week's LinkedIn and X analytics screenshots, confirm anything the
 review queue flags, do the follower check-in. Then **System → Run weekly review**. Monday morning, look at
 **Insights → Proposals** and approve or reject each one; the rest of the learning needs nothing from you.
+
+**Once a month (5 minutes).** The first run of the month reads recent coverage of how LinkedIn and X show posts
+and proposes changes to the platform guide the drafts follow, each citing its articles. Approve or reject them
+under **Insights → Proposals**; **Insights → Playbook** shows the current guide and has **Research now**.
 
 **Anytime.** Requests: any topic, full drafts in a few minutes. The request shows what the search understood
 ("Understood as: …"); if it's off, say what you mean in the notes and ask again. Stances: record or change a
@@ -43,6 +54,9 @@ desk is where to look first.
 | A card is **Blocked** | It matched your blocklist. Nothing was reworded. Edit the draft by hand or skip it. If the match is a false positive, refine the term in `PBS_BLOCKLIST` |
 | Drafts suddenly need more editing | **Insights → Weekly report** shows edit ratio by prompt and playbook version. Remove the playbook rule that made things worse (**Insights → Playbook**), or **Settings → Learning → Freeze learning** while you review |
 | Want another set today | **System → Get another set** |
+| Hashtags you never use keep coming | Drop them on the card: after a few posts the drafter stops suggesting the ones you remove (and suggests none on a platform where you remove them all). **Settings → Hashtags** turns them off or changes how many |
+| A cross-post didn't appear | It needs a run: about two minutes, longer if GitHub is slow (**System** shows changes in flight). If it says **Drafting failed**, open it: the original's text is there to work from, or tap **Rewrite** |
+| A guide change made drafts worse | Add your own rule under **Insights → Playbook** saying what you want instead: your rules win over the platform guide. The guide shows each researched rule with the articles behind it, and never changes without your approval, so reject proposals like it |
 
 ## Recovering data
 
@@ -54,7 +68,8 @@ saved, so a crash mid-run can't lose your actions.
 ## Costs and limits
 
 Everything runs on free tiers: Actions minutes (unlimited on a public repo), Pages, Gemini and Groq, and free
-news sources. A normal day uses about 15–20 model calls, with a hard cap of 60 in settings. The one upgrade worth paying for, if drafts
+news sources. A normal day uses about 15–20 model calls, with a hard cap of 60 in settings; each cross-post is
+one more, and the monthly platform research one. The one upgrade worth paying for, if drafts
 stay generic after a month, is a stronger drafting model: **Settings → Models**.
 
 ## Development

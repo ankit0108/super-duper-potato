@@ -295,6 +295,19 @@
      "title": "Created At",
      "type": "string"
     },
+    "crosspost_of": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The card this one was made from for the other platform",
+     "title": "Crosspost Of"
+    },
     "delivered_at": {
      "anyOf": [
       {
@@ -435,6 +448,14 @@
      ],
      "default": null,
      "title": "Format Note"
+    },
+    "hashtags": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Hashtags",
+     "type": "array"
     },
     "hook_type": {
      "anyOf": [
@@ -775,6 +796,82 @@
    "title": "CardAnswersEvent",
    "type": "object"
   },
+  "CardCrosspostEvent": {
+   "additionalProperties": false,
+   "description": "Make a version of the card for the other platform: keep both, or switch (the original is skipped).",
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "mode": {
+     "default": "both",
+     "enum": [
+      "both",
+      "switch"
+     ],
+     "title": "Mode",
+     "type": "string"
+    },
+    "note": {
+     "default": "",
+     "maxLength": 1000,
+     "title": "Note",
+     "type": "string"
+    },
+    "target_format": {
+     "anyOf": [
+      {
+       "enum": [
+        "li_text",
+        "x_single",
+        "x_thread",
+        "x_quote",
+        "x_reply"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Target Format"
+    },
+    "target_platform": {
+     "enum": [
+      "linkedin",
+      "x"
+     ],
+     "title": "Target Platform",
+     "type": "string"
+    },
+    "type": {
+     "const": "card.crosspost",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id",
+    "target_platform"
+   ],
+   "title": "CardCrosspostEvent",
+   "type": "object"
+  },
   "CardDraftNowEvent": {
    "additionalProperties": false,
    "properties": {
@@ -817,6 +914,23 @@
     "card_id": {
      "title": "Card Id",
      "type": "string"
+    },
+    "hashtags": {
+     "anyOf": [
+      {
+       "items": {
+        "maxLength": 60,
+        "type": "string"
+       },
+       "maxItems": 15,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Hashtags"
     },
     "hook_index": {
      "anyOf": [
@@ -973,6 +1087,24 @@
      ],
      "default": null,
      "title": "Editing Seconds"
+    },
+    "hashtags": {
+     "anyOf": [
+      {
+       "items": {
+        "maxLength": 60,
+        "type": "string"
+       },
+       "maxItems": 15,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The hashtags that went out (already included in text/posts)",
+     "title": "Hashtags"
     },
     "hook_index": {
      "anyOf": [
@@ -1213,7 +1345,8 @@
       "wrong_timing",
       "too_risky",
       "already_covered",
-      "other"
+      "other",
+      "wrong_platform"
      ],
      "title": "Reason",
      "type": "string"
@@ -1503,6 +1636,20 @@
      "title": "Metrics",
      "type": "array"
     },
+    "platform_guide": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "What works on each platform: {reviewed, rules: [{id, platform, format, text, source, sources}], research: {month, summary, articles, proposals}}",
+     "title": "Platform Guide"
+    },
     "playbook": {
      "anyOf": [
       {
@@ -1778,6 +1925,19 @@
   },
   "Draft": {
    "properties": {
+    "first_comment": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Posted right after (LinkedIn comment / X reply): the link",
+     "title": "First Comment"
+    },
     "posts": {
      "default": [],
      "items": {
@@ -2070,6 +2230,7 @@
        "mapping": {
         "account.stats": "#/$defs/AccountStatsEvent",
         "card.answers": "#/$defs/CardAnswersEvent",
+        "card.crosspost": "#/$defs/CardCrosspostEvent",
         "card.draft_now": "#/$defs/CardDraftNowEvent",
         "card.edit": "#/$defs/CardEditEvent",
         "card.hook": "#/$defs/CardHookEvent",
@@ -2112,6 +2273,9 @@
        },
        {
         "$ref": "#/$defs/CardRewriteEvent"
+       },
+       {
+        "$ref": "#/$defs/CardCrosspostEvent"
        },
        {
         "$ref": "#/$defs/CardAnswersEvent"
@@ -3212,6 +3376,14 @@
      "title": "Guard",
      "type": "object"
     },
+    "hashtags": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Hashtags",
+     "type": "array"
+    },
     "hook_used": {
      "anyOf": [
       {
@@ -4270,7 +4442,8 @@
        "reflection",
        "doctor",
        "report",
-       "scout"
+       "scout",
+       "platform_research"
       ],
       "type": "string"
      },
@@ -4357,7 +4530,8 @@
       "wrong_timing",
       "too_risky",
       "already_covered",
-      "other"
+      "other",
+      "wrong_platform"
      ],
      "title": "Reason",
      "type": "string"
@@ -5449,6 +5623,22 @@
      "title": "Chips",
      "type": "array"
     },
+    "crosspost": {
+     "anyOf": [
+      {
+       "enum": [
+        "both",
+        "switch"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Crosspost"
+    },
     "kind": {
      "enum": [
       "draft",
@@ -5538,6 +5728,22 @@
   },
   "Working": {
    "properties": {
+    "hashtags": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The hashtags he kept or added (null: the suggested ones)",
+     "title": "Hashtags"
+    },
     "hook_index": {
      "anyOf": [
       {

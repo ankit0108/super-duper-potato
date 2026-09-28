@@ -94,6 +94,67 @@ function draftFromSources(card: Card): Card["draft"] {
   return { text: card.platform === "x" ? text.slice(0, 270) : text, posts: card.format === "x_thread" ? [text.slice(0, 270)] : [] };
 }
 
+const PILLAR_FOR: Record<string, string> = {
+  research: "tech", industry: "tech", receipts: "tech", learning: "tech", tech: "industry", startups: "industry", affairs: "industry", life: "learning",
+};
+const DEMO_TAGS: Record<string, string[]> = { linkedin: ["#AI", "#Automation", "#FutureOfWork"], x: ["#AI"] };
+
+/** Sentences packed into posts of at most `max` characters. */
+function packPosts(sentences: string[], max: number, limit: number): string[] {
+  const posts: string[] = [];
+  for (const s of sentences) {
+    const last = posts[posts.length - 1];
+    if (last && `${last} ${s}`.length <= max) posts[posts.length - 1] = `${last} ${s}`;
+    else posts.push(s.slice(0, max));
+  }
+  return posts.slice(0, limit);
+}
+
+/** Like the pipeline's adapt(): a version for the other platform, delivered with the original's set. */
+function crosspostCard(desk: DeskState, source: Card, ev: Extract<InboxEvent, { type: "card.crosspost" }>, now: string): Card {
+  const platform = ev.target_platform;
+  const strategy = (desk.settings?.strategy ?? {}) as Record<string, Record<string, { formats?: string[] }>>;
+  const pillars = strategy[platform] ?? {};
+  const pillar = pillars[source.pillar] ? source.pillar : pillars[PILLAR_FOR[source.pillar] ?? ""] ? PILLAR_FOR[source.pillar] : (Object.keys(pillars)[0] ?? source.pillar);
+  const formats = pillars[pillar]?.formats ?? [platform === "linkedin" ? "li_text" : "x_single"];
+  const wanted = ev.target_format ?? (platform === "linkedin" ? "li_text" : "x_single");
+  const format = (formats.includes(wanted) ? wanted : formats[0]) as Card["format"];
+  const base = source.working ?? source.draft ?? { text: "", posts: [] };
+  const full = base.posts?.length ? base.posts.join(" ") : (base.text ?? "");
+  const sentences = splitSentences(full.replace(/\s*\n+\s*/g, " ")).filter(Boolean);
+  let draft: Card["draft"];
+  if (format === "x_thread") draft = { text: "", posts: packPosts(sentences, 270, 5) };
+  else if (platform === "x") draft = { text: packPosts(sentences, 270, 1)[0] ?? "", posts: [] };
+  else draft = { text: (base.posts?.length ? base.posts : sentences).join("\n\n"), posts: [] };
+  draft = { ...draft, first_comment: source.draft?.first_comment ?? null };
+  return {
+    id: `demo_xp_${source.id}_${platform}_${ev.id.slice(-6)}`,
+    kind: "adapt",
+    crosspost_of: source.id,
+    delivery_id: source.delivery_id ?? null,
+    arm: `${platform}:${pillar}:${format}`,
+    platform,
+    pillar,
+    format,
+    mode: source.mode,
+    title: source.title,
+    why_now: source.why_now,
+    angle: source.angle,
+    sources: source.sources ?? [],
+    hooks: source.hooks ?? [],
+    hashtags: DEMO_TAGS[platform],
+    draft,
+    draft_original: draft,
+    draft_state: "full",
+    draft_basis: source.draft_basis ?? null,
+    status: "suggested",
+    created_at: now,
+    updated_at: now,
+    delivered_at: now,
+    revision: 1,
+  };
+}
+
 function rewriteText(card: Card, chips: string[], note: string): Card["draft"] {
   const current = card.working ?? card.draft ?? { text: "", posts: [] };
   const wantShort = chips.includes("Shorter") || /short/i.test(note);
@@ -137,6 +198,10 @@ export function processDemoEvents(desk: DeskState, events: InboxEvent[]): DeskSt
         revision: (c.revision ?? 0) + 1,
         updated_at: now,
       };
+    }
+    if (ev.type === "card.crosspost" && idx >= 0 && cards[idx].work?.target_platform === ev.target_platform) {
+      cards.unshift(crosspostCard(next, cards[idx], ev, now));
+      cards[idx + 1] = { ...cards[idx + 1], work: null };
     }
     if (ev.type === "card.draft_now" && idx >= 0) {
       const c = cards[idx];

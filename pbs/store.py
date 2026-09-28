@@ -62,18 +62,18 @@ TABLES: dict[str, Table] = {
            indexes="status request_id"),
         _t("cards",
            "topic_id request_id delivery_id kind platform mode pillar format affairs_type issue_key title "
-           "why_now angle format_note draft draft_original hooks hook_type sources claims flags questions "
+           "why_now angle format_note draft draft_original hooks hook_type hashtags sources claims flags questions "
            "answers status rank score score_parts explore experiment_id arm versions llm work working skip "
-           "rewrite_count delivered_at expires_at status_changed_at post_id draft_state draft_basis created_at "
-           "updated_at revision",
-           json_cols="draft draft_original hooks sources claims flags questions answers score_parts versions "
-                     "llm work working skip",
+           "rewrite_count delivered_at expires_at status_changed_at post_id draft_state draft_basis crosspost_of "
+           "created_at updated_at revision",
+           json_cols="draft draft_original hooks hashtags sources claims flags questions answers score_parts "
+                     "versions llm work working skip",
            bool_cols="explore", shard="created_at", indexes="status platform topic_id delivery_id request_id"),
         _t("posts",
-           "card_id platform pillar format final_text final_posts posted_at post_url edit_ratio edit_stats "
+           "card_id platform pillar format final_text final_posts hashtags posted_at post_url edit_ratio edit_stats "
            "hook_used features editing_seconds time_to_post_minutes reward reward_parts perf guard "
            "created_at updated_at",
-           json_cols="final_posts edit_stats hook_used features reward_parts guard", indexes="card_id platform"),
+           json_cols="final_posts hashtags edit_stats hook_used features reward_parts guard", indexes="card_id platform"),
         _t("metrics",
            "post_id platform captured_at impressions reactions comments reposts sends followers_gained "
            "profile_views link_clicks source upload_id extraction_confidence match_confidence status raw "

@@ -2,6 +2,7 @@
 // shows up instantly (and offline). Pure: returns a new state plus the ids that are still pending.
 import type { Card, DeskState, InboxEvent, Post, Stance } from "@/types";
 import { draftText } from "./format";
+import { withoutHashtags } from "./hashtags";
 import { editRatio } from "./text";
 
 export type Pending = {
@@ -82,7 +83,14 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
       case "card.edit":
         updateCard(ev.card_id, (c) => ({
           ...c,
-          working: { text: ev.text ?? null, posts: ev.posts ?? null, hook_index: ev.hook_index ?? null, hooks: ev.hooks ?? c.working?.hooks ?? null, updated_at: ev.at },
+          working: {
+            text: ev.text ?? null,
+            posts: ev.posts ?? null,
+            hook_index: ev.hook_index ?? null,
+            hooks: ev.hooks ?? c.working?.hooks ?? null,
+            hashtags: ev.hashtags ?? c.working?.hashtags ?? null,
+            updated_at: ev.at,
+          },
           status: c.status === "suggested" || c.status === "blocked" ? "editing" : c.status,
         }));
         break;
@@ -104,9 +112,10 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
           title: card.title,
           final_text: finalText,
           final_posts: card.format === "x_thread" ? finalPosts : [],
+          hashtags: ev.hashtags ?? [],
           posted_at: ev.posted_at ?? ev.at,
           post_url: ev.post_url ?? null,
-          edit_ratio: base ? editRatio(base, finalText) : null,
+          edit_ratio: base ? editRatio(base, withoutHashtags(finalText, ev.hashtags ?? [])) : null,
           editing_seconds: ev.editing_seconds ?? null,
         };
         out.posts = [post, ...out.posts!.filter((p) => p.card_id !== card.id)];
@@ -136,6 +145,28 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
           },
         }));
         break;
+      case "card.crosspost": {
+        // A version for the other platform is on its way; "switch" also skips this one (right topic, wrong platform).
+        const i = cardIndex.get(ev.card_id);
+        if (i == null || out.cards![i].platform === ev.target_platform) break;
+        const mode = out.cards![i].status === "posted" ? "both" : (ev.mode ?? "both");
+        updateCard(ev.card_id, (c) => ({
+          ...c,
+          work: {
+            kind: "rewrite",
+            note: ev.note ?? "",
+            chips: [],
+            requested_at: ev.at,
+            target_platform: ev.target_platform,
+            target_format: ev.target_format ?? null,
+            crosspost: mode,
+          },
+          ...(mode === "switch"
+            ? { status: "skipped" as const, skip: { reason: "wrong_platform" as const, note: ev.note?.trim() || null, at: ev.at }, status_changed_at: ev.at }
+            : {}),
+        }));
+        break;
+      }
       case "card.answers":
         updateCard(ev.card_id, (c) => {
           const answers = new Map((c.answers ?? []).map((a) => [a.question_id, a]));

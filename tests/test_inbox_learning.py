@@ -57,6 +57,19 @@ def test_posting_records_edit_ratio_hook_and_features(make_ctx, tmp_path):
     assert inbox.ingest(ctx)["files"] == 0
 
 
+def test_cleanup_counts_each_file_once_and_only_for_its_own_run(make_ctx, tmp_path):
+    ctx = make_ctx()
+    write_inbox(ctx.data_root, [], name="a")
+    inbox.ingest(ctx)
+    inbox.ingest(ctx)  # the same file seen twice by one run
+    other = make_ctx(root=tmp_path / "other")
+    assert inbox.cleanup(other) == 0  # another run's context never carries these files
+    ctx.store.save()
+    assert inbox.cleanup(ctx) == 1
+    assert not list((ctx.data_root / "inbox").glob("*.json"))
+    assert inbox.cleanup(ctx) == 0
+
+
 def test_events_apply_once(make_ctx):
     ctx = _delivered(make_ctx)
     card = _card(ctx, "x")

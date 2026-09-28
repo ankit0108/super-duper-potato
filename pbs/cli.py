@@ -132,7 +132,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("tick", help="run everything that is due")
     p.add_argument("--data", help="data directory (default: $PBS_DATA_DIR or .pbs-data)")
     p.add_argument("--trigger", default="manual", help="schedule | dispatch | manual")
-    p.add_argument("--hint", default="", help="comma-separated tasks: morning,weekly_batch,reflection,doctor,scout")
+    p.add_argument("--hint", default="", help="comma-separated tasks: morning,weekly_batch,reflection,doctor,scout,platform_research")
     p.add_argument("--force", action="store_true", help="force hinted tasks (e.g. another morning set)")
     p.add_argument("--offline", action="store_true", help="fake model + mock web (no network, no keys)")
     p.add_argument("--no-notify", action="store_true")

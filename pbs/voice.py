@@ -14,7 +14,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from . import log, prompting, textutil, timeutil
+from . import hashtags, log, prompting, textutil, timeutil
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest
 
@@ -22,6 +22,9 @@ FLUFF = {"really", "very", "just", "truly", "incredibly", "extremely", "crucial"
          "leverage", "leveraging", "robust", "seamless", "seamlessly", "powerful", "exciting", "innovative",
          "journey", "unlock", "unleash", "dive", "deep-dive", "transformative", "groundbreaking", "delve"}
 _EMOJI = re.compile(r"[\U0001F300-\U0001FAFF☀-➿]")
+# Rules earlier versions wrote from his statistics: dropped when carried over (hashtags are now suggested
+# separately, so "No hashtags" learned before that would veto them).
+RETIRED_RULES = ("No hashtags on ",)
 _STOP = {"the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "is", "it", "that", "this", "with", "as",
          "be", "are", "was", "at", "by", "from", "we", "you", "i", "does", "do", "did", "your", "yours", "our", "their",
          "his", "her", "its", "my", "me", "us", "them", "they", "he", "she", "what", "which", "who", "whom", "when",
@@ -79,6 +82,7 @@ def compute_stats(ctx: Ctx, days: int = 60) -> dict[str, Any]:
             cut.update(sorted(_grams_of(s.get("removed"))))
             added.update(sorted(_grams_of(s.get("added"))))
         ratios = [p["edit_ratio"] for p in posts if p.get("edit_ratio") is not None]
+        tags = _hashtag_stats(posts)
         out[platform] = {
             "posts": len(posts),
             "final_length_median": int(statistics.median(final_chars)) if final_chars else None,
@@ -92,8 +96,31 @@ def compute_stats(ctx: Ctx, days: int = 60) -> dict[str, Any]:
             "edit_ratio_median": round(statistics.median(ratios), 3) if ratios else None,
             "cut": [{"phrase": k, "count": v} for k, v in cut.most_common(25) if v >= 2 and added[k] == 0],
             "added": [{"phrase": k, "count": v} for k, v in added.most_common(15) if v >= 2],
+            "hashtags": tags,
         }
     return out
+
+
+def _hashtag_stats(posts: list[dict[str, Any]]) -> dict[str, Any]:
+    """Which suggested tags he keeps, drops and adds, from posts that were offered tags."""
+    kept: Counter[str] = Counter()
+    dropped: Counter[str] = Counter()
+    added: Counter[str] = Counter()
+    n_offered = n_kept = n_posts = 0
+    for p in posts:
+        offered = {t.casefold(): t for t in (p.get("features") or {}).get("hashtags_offered") or []}
+        if not offered:
+            continue
+        used = {t.casefold(): t for t in p.get("hashtags") or []}
+        n_posts += 1
+        n_offered += len(offered)
+        n_kept += len(offered.keys() & used.keys())
+        kept.update(sorted(used[k] for k in used.keys() & offered.keys()))
+        dropped.update(sorted(offered[k] for k in offered.keys() - used.keys()))
+        added.update(sorted(used[k] for k in used.keys() - offered.keys()))
+    return {"offered_posts": n_posts, "keep_rate": round(n_kept / n_offered, 2) if n_offered else None,
+            "kept": [t for t, _ in kept.most_common(8)], "dropped": [t for t, c in dropped.most_common(8) if c >= 2],
+            "added": [t for t, c in added.most_common(8) if c >= 2]}
 
 
 def deterministic_rules(stats: dict[str, Any]) -> list[str]:
@@ -110,8 +137,9 @@ def deterministic_rules(stats: dict[str, Any]) -> list[str]:
             rules.append(f"On {label} he cuts drafts to about {pct}% of their length: aim for about {chars} characters.")
         if s.get("emoji_per_post") == 0:
             rules.append(f"No emoji on {label}.")
-        if s.get("hashtags_per_post") == 0:
-            rules.append(f"No hashtags on {label}.")
+        # Judged only on posts that were offered tags, so history from before tags were suggested can't veto them.
+        if hashtags.mostly_removed(s.get("hashtags")):
+            rules.append(f"He removes the suggested hashtags on {label}: suggest none.")
         if s.get("sentence_words_median") and s["sentence_words_median"] <= 12:
             words = int(round(s["sentence_words_median"] / 2) * 2)
             rules.append(f"Keep {label} sentences short (about {words} words).")
@@ -162,7 +190,8 @@ def update_voice(ctx: Ctx, weekly: bool = False) -> dict[str, Any] | None:
             avoid.add(c["phrase"])
     det_rules = deterministic_rules(stats)
     prev_det = deterministic_rules((prev or {}).get("stats") or {})
-    model_rules: list[str] = [r for r in (prev or {}).get("rules") or [] if r not in prev_det]
+    model_rules: list[str] = [r for r in (prev or {}).get("rules") or []
+                              if r not in prev_det and not r.startswith(RETIRED_RULES)]
     summary = (prev or {}).get("summary")
     if weekly:
         res = llm_rules(ctx, stats)
