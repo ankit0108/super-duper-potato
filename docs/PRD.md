@@ -24,6 +24,7 @@ v1 set the right goal and the right constraints. This version keeps both and cha
 | 12 | Operations | Run log only | Push notifications when drafts are ready (ntfy or Telegram, both free), health warnings in the desk (stale runs, failing sources, quota, a disabled schedule), and `pbs doctor` to automate the Phase 0 checks | Silent failure is the most likely way the habit breaks |
 | 13 | Weekly review | Fixed at Sunday 20:00 UTC, which is Monday morning in Melbourne | A "Run weekly review" button right after the Sunday screenshot upload, with a Monday-morning fallback | The review should reflect the screenshots Ankit just uploaded |
 | 14 | Platform fit | One writing style for both platforms, no hashtags, links in the post | Drafts follow a **platform guide** (what works on LinkedIn and on X now, per format), researched monthly and changed only with Ankit's approval. Every draft comes with hashtags to keep or drop and a first comment carrying the source link. Any card can be **cross-posted** (keep both) or **moved** to the other platform, and both teach the ranker | LinkedIn and X reward different writing. Links in the post body reach fewer people on both, and what works changes every few months |
+| 15 | Visuals | None | Carousels, flowcharts, comparisons, numbered lists, big numbers and quote cards, written by the model from the post and its sources and drawn by the desk as SVG, exported as PNG or a PDF carousel. No image model | A visual stops the scroll, and LinkedIn document carousels hold attention. Drawing in code keeps it free, on-brand, editable and checkable (figures are checked against the sources like any draft) |
 
 Four contradictions in v1 are resolved as follows:
 
@@ -241,6 +242,7 @@ v1's 26 requirements are kept; changed ones are marked **(v2)**, and new ones st
 | FR-34 | A draft with sources includes a first comment (LinkedIn) or self-reply (X) with the source link, since links in the post reach fewer people on both platforms. Only the card's own source links are allowed | 2 |
 | FR-35 | Any card can be cross-posted to the other platform (keep both) or moved there (the original is skipped as "wrong platform"). The new card has its own arm and delivery, links to the original, and feeds the next ranking | 2 |
 | FR-36 | A platform guide (what works on LinkedIn and X now, per format) goes into every draft, rewrite and cross-post after his own style rules, which win. Once a month, or on demand, a research step reads the last 30 days of coverage of both platforms and proposes guide changes that cite the articles; they apply only when he approves | 3 |
+| FR-37 | Any card can get a visual on request: carousel, flowchart, comparison, numbered list, big number or quote card (or let the model choose). Its words come only from the post and its sources; figures not in the sources are flagged and blocklist terms stop it. The desk draws it at 1080×1350 (LinkedIn) or 1600×900 (X), lets him edit every word, and exports PNG images or a PDF carousel. Whether a post went out with a visual is recorded and compared in Insights | 3 |
 
 ## Learning design
 
@@ -276,6 +278,7 @@ If X analytics aren't available on Ankit's plan, a screenshot of the post itself
 - what the draft was written from (sources, or his answers plus sources)
 - hashtags offered and how many he kept
 - whether it was a cross-post
+- the kind of visual posted with it, if any
 - playbook, prompt and voice versions
 
 **Arms.** Thompson sampling over pillar or lane × format, per platform. Each arm's Beta posterior is recomputed every run from the signal log, with every observation weighted by `0.5^(age / 42 days)`. The result is a six-week half-life, and the numbers are reproducible and auditable. Priors come from the content-strategy weights: a prior mean between 0.25 and 0.75 proportional to the weight, with a strength of four pseudo-observations.
@@ -331,6 +334,7 @@ Every action in the desk is logged as a signal, not just the final post.
 | Hashtags kept, dropped or added | The chips on the card, recorded with the post | Which tags to suggest, per platform |
 | Cross-posts and moves | **Also for X/LinkedIn**, **Move to … instead** | Which topics suit which platform; a move is a mild negative for the original lane only |
 | Guide changes approved or rejected | Proposals page | What the drafts are told works on each platform |
+| Visuals asked for, edited and posted | **Visual** panel, **Posted with the visual** | Which kinds he uses, and how posts with a visual do against posts without |
 
 ### How the system checks itself
 
@@ -356,7 +360,7 @@ All state lives in the private data repo as JSON Lines, one table per file. High
 | sources | name, kind, url or query, scout, language, tier (world, India, Bihar), active, health (last success, failures, ETag), yield | Source registry, feed health and yield |
 | items *(monthly, pruned after 45 days)* | source, url, title, English title and summary, language, published and fetched time, title hash, topic | Raw scouted and searched material |
 | topics *(monthly)* | origin (scout, request, evergreen), title, items, why-now note, first seen, triage, score per platform | Ranked candidates |
-| cards *(monthly)* | topic, platform, mode, pillar or lane, format, affairs type, hooks, draft (with first comment), hashtags, sources, claims, flags, questions and answers, draft basis, status, rank, arm, exploration and experiment, cross-post of, versions, expiry | What gets delivered |
+| cards *(monthly)* | topic, platform, mode, pillar or lane, format, affairs type, hooks, draft (with first comment), hashtags, sources, claims, flags, questions and answers, draft basis, visual, status, rank, arm, exploration and experiment, cross-post of, versions, expiry | What gets delivered |
 | posts | card, final text, hashtags, posted time, post URL, edit ratio (without the hashtags), hook used, features, editing time, reward | What actually went out |
 | metrics | post, captured time, impressions, reactions, comments, reposts, followers gained, profile views, source, screenshot, extraction and match confidence, review status | Outcomes |
 | account_stats | date, platform, followers, profile views | Weekly brand metrics |
@@ -380,13 +384,13 @@ The **Board** is the only page Ankit needs daily.
 | Page | What it does |
 | --- | --- |
 | Board | Today's delivery: ranked cards for LinkedIn and X in Suggested, Needs input, Editing and Posted. Each card shows why now, angle, pillar, format and flags. One-tap skip with a reason. Banners for degraded runs, blocked cards and pending sync |
-| Card editor | The draft, with a live counter (LinkedIn 3,000 with the fold marker; X 280 weighted per post, hashtags included). Thread split, merge and reorder. Editable hooks, hashtag chips, the first comment with a copy button, sources with claims, guardrail flags and platform tips (a link in the post, an opening past the fold, long paragraphs, too many tags), a diff and edit ratio against the original, and a rewrite with note and chips. Copy per post, compose link, **Posted** (URL and time optional), **Also for X/LinkedIn**, and skip with a reason (or move it to the other platform). Optional questions with dictation. The card's history |
+| Card editor | The draft, with a live counter (LinkedIn 3,000 with the fold marker; X 280 weighted per post, hashtags included). Thread split, merge and reorder. Editable hooks, hashtag chips, the first comment with a copy button, a visual panel (create, flip through, edit, download PNG or PDF, copy image and alt text), sources with claims, guardrail flags and platform tips (a link in the post, an opening past the fold, long paragraphs, too many tags), a diff and edit ratio against the original, and a rewrite with note and chips. Copy per post, compose link, **Posted** (URL and time optional), **Also for X/LinkedIn**, and skip with a reason (or move it to the other platform). Optional questions with dictation. The card's history |
 | Requests | New request (query, platforms, counts, notes) that runs immediately; status and resulting cards |
 | Stances | Issues by tier with positions side by side; pick one or write your own; the system proposes new issues but never picks |
 | Metrics | Screenshot upload (compressed in the browser), a review queue for flagged extractions, manual entry per post, weekly follower check-in |
-| Insights | Cadence, hit rate, edit ratio, rewards, picks by pillar vs weights, rank-1 accuracy; playbook and changelog; the platform guide with its latest research and a **Research now** button; proposals to approve; weekly system report; voice profile; the skip reasons and cross-posts the ranking uses; bandit arms |
+| Insights | Cadence, hit rate, edit ratio, rewards, picks by pillar vs weights, rank-1 accuracy; playbook and changelog; the platform guide with its latest research and a **Research now** button; proposals to approve; weekly system report; voice profile; the skip reasons and cross-posts the ranking uses; posts with and without a visual; bandit arms |
 | Sources | Registry by scout with health and yield; add (RSS or Google News query), pause, delete |
-| Settings | Connection (repo, token kept on this device), profile, slots, hashtags (on or off, how many per platform), pillar weights, reward weights, exploration, reply-angle threshold, watchlist, X Premium, models, local guard terms (kept on this device only), appearance |
+| Settings | Connection (repo, token kept on this device), profile, slots, hashtags (on or off, how many per platform), visuals (on or off, the name on images, accent colour), pillar weights, reward weights, exploration, reply-angle threshold, watchlist, X Premium, models, local guard terms (kept on this device only), appearance |
 | System | Recent runs, quota per provider, warnings, and **Run now** buttons (tick, morning delivery, weekly review, doctor) |
 | History | Past cards and posts with search and filters |
 
@@ -438,7 +442,7 @@ Off-peak minutes are used because GitHub delays top-of-the-hour schedules. Even 
 | Rewrites, answered cards, requests | 3–8 |
 | **Total** | **About 15 to 20**, with a hard cap of 60 per day in settings |
 
-Weekly extras: reflection 1, voice 1, one per screenshot, stance proposals 1. Monthly: platform research 1 (after four Google News searches), in the first run of the month. A cross-post is one call.
+Weekly extras: reflection 1, voice 1, one per screenshot, stance proposals 1. Monthly: platform research 1 (after four Google News searches), in the first run of the month. A cross-post is one call, and so is a visual.
 
 When a provider returns a quota error, the chain moves to the next provider. If all are exhausted, runs degrade in order: first fewer cards (the lowest-ranked beyond each platform's minimum are dropped), then brief cards (topic, why now, angle, sources) with a **Draft this** button that drafts it on demand once quota is back. The desk says which happened.
 

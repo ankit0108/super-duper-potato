@@ -22,7 +22,8 @@ import { CrosspostDialog, PostedDialog, RewriteDialog, type CrosspostPayload, ty
 import { FirstComment } from "./card/FirstComment";
 import { HashtagsBar } from "./card/Hashtags";
 import { Interview } from "./card/Interview";
-import { useWorkingCopy, type WorkingCopy } from "./card/useWorkingCopy";
+import { currentVisual, editedVisual, useWorkingCopy, type WorkingCopy } from "./card/useWorkingCopy";
+import { VISUAL_KINDS, VisualPanel, type VisualChoice } from "./card/VisualPanel";
 
 /** The working copy as a card.edit event: text or thread posts, the opening in use and his edited openings. */
 function editEvent(card: Card, copy: WorkingCopy): EventInput {
@@ -33,6 +34,22 @@ function editEvent(card: Card, copy: WorkingCopy): EventInput {
     hook_index: copy.hookIndex,
     ...(copy.hooks ? { hooks: copy.hooks.map((h) => ({ type: h.type ?? "observation", text: h.text })) } : {}),
     ...(copy.hashtags ? { hashtags: copy.hashtags } : {}),
+    ...visualIn(editedVisual(copy, card)),
+  };
+}
+
+/** His edits of the visual, in the event's shape (only the words; the pipeline keeps its sources and checks). */
+function visualIn(v: import("@/types").Visual | null) {
+  if (!v) return {};
+  return {
+    visual: {
+      kind: v.kind,
+      title: v.title ?? "",
+      subtitle: v.subtitle ?? null,
+      items: (v.items ?? []).slice(0, 12).map((it) => ({ title: it.title ?? "", body: it.body ?? "" })),
+      caption: v.caption ?? null,
+      alt_text: v.alt_text ?? "",
+    },
   };
 }
 
@@ -102,6 +119,24 @@ function CardView({ card }: { card: Card }) {
   const setTags = (tags: string[]) => {
     markEditing();
     wc.update({ hashtags: tags });
+  };
+  const visual = currentVisual(wc.copy, card);
+  const visualBusy = card.work?.kind === "visual";
+  const visualsOn = (settings?.visuals as { enabled?: boolean } | undefined)?.enabled !== false;
+  const imageName =
+    (card.platform === "linkedin" ? settings?.visuals?.name_linkedin : settings?.visuals?.name_x) || view?.meta?.display_name || settings?.display_name || "";
+  const requestVisual = (kind: VisualChoice, note: string) => {
+    markEditing(); // asking for a visual picks the card, like editing it
+    const events: EventInput[] = [];
+    // The visual is drawn from the text as he has it now.
+    if (wc.dirtyVsServer) events.push(editEvent(card, wc.copy));
+    events.push({ type: "card.visual", card_id: card.id, kind, note });
+    const label = VISUAL_KINDS.find((k) => k.value === kind)?.label.toLowerCase();
+    act(events, { toast: kind === "auto" ? "Drawing a visual for this post. It arrives in about two minutes." : `Drawing a ${label} for this post. It arrives in about two minutes.` });
+  };
+  const editVisual = (v: import("@/types").Visual) => {
+    markEditing();
+    wc.update({ visual: v, visualBase: card.visual?.created_at ?? null });
   };
 
   // First keystroke picks the card (the ranker learns from picks).
@@ -202,6 +237,7 @@ function CardView({ card }: { card: Card }) {
         editing_seconds: p.editing_seconds,
         hook_index: wc.copy.hookIndex,
         hashtags: chosenTags,
+        with_visual: visual ? p.with_visual : null,
         },
       ],
       { toast: baseline ? `Posted. You changed ${pct(editRatio(baseline, withoutHashtags(p.text, chosenTags)))} of the draft.` : "Posted." },
@@ -397,6 +433,18 @@ function CardView({ card }: { card: Card }) {
                 <HashtagsBar platform={card.platform} suggested={suggestedTags} chosen={chosenTags} onChange={setTags} />
               )}
               {card.draft?.first_comment && <FirstComment platform={card.platform} text={card.draft.first_comment} />}
+              {(visualsOn || visual) && (
+                <VisualPanel
+                  card={card}
+                  visual={visual}
+                  busy={visualBusy}
+                  canRequest={visualsOn && (!card.work || visualBusy)}
+                  name={imageName}
+                  accent={settings?.visuals?.accent}
+                  onRequest={requestVisual}
+                  onEdit={editVisual}
+                />
+              )}
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" variant={showDiff ? "soft" : "ghost"} icon={<GitCompare className="size-4" />} onClick={() => setShowDiff((v) => !v)} aria-pressed={showDiff}>
                   {showDiff ? "Hide changes" : "Show changes"}
@@ -422,7 +470,7 @@ function CardView({ card }: { card: Card }) {
         // On phones the bar sits directly on the bottom nav (a 3.5rem row plus the safe area).
         <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-border bg-surface px-3 py-2 lg:static lg:mt-6 lg:rounded-2xl lg:border lg:px-4 lg:py-3">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2">
-            <Button variant="primary" icon={<Send className="size-4" />} onClick={() => setPosting(true)} disabled={!text.trim() || !!card.work}>
+            <Button variant="primary" icon={<Send className="size-4" />} onClick={() => setPosting(true)} disabled={!text.trim() || (!!card.work && !visualBusy)}>
               Posted
             </Button>
             <Button icon={<Copy className="size-4" />} onClick={() => void copyAll()} disabled={!text.trim()}>
@@ -456,6 +504,7 @@ function CardView({ card }: { card: Card }) {
         tags={chosenTags}
         baseline={baseline}
         editingSeconds={seconds}
+        visualLabel={visual ? VISUAL_KINDS.find((k) => k.value === visual.kind)?.label : null}
         onConfirm={confirmPosted}
       />
       <RewriteDialog open={rewriting} onClose={() => setRewriting(false)} card={card} onConfirm={confirmRewrite} />

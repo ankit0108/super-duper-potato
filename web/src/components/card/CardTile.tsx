@@ -14,6 +14,7 @@ export function workLabel(card: Card): string | null {
   if (card.work.kind === "rewrite" && card.work.target_platform && card.work.target_platform !== card.platform)
     return card.work.crosspost === "switch" ? `Moving to ${PLATFORM_LABEL[card.work.target_platform]}…` : `Making the ${PLATFORM_LABEL[card.work.target_platform]} version…`;
   if (card.work.kind === "rewrite") return "Rewriting…";
+  if (card.work.kind === "visual") return "Drawing the visual…";
   if (card.work.kind === "questions") return "Preparing questions…";
   if ((card.answers?.length ?? 0) > 0) return "Drafting from your answers + sources…";
   return card.mode === "interview" ? "Drafting from recent sources…" : "Drafting…";

@@ -97,7 +97,7 @@ def posted_body(fmt: str, final_text: str, final_posts: list[str]) -> tuple[str,
 
 def record_post(ctx: Ctx, card: dict[str, Any], *, text: str | None, posts: list[str] | None, post_url: str | None,
                 posted_at: str, editing_seconds: int | None, hook_index: int | None,
-                tags: list[str] | None = None) -> dict[str, Any]:
+                tags: list[str] | None = None, with_visual: bool | None = None) -> dict[str, Any]:
     working = card.get("working") or {}
     system_draft = card.get("draft") or {}
     if card["format"] == "x_thread":
@@ -145,6 +145,8 @@ def record_post(ctx: Ctx, card: dict[str, Any], *, text: str | None, posts: list
         "hashtags_offered": offered,
         "hashtags_used": len(used),
         "crosspost": bool(card.get("crosspost_of")),
+        # The kind of visual that went out with it (he says so when marking it posted), or None.
+        "visual": ((working.get("visual") or card.get("visual") or {}).get("kind") if with_visual else None),
     }
     guard = guardrails.check_final(final_text, ctx.blocklist)
     if guard["blocked"]:

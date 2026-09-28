@@ -264,6 +264,44 @@ def _research(req: LLMRequest, data: Any) -> Any:
                          "why": "Reported this month.", "evidence": [a.get("id")], "confidence": "medium"}]}
 
 
+_VISUAL_MARKERS = (("carousel", "Make a document carousel"), ("carousel", "Make a carousel of images"),
+                   ("flow", "Make a flowchart"),
+                   ("compare", "Make a two-column comparison"), ("list", "Make a numbered list"),
+                   ("stat", "Make one big number"), ("quote", "Make a quote card"))
+
+
+def _visual(req: LLMRequest, data: Any) -> Any:
+    """The requested kind (a carousel when it's up to the model), built from the post's own sentences."""
+    data = data if isinstance(data, dict) else {}
+    post = data.get("post") or ""
+    sentences = [s for s in textutil.split_sentences(post.replace("\n", " ")) if s.strip()]
+    kind = next((k for k, marker in _VISUAL_MARKERS if marker in req.prompt), "carousel")
+    title = textutil.truncate(data.get("topic") or (sentences[0] if sentences else "The point"), 70)
+    sources = data.get("sources") or []
+    figures = textutil.numeric_claims(post)
+    if kind == "stat" and not figures:
+        kind = "list"  # a big number needs a figure
+    if kind == "stat":
+        about = next((s for s in sentences if figures[0] in s), sentences[0] if sentences else title)
+        items = [{"title": figures[0], "body": textutil.truncate(about, 120)}]
+    elif kind == "quote":
+        items = [{"title": (sources[0].get("publisher") if sources else None) or "The source",
+                  "body": textutil.truncate(sentences[0] if sentences else title, 200)}]
+    elif kind == "compare":
+        half = max(1, len(sentences) // 2)
+        items = [{"title": "What it says", "body": "\n".join(textutil.truncate(s, 60) for s in sentences[:half][:4])},
+                 {"title": "What it means", "body": "\n".join(textutil.truncate(s, 60) for s in sentences[half:][:4])
+                  or "Watch what happens next"}]
+    else:
+        chunks = (sentences or [title])[: {"carousel": 6, "flow": 5, "list": 5}[kind]]
+        while len(chunks) < 3:
+            chunks.append(f"Step {len(chunks) + 1}")
+        items = [{"title": textutil.truncate(s, 40), "body": textutil.truncate(s, 200)} for s in chunks]
+    return {"kind": kind, "title": title, "subtitle": data.get("angle") or "", "items": items,
+            "caption": f"Source: {sources[0].get('title')}" if sources else "", "alt_text": "",
+            "sources": [0] if sources else []}
+
+
 def _default(req: LLMRequest, data: Any) -> Any:
     return {"ok": True}
 
@@ -283,5 +321,6 @@ DEFAULT_HANDLERS: dict[str, Handler] = {
     "search_plan": _search_plan,
     "search_rerank": _search_rerank,
     "research": _research,
+    "visual": _visual,
     "default": _default,
 }

@@ -1,5 +1,6 @@
 // End to end in demo mode, on desktop and a phone (see playwright.config.ts). The demo data comes from
 // `pbs demo` (npm run demo-data): the real pipeline's output, so these tests also catch contract drift.
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
 const PAGES: Array<[string, RegExp]> = [
@@ -96,11 +97,11 @@ test("a card waiting for answers can be drafted from sources without answering",
 
 test("skip a card from the board with a reason", async ({ page }) => {
   const tile = todaySection(page).locator("[data-tile]").nth(1);
-  const title = (await tile.locator("h3").textContent())!;
+  const name = (await tile.getAttribute("aria-label"))!; // "LinkedIn card: …" (a cross-post can share the title)
   await tile.getByRole("button", { name: "Skip" }).click();
   await page.getByRole("menuitem", { name: /^Wrong timing/ }).click();
   await expect(page.getByText("Skipped. No penalty: it was only the timing.")).toBeVisible();
-  await expect(todaySection(page).getByText(title, { exact: true })).toHaveCount(0);
+  await expect(todaySection(page).getByRole("article", { name, exact: true })).toHaveCount(0);
   await expect(doneSection(page).getByText("Wrong timing")).toBeVisible();
 });
 
@@ -200,6 +201,43 @@ test("the platform guide drafts follow, and researched changes wait for approval
   await noSidewaysScroll(page);
   await proposal.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByText("Approved. It applies on the next run.")).toBeVisible();
+});
+
+test("a card's carousel: flip through it, download the PDF and a slide", async ({ page }) => {
+  await page.getByRole("article", { name: /^LinkedIn card: AgentBench/ }).click();
+  const panel = page.getByRole("region", { name: "Visual" });
+  await expect(panel.getByRole("img")).toHaveAttribute("alt", /Carousel: 41% end to end/);
+  await expect(panel.getByText("Slide 1 of 6")).toBeVisible();
+  await panel.getByRole("button", { name: "Next slide" }).click();
+  await expect(panel.getByText("Slide 2 of 6")).toBeVisible();
+  const [pdf] = await Promise.all([page.waitForEvent("download"), panel.getByRole("button", { name: "Download PDF" }).click()]);
+  expect(pdf.suggestedFilename()).toMatch(/\.pdf$/);
+  const pdfBytes = readFileSync((await pdf.path())!);
+  expect(pdfBytes.subarray(0, 8).toString("latin1")).toBe("%PDF-1.4");
+  expect(pdfBytes.toString("latin1")).toContain("/Count 6");
+  const [png] = await Promise.all([page.waitForEvent("download"), panel.getByRole("button", { name: "Download this slide (PNG)" }).click()]);
+  expect(png.suggestedFilename()).toMatch(/-2\.png$/);
+  expect(readFileSync((await png.path())!).subarray(1, 4).toString("latin1")).toBe("PNG");
+});
+
+test("draw a flowchart for a post, edit its words and post it with the visual", async ({ page }) => {
+  await todaySection(page).getByRole("article", { name: /^X card:/ }).first().click();
+  const panel = page.getByRole("region", { name: "Visual" });
+  await panel.getByLabel("Kind").selectOption("flow");
+  await panel.getByRole("button", { name: "Create visual" }).click();
+  await expect(page.getByText(/^Drawing a flowchart for this post/)).toBeVisible();
+  await expect(panel.locator("h3").getByText("Flowchart", { exact: true })).toBeVisible();
+  await panel.getByRole("button", { name: "Edit text" }).click();
+  await panel.getByLabel("Headline").fill("Three corridors, five steps");
+  await panel.getByRole("button", { name: "Save visual" }).click();
+  await expect.poll(async () => decodeURIComponent((await panel.getByRole("img").getAttribute("src")) ?? "")).toContain("Three corridors, five steps");
+  await page.getByRole("button", { name: "Posted", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Mark as posted" });
+  await expect(dialog.getByRole("checkbox", { name: /Posted with the visual \(flowchart\)/ })).toBeChecked();
+  await dialog.getByRole("button", { name: "Mark posted" }).click();
+  await expect(page.getByText(/^Posted\./)).toBeVisible();
+  await page.goto("/#/insights?tab=learning");
+  await expect(page.getByRole("heading", { name: "Posts with a visual (last 90 days)" })).toBeVisible();
 });
 
 test("ask for a topic and get drafts back", async ({ page }) => {

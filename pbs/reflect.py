@@ -100,6 +100,7 @@ def _week_input(ctx: Ctx, start: dt.datetime, end: dt.datetime) -> dict[str, Any
         posts.append({"id": p["id"], "platform": p["platform"], "pillar": p["pillar"], "format": p["format"],
                       "hook": (p.get("hook_used") or {}).get("type"), "edit_ratio": p.get("edit_ratio"),
                       "written_from": (p.get("features") or {}).get("draft_basis"),
+                      "visual": (p.get("features") or {}).get("visual"),
                       "reward": p.get("reward"), "rank": (p.get("features") or {}).get("rank"),
                       "opening": textutil.truncate(p.get("final_text"), 200)})
     cards = ctx.store.select("cards", "delivered_at >= ? AND delivered_at < ?", (s, e))

@@ -54,7 +54,9 @@ HOOK_PREFERENCE = ["number", "question", "observation", "contrarian", "how-to", 
 SKIP_NOTES = {15: "Too much hype, not enough on how teams actually use it at work.",
               18: "I've seen this angle too often; I'd rather see what changes for operations teams."}
 CLOSERS = ["Where have you seen this play out?", "What would you add?", "Curious where others land on this."]
-DROPPED_TAG = "#Automation"  # too broad: he removes it from LinkedIn posts, and the drafts learn to leave it out
+DROPPED_TAG = "#Automation"
+# Days when his LinkedIn post goes out with a visual he asked for that morning.
+VISUAL_DAYS = {15: "flow", 17: "carousel", 19: "stat"}  # too broad: he removes it from LinkedIn posts, and the drafts learn to leave it out
 # What "auto:flash" and "auto:flash-lite" resolved to when this demo was written.
 DEMO_MODELS = {"gemini": "gemini-3.6-flash", "gemini_lite": "gemini-3.5-flash-lite"}
 PINNED = {7: "On this day in 1949", 8: "Engineers' Day"}  # history posts on 14 and 15 September
@@ -247,6 +249,9 @@ class Simulation:
         if i in (1, 4) and plan.li_post:
             self.rewrite_first(day, cards["linkedin"][plan.li_post - 1])
             cards = self.delivered(day)
+        if i in VISUAL_DAYS and plan.li_post:
+            self.visual_first(day, cards["linkedin"][plan.li_post - 1], VISUAL_DAYS[i])
+            cards = self.delivered(day)
         am_events = self.post_events(i, week, day, am, cards, "07:05")
         am_events += self.extras(i, day, "am")
         if am_events:
@@ -402,6 +407,12 @@ class Simulation:
              "at": timeutil.iso(self.at(day, "06:50"))},
         ])
 
+    def visual_first(self, day: dt.date, card: dict[str, Any], kind: str) -> None:
+        self.session(self.at(day, "06:58"), [
+            {"type": "card.visual", "card_id": card["id"], "kind": kind, "note": "",
+             "at": timeutil.iso(self.at(day, "06:55"))},
+        ])
+
     def post_events(self, i: int, week: int, day: dt.date, picks: list[tuple[str, int]],
                     cards: dict[str, list[dict[str, Any]]], start: str) -> list[dict[str, Any]]:
         events: list[dict[str, Any]] = []
@@ -416,7 +427,8 @@ class Simulation:
                 tags = [t for t in card.get("hashtags") or [] if t != DROPPED_TAG]
                 final = {"text": text, "hashtags": tags}
                 # The desk adds the chosen tags as the last line when he copies the post.
-                posted = {"text": f"{text}\n\n{' '.join(tags)}" if tags else text, "hashtags": tags}
+                posted = {"text": f"{text}\n\n{' '.join(tags)}" if tags else text, "hashtags": tags,
+                          **({"with_visual": True} if card.get("visual") else {})}
             else:
                 secs = self.rng.randint(*[(230, 420), (140, 260), (60, 150)][week])
                 final = self.x_final(card, week)
@@ -525,7 +537,8 @@ class Simulation:
         hook = (post.get("hook_used") or {}).get("type")
         if post["platform"] == "linkedin":
             base = 1100 * (1.25 if post.get("pillar") == "research" else 1.0) * \
-                {"number": 1.2, "question": 1.05}.get(hook or "", 0.9)
+                {"number": 1.2, "question": 1.05}.get(hook or "", 0.9) * \
+                (1.3 if (post.get("features") or {}).get("visual") else 1.0)  # visuals held attention a bit longer
             imp = int(base * (1 + 0.025 * i) * rng.lognormvariate(0, 0.3) * later)
             reactions = max(4, int(imp * rng.uniform(0.012, 0.028)))
             return {"impressions": imp, "reactions": reactions, "comments": int(reactions * rng.uniform(0.12, 0.3)),
@@ -627,6 +640,8 @@ class Simulation:
         x_top = next((c for c in cards["x"] if c["status"] == "suggested" and c["format"] != "x_thread"), None)
         skip = next((c for c in reversed(cards["linkedin"]) if c["status"] == "suggested"), None)
         li_top = next((c for c in cards["linkedin"] if c["status"] == "suggested" and c is not skip), None)
+        li_next = next((c for c in cards["linkedin"] if c["status"] == "suggested" and c is not skip
+                        and c is not li_top), None)
         move = next((c for c in reversed(cards["x"]) if c["status"] == "suggested" and c is not x_top
                      and c["format"] in ("x_single", "x_thread") and c.get("mode") != "interview"), None)
         events: list[dict[str, Any]] = []
@@ -638,8 +653,11 @@ class Simulation:
         if skip:
             events.append({"type": "card.skip", "card_id": skip["id"], "reason": "already_covered",
                            "at": timeutil.iso(t + dt.timedelta(minutes=5))})
-        if li_top:  # an X thread of the day's top LinkedIn card, as well
-            events.append({"type": "card.crosspost", "card_id": li_top["id"], "target_platform": "x",
+        if li_top:  # a carousel for the top LinkedIn card
+            events.append({"type": "card.visual", "card_id": li_top["id"], "kind": "carousel", "note": "",
+                           "at": timeutil.iso(t + dt.timedelta(minutes=4))})
+        if li_next:  # an X thread of another LinkedIn card, as well
+            events.append({"type": "card.crosspost", "card_id": li_next["id"], "target_platform": "x",
                            "target_format": "x_thread", "mode": "both", "note": "",
                            "at": timeutil.iso(t + dt.timedelta(minutes=6))})
         if move:  # right topic, wrong platform

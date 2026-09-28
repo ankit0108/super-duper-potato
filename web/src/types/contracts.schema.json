@@ -691,6 +691,17 @@
       "voice": null
      }
     },
+    "visual": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Visual"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
     "why_now": {
      "anyOf": [
       {
@@ -1000,6 +1011,18 @@
      "const": "card.edit",
      "title": "Type",
      "type": "string"
+    },
+    "visual": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/VisualIn"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The visual's text as he edited it"
     }
    },
    "required": [
@@ -1183,6 +1206,19 @@
      "const": "card.posted",
      "title": "Type",
      "type": "string"
+    },
+    "with_visual": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "He posted the card's visual with it",
+     "title": "With Visual"
     }
    },
    "required": [
@@ -1406,6 +1442,66 @@
     "status"
    ],
    "title": "CardStatusEvent",
+   "type": "object"
+  },
+  "CardVisualEvent": {
+   "additionalProperties": false,
+   "description": "Draw a visual for the post: a carousel, flowchart, comparison, list, big number or quote.",
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "kind": {
+     "anyOf": [
+      {
+       "enum": [
+        "carousel",
+        "flow",
+        "compare",
+        "list",
+        "stat",
+        "quote"
+       ],
+       "type": "string"
+      },
+      {
+       "const": "auto",
+       "type": "string"
+      }
+     ],
+     "default": "auto",
+     "title": "Kind"
+    },
+    "note": {
+     "default": "",
+     "maxLength": 1000,
+     "title": "Note",
+     "type": "string"
+    },
+    "type": {
+     "const": "card.visual",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id"
+   ],
+   "title": "CardVisualEvent",
    "type": "object"
   },
   "Claim": {
@@ -2239,6 +2335,7 @@
         "card.rewrite": "#/$defs/CardRewriteEvent",
         "card.skip": "#/$defs/CardSkipEvent",
         "card.status": "#/$defs/CardStatusEvent",
+        "card.visual": "#/$defs/CardVisualEvent",
         "metrics.review": "#/$defs/MetricsReviewEvent",
         "metrics.upload": "#/$defs/MetricsUploadEvent",
         "playbook.rule": "#/$defs/PlaybookRuleEvent",
@@ -2276,6 +2373,9 @@
        },
        {
         "$ref": "#/$defs/CardCrosspostEvent"
+       },
+       {
+        "$ref": "#/$defs/CardVisualEvent"
        },
        {
         "$ref": "#/$defs/CardAnswersEvent"
@@ -5522,6 +5622,207 @@
    "title": "Versions",
    "type": "object"
   },
+  "Visual": {
+   "description": "A diagram or carousel the desk draws (SVG) and exports as PNG or a PDF carousel. No image model.",
+   "properties": {
+    "alt_text": {
+     "default": "",
+     "title": "Alt Text",
+     "type": "string"
+    },
+    "caption": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Source line at the bottom",
+     "title": "Caption"
+    },
+    "created_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Created At"
+    },
+    "items": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/VisualItem"
+     },
+     "title": "Items",
+     "type": "array"
+    },
+    "kind": {
+     "enum": [
+      "carousel",
+      "flow",
+      "compare",
+      "list",
+      "stat",
+      "quote"
+     ],
+     "title": "Kind",
+     "type": "string"
+    },
+    "sources": {
+     "default": [],
+     "description": "Indexes of the card's sources it draws on",
+     "items": {
+      "type": "integer"
+     },
+     "title": "Sources",
+     "type": "array"
+    },
+    "subtitle": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Subtitle"
+    },
+    "title": {
+     "default": "",
+     "title": "Title",
+     "type": "string"
+    },
+    "unsourced": {
+     "default": [],
+     "description": "Figures in it that the sources don't contain",
+     "items": {
+      "type": "string"
+     },
+     "title": "Unsourced",
+     "type": "array"
+    }
+   },
+   "required": [
+    "kind"
+   ],
+   "title": "Visual",
+   "type": "object"
+  },
+  "VisualIn": {
+   "additionalProperties": false,
+   "properties": {
+    "alt_text": {
+     "default": "",
+     "maxLength": 1500,
+     "title": "Alt Text",
+     "type": "string"
+    },
+    "caption": {
+     "anyOf": [
+      {
+       "maxLength": 300,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Caption"
+    },
+    "items": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/VisualItemIn"
+     },
+     "maxItems": 12,
+     "title": "Items",
+     "type": "array"
+    },
+    "kind": {
+     "enum": [
+      "carousel",
+      "flow",
+      "compare",
+      "list",
+      "stat",
+      "quote"
+     ],
+     "title": "Kind",
+     "type": "string"
+    },
+    "subtitle": {
+     "anyOf": [
+      {
+       "maxLength": 300,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Subtitle"
+    },
+    "title": {
+     "default": "",
+     "maxLength": 200,
+     "title": "Title",
+     "type": "string"
+    }
+   },
+   "required": [
+    "kind"
+   ],
+   "title": "VisualIn",
+   "type": "object"
+  },
+  "VisualItem": {
+   "properties": {
+    "body": {
+     "default": "",
+     "description": "Supporting text; a comparison column has one point per line",
+     "title": "Body",
+     "type": "string"
+    },
+    "title": {
+     "default": "",
+     "description": "Slide or step heading, column name, the figure, or who is quoted",
+     "title": "Title",
+     "type": "string"
+    }
+   },
+   "title": "VisualItem",
+   "type": "object"
+  },
+  "VisualItemIn": {
+   "additionalProperties": false,
+   "properties": {
+    "body": {
+     "default": "",
+     "maxLength": 1000,
+     "title": "Body",
+     "type": "string"
+    },
+    "title": {
+     "default": "",
+     "maxLength": 200,
+     "title": "Title",
+     "type": "string"
+    }
+   },
+   "title": "VisualItemIn",
+   "type": "object"
+  },
   "VoiceProfile": {
    "properties": {
     "added_phrases": {
@@ -5643,7 +5944,8 @@
      "enum": [
       "draft",
       "rewrite",
-      "questions"
+      "questions",
+      "visual"
      ],
      "title": "Kind",
      "type": "string"
@@ -5718,6 +6020,30 @@
      ],
      "default": null,
      "title": "Target Platform"
+    },
+    "visual_kind": {
+     "anyOf": [
+      {
+       "enum": [
+        "carousel",
+        "flow",
+        "compare",
+        "list",
+        "stat",
+        "quote"
+       ],
+       "type": "string"
+      },
+      {
+       "const": "auto",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Visual Kind"
     }
    },
    "required": [
@@ -5810,6 +6136,18 @@
      ],
      "default": null,
      "title": "Updated At"
+    },
+    "visual": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Visual"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The visual as he edited it"
     }
    },
    "title": "Working",
