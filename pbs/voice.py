@@ -75,8 +75,9 @@ def compute_stats(ctx: Ctx, days: int = 60) -> dict[str, Any]:
         cut: Counter[str] = Counter()
         added: Counter[str] = Counter()
         for s in stats_rows:
-            cut.update(_grams_of(s.get("removed")))
-            added.update(_grams_of(s.get("added")))
+            # Sorted: ties in most_common() keep insertion order, which a set's order would make vary by run.
+            cut.update(sorted(_grams_of(s.get("removed"))))
+            added.update(sorted(_grams_of(s.get("added"))))
         ratios = [p["edit_ratio"] for p in posts if p.get("edit_ratio") is not None]
         out[platform] = {
             "posts": len(posts),

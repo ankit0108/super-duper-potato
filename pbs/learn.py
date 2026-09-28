@@ -39,8 +39,24 @@ def classify_opening(opening: str) -> str:
     return "observation"
 
 
+def hook_type_for(original: dict[str, Any] | None, text: str) -> str:
+    """The type of an opening he edited or wrote: the drafter's label while the text is mostly the same."""
+    if original and original.get("text"):
+        if text.strip() == original["text"].strip():
+            return original.get("type") or "observation"
+        sim = difflib.SequenceMatcher(a=original["text"].casefold(), b=text.casefold(), autojunk=False).ratio()
+        if sim >= 0.6:
+            return original.get("type") or "observation"
+    return classify_opening(text)
+
+
+def card_hooks(card: dict[str, Any]) -> list[dict[str, Any]]:
+    """The openings as he last saw them: his edited list when he changed any, otherwise the drafter's."""
+    return (card.get("working") or {}).get("hooks") or card.get("hooks") or []
+
+
 def detect_hook(card: dict[str, Any], final_text: str, hook_index: int | None) -> dict[str, Any]:
-    hooks = card.get("hooks") or []
+    hooks = card_hooks(card)
     if hook_index is not None and 0 <= hook_index < len(hooks):
         return {"index": hook_index, "type": hooks[hook_index]["type"], "method": "explicit", "similarity": 1.0}
     opening = textutil.opening(final_text).casefold()
@@ -100,6 +116,7 @@ def record_post(ctx: Ctx, card: dict[str, Any], *, text: str | None, posts: list
         "source_type": card.get("kind") if card.get("kind") in ("request", "interview", "evergreen", "adapt")
         else (topic or {}).get("scout") or "news",
         "mode": card.get("mode"),
+        "draft_basis": card.get("draft_basis"),
         "affairs_type": card.get("affairs_type"),
         "length_band": length_band(card["platform"], card["format"], final_text, final_posts),
         "weekday": local_posted.strftime("%a"),

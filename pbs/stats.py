@@ -7,7 +7,7 @@ import statistics
 from collections import defaultdict
 from typing import Any
 
-from . import timeutil
+from . import feedback, timeutil
 from .context import Ctx
 
 PICKED = ("posted", "editing")
@@ -112,7 +112,9 @@ def compute(ctx: Ctx) -> dict[str, Any]:
                       ctx.store.select("account_stats", "platform = ? AND followers IS NOT NULL", (pl,), order="date")]
                  for pl in ("linkedin", "x")}
     return {"weekly": list(weeks.values()), "daily": daily, "pillar_mix": mix, "followers": followers,
-            "streak": _streak(daily), "gates": _gates(ctx, daily, weeks)}
+            "streak": _streak(daily), "gates": _gates(ctx, daily, weeks),
+            # What the ranking learns from tomorrow (Insights shows it, so he can see his reasons being used).
+            "feedback": feedback.recent_feedback(ctx, days=30, limit=15)}
 
 
 def _streak(daily: list[dict[str, Any]]) -> dict[str, int]:

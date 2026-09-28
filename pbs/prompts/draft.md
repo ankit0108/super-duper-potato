@@ -17,7 +17,7 @@ Hook types he keeps most on {{platform_label}}: {{hook_prefs}}
 Recent posts he actually published (match the voice, never reuse the content):
 {{examples}}
 
-Material (the only facts you may use; cite sources by index):
+Material (the only facts you may use; cite sources by index; lead with the newest developments and say when things happened; if "why_now" says what he meant by a request, stay on that meaning):
 <input>
 {{input_json}}
 </input>

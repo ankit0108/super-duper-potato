@@ -30,6 +30,9 @@ AFFAIRS_INSTRUCTIONS = {
 }
 MODE_EXTERNAL = ("Mode: external. Write analysis from the material. Don't claim experiences for him. An analytical "
                  "angle is fine: he sees it as a proposal and adopts it only by posting.")
+UNANSWERED = ("This topic invites his own experience, but he hasn't answered the questions yet: write a strong "
+              "analysis post from the sources alone, in his voice, without inventing anything he did, saw or thinks. "
+              "Prefer the newest sources and say when things happened.")
 SENSITIVE = ("Handle with care: this involves a tragedy, violence or a communal incident. Neutral, factual, humane "
              "tone. No provocative hook, no opinion, no engagement question.")
 
@@ -413,9 +416,12 @@ def log_interaction(ctx: Ctx, type_: str, card: dict[str, Any] | None = None, **
 
 
 def draft_external(ctx: Ctx, card: dict[str, Any], avoid_angles: list[str] | None = None,
-                   experiment: dict[str, Any] | None = None) -> dict[str, Any]:
+                   experiment: dict[str, Any] | None = None, unanswered: bool = False) -> dict[str, Any]:
+    """An analysis draft from the card's sources. `unanswered`: a card that asked for his experience or view,
+    drafted before he answered (so no opinion he hasn't recorded, and no experiences)."""
     style = style_for(ctx, card["platform"], card["pillar"], card["format"])
-    stance = _stance_for(ctx, card) if card.get("affairs_type") == "opinion" else None
+    opinion = card.get("affairs_type") == "opinion"
+    stance = _stance_for(ctx, card) if opinion else None
     extra: dict[str, Any] = {}
     if stance:
         extra["recorded_stance"] = stance_text(stance)
@@ -427,17 +433,85 @@ def draft_external(ctx: Ctx, card: dict[str, Any], avoid_angles: list[str] | Non
     elif avoid_angles:
         exp_text = "Take a clearly different angle from the ones already used (listed in the material)."
     vars_ = _common_vars(ctx, card, style)
-    vars_.update(mode_instructions=MODE_EXTERNAL, experiment_instructions=exp_text,
-                 input_json=_material(card, extra))
+    mode = MODE_EXTERNAL
+    if unanswered:
+        mode += " " + UNANSWERED
+        if opinion and not stance:
+            vars_["affairs_instructions"] = AFFAIRS_INSTRUCTIONS["outlook"]
+    vars_.update(mode_instructions=mode, experiment_instructions=exp_text, input_json=_material(card, extra))
     version = prompting.version("system", "draft")
     req = LLMRequest(task="draft", system=_system(ctx), prompt=prompting.render("draft", **vars_),
                      max_output_tokens=3000, prompt_version=version)
     out, resp = ctx.llm.call_json(req, DraftOut)
     norm = normalize_output(ctx, card, out, card.get("sources") or [])
+    card["draft_basis"] = "sources"
     return _apply(ctx, card, norm, resp, style, version, stance, keep_status=True)
 
 
-def ask_questions(ctx: Ctx, card: dict[str, Any], n: int = 3) -> dict[str, Any]:
+class NoSources(Exception):
+    """Nothing recent and relevant was found to draft from."""
+
+
+def news_can_help(ctx: Ctx, card: dict[str, Any]) -> bool:
+    """Whether recent sources add anything: not for personal-life posts, which only his own words can make."""
+    spec = ctx.settings.pillar(card["platform"], card["pillar"])
+    return bool(spec and set(spec.scouts) - {"life"})
+
+
+def ensure_sources(ctx: Ctx, card: dict[str, Any], limit: int = 6) -> list[dict[str, Any]]:
+    """A card without sources (interview-bank and Saturday cards) gets recent ones from a search on its topic."""
+    if card.get("sources"):
+        return card["sources"]
+    from .scout import search
+
+    res = search.run_search(ctx, card.get("title") or "", notes=card.get("angle"),
+                            recency_days=ctx.settings.drafting.source_search_days)
+    item_ids = search.ingest_results(ctx, res.found, origin=f"card:{card['id']}", limit=limit * 2)
+    card["sources"] = select_sources(ctx, {"item_ids": item_ids}, limit=limit)
+    return card["sources"]
+
+
+def draft_from_sources(ctx: Ctx, card: dict[str, Any]) -> dict[str, Any]:
+    """A card with questions he hasn't answered: a post from recent sources that he can use as it is.
+    Answering later redrafts it from his answers plus these sources. Raises NoSources when there's nothing."""
+    if not ensure_sources(ctx, card):
+        save_card(ctx, card)
+        raise NoSources(card["id"])
+    card = draft_external(ctx, card, unanswered=True)
+    log_interaction(ctx, "drafted_from_sources", card, questions=len(card.get("questions") or []))
+    return card
+
+
+def fill_interview(ctx: Ctx, card: dict[str, Any], draft_now: bool | None = None,
+                   wait_for_budget: bool = False) -> dict[str, Any]:
+    """Questions for a card that needs his experience or view, and (unless switched off) a draft from recent
+    sources right away, so answering is optional. Without sources or model budget it stays questions-only;
+    with `wait_for_budget` (he asked for the draft) running out of budget is raised so the work queue retries."""
+    if not card.get("questions"):
+        card = ask_questions(ctx, card)
+    elif card.get("status") in ("drafting", "failed"):
+        card["status"] = "needs_input"
+        card["draft_state"] = "pending"
+        card["updated_at"] = timeutil.now_iso()
+        save_card(ctx, card)
+    if draft_now is None:
+        # Personal-life posts have nothing to draw on in the news: those wait for his answers unless he asks.
+        draft_now = ctx.settings.drafting.interview_draft_now and news_can_help(ctx, card)
+    if not draft_now:
+        return card
+    try:
+        return draft_from_sources(ctx, card)
+    except NoSources:
+        log.info(f"draft: no recent sources for {card['id']}; it waits for his answers")
+    except BudgetExhausted as exc:
+        if wait_for_budget:
+            raise
+        log.info(f"draft: {card['id']} keeps its questions only ({type(exc).__name__})")
+    return card
+
+
+def ask_questions(ctx: Ctx, card: dict[str, Any], n: int | None = None) -> dict[str, Any]:
+    n = max(1, min(3, n or ctx.settings.drafting.questions_per_card))
     pillar = ctx.settings.pillar(card["platform"], card["pillar"])
     opinion = card.get("affairs_type") == "opinion"
     stance_ctx = ""
@@ -458,7 +532,7 @@ def ask_questions(ctx: Ctx, card: dict[str, Any], n: int = 3) -> dict[str, Any]:
                      prompt_version=version)
     data, resp = ctx.llm.call_json(req, _questions_schema)
     card["questions"] = [{"id": f"q{i}", "q": q["q"], "why": q.get("why"), "kind": "stance" if opinion else None}
-                         for i, q in enumerate(data["questions"][:3], 1)]
+                         for i, q in enumerate(data["questions"][:n], 1)]
     if data.get("angle"):
         card["angle"] = clean_text(data["angle"])
     card["status"] = "needs_input"
@@ -481,6 +555,12 @@ def _questions_schema(data: Any) -> dict[str, Any]:
 
 
 def draft_from_answers(ctx: Ctx, card: dict[str, Any]) -> dict[str, Any]:
+    """His answers for the personal part, recent sources for facts and context."""
+    if news_can_help(ctx, card):
+        try:
+            ensure_sources(ctx, card)
+        except Exception as exc:  # noqa: BLE001 - his answers alone still make a post
+            log.info(f"draft: sources unavailable for {card['id']} ({type(exc).__name__}); answers only")
     style = style_for(ctx, card["platform"], card["pillar"], card["format"])
     qa = []
     by_q = {q["id"]: q["q"] for q in card.get("questions") or []}
@@ -500,8 +580,9 @@ def draft_from_answers(ctx: Ctx, card: dict[str, Any]) -> dict[str, Any]:
                      max_output_tokens=3000, personal=True, prompt_version=version)
     out, resp = ctx.llm.call_json(req, DraftOut)
     norm = normalize_output(ctx, card, out, card.get("sources") or [])
+    card["draft_basis"] = "answers"
     card = _apply(ctx, card, norm, resp, style, version, stance)
-    log_interaction(ctx, "drafted_from_answers", card)
+    log_interaction(ctx, "drafted_from_answers", card, sources=len(card.get("sources") or []))
     return card
 
 
@@ -528,8 +609,9 @@ def rewrite(ctx: Ctx, card: dict[str, Any], work: dict[str, Any]) -> dict[str, A
     chips = work.get("chips") or []
     personal = card.get("mode") == "interview" or bool(card.get("working"))
     stance = _stance_for(ctx, card)
+    hooks = (card.get("working") or {}).get("hooks") or card.get("hooks") or []
     extra: dict[str, Any] = {"current_draft": {"text": current_text, "posts": current_posts},
-                             "current_hooks": [h.get("text") for h in card.get("hooks") or []]}
+                             "current_hooks": [h.get("text") for h in hooks]}
     if card.get("answers"):
         by_q = {q["id"]: q["q"] for q in card.get("questions") or []}
         extra["questions_and_answers"] = [{"question": by_q.get(a["question_id"], ""), "answer": a["answer"]}
@@ -644,8 +726,16 @@ def process_work(ctx: Ctx, limit: int = 12) -> dict[str, int]:
                 ask_questions(ctx, card)
             elif card.get("mode") == "interview" and card.get("answers"):
                 draft_from_answers(ctx, card)
-            elif card.get("mode") == "interview" and not card.get("questions"):
-                ask_questions(ctx, card)
+            elif card.get("mode") == "interview":
+                # "Draft from sources" (or a retry): questions stay optional; a draft from recent sources now.
+                card = fill_interview(ctx, card, draft_now=True, wait_for_budget=True)
+                if not card.get("draft"):
+                    card["work"] = None
+                    flags = dict(card.get("flags") or {})
+                    note = "No recent sources found for this topic: answer a question to get a draft."
+                    flags["notes"] = [*[n for n in flags.get("notes") or [] if n != note], note]
+                    card["flags"] = flags
+                    save_card(ctx, card)
             else:
                 draft_external(ctx, card)
             stats["done"] += 1

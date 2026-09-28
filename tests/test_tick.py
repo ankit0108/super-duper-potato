@@ -78,8 +78,10 @@ def test_daylight_saving_change_neither_skips_nor_doubles(tmp_path, make_ctx):
 
 
 def test_delivery_not_due_before_earliest_time(make_ctx):
-    timeutil.freeze("2026-09-27T16:30:00Z")  # 02:30 AEST
+    timeutil.freeze("2026-09-27T14:30:00Z")  # 00:30 AEST
     assert not delivery_due(make_ctx())
+    timeutil.freeze("2026-09-27T15:11:00Z")  # 01:11 AEST: the first morning run on the new schedule
+    assert delivery_due(make_ctx())
 
 
 def test_weekly_schedules(make_ctx):

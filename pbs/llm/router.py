@@ -32,6 +32,7 @@ from .gemini import GeminiProvider
 from .openai_compat import OpenAICompatProvider
 
 T = TypeVar("T")
+GROUNDING_OFF = "grounding_off"  # settings key: the day search grounding said no (its quota is separate)
 
 
 def build_provider(name: str, spec: ProviderSpec) -> Provider:
@@ -124,7 +125,7 @@ class Router:
         if req is not None:
             if req.images and not spec.vision:
                 return False
-            if req.grounding and not spec.grounding:
+            if req.grounding and (not spec.grounding or self.grounding_off_today()):
                 return False
             if spec.max_input_tokens and req.estimated_input_tokens() > spec.max_input_tokens:
                 return False
@@ -196,8 +197,12 @@ class Router:
                     self.usage.errors.append(f"{req.task}/{name}: {exc}"[:300])
                     self.usage.provider_errors[name] = exc.public()
                     self._record(name, error=str(exc)[:300], count=False)
-                    if exc.quota:
-                        if not req.grounding:  # a search quota says nothing about the provider's other calls
+                    if exc.quota or (req.grounding and exc.rate_limited):
+                        if req.grounding:
+                            # Search grounding has its own small free quota, separate from the provider's other
+                            # calls: once it says no, skip it for the rest of the day instead of retrying.
+                            self._grounding_off(name, exc)
+                        else:
                             self._mark_exhausted(name, str(exc))
                         break
                     if exc.fatal_for_provider or exc.model_gone:
@@ -283,6 +288,14 @@ class Router:
         if name not in self._disabled:
             self._disabled[name] = exc.public()
             log.warn(f"llm: {name} switched off for this run: {exc.public()}")
+
+    def grounding_off_today(self) -> bool:
+        return (self.store.get_setting(GROUNDING_OFF) or {}).get("day") == self._day()
+
+    def _grounding_off(self, name: str, exc: LLMError) -> None:
+        if not self.grounding_off_today():
+            self.store.set_setting(GROUNDING_OFF, {"day": self._day(), "provider": name, "reason": exc.public()})
+            log.info(f"llm: {name} search grounding unavailable today ({exc.public()}); searches use the free feeds")
 
     def _mark_exhausted(self, name: str, error: str) -> None:
         row = self._quota_row(name)

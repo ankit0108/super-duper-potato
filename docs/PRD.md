@@ -403,13 +403,13 @@ All keys live in GitHub Secrets.
 
 | Job | Schedule (UTC cron) | Melbourne time | Minutes a month (est.) |
 | --- | --- | --- | --- |
-| Morning tick (scout, rank, draft, deliver) | Daily 18:11, catch-up 19:47 | 5:11am AEDT, 4:11am AEST | About 120 |
+| Morning tick (scout, rank, draft, deliver) | Daily 15:11 and 16:41, catch-ups 18:11 and 19:47 | From 2:11am AEDT, 1:11am AEST (the first run delivers; later ones are no-ops) | About 150 |
 | Light ticks (ingest, expire, learn, catch-up) | 01:07, 07:07, 13:07 | Around the clock | About 90 |
 | Saturday tick (weekly batch) | Saturday 09:23 | Saturday 8:23pm AEDT | About 10 |
 | Desk-triggered ticks (rewrites, answers, requests, weekly review) | On demand | Any time | About 120 |
 | **Total** |  |  | **About 340**, free and unlimited on a public repo, and well inside 2,000 on a private one |
 
-Off-peak minutes are used because GitHub delays top-of-the-hour schedules. Daylight saving starts in Melbourne on 4 October 2026. The UTC schedule stays fixed, so drafts arrive an hour earlier in winter. The tick decides "today" in Melbourne time, so delivery is never doubled or skipped across the change.
+Off-peak minutes are used because GitHub delays top-of-the-hour schedules. Even so, GitHub started the 4:11am run three hours late on 28 September 2026, so the morning schedule now starts at about 1am (delivery is allowed from 01:00 local time) to land by 6am. Daylight saving starts in Melbourne on 4 October 2026. The UTC schedule stays fixed, so drafts arrive an hour earlier in winter. The tick decides "today" in Melbourne time, so delivery is never doubled or skipped across the change.
 
 **LLM budget (normal day)**
 

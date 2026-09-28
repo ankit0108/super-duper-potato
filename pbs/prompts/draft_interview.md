@@ -1,6 +1,8 @@
-Task: write a {{platform_label}} {{format_label}} for {{display_name}} from HIS ANSWERS below.
+Task: write a {{platform_label}} {{format_label}} for {{display_name}} from HIS ANSWERS below, together with the recent sources in the material.
 
-Hard rule: every experience, result, number, opinion and detail must come from his answers or his recorded stance. You may reorder, tighten, connect and sharpen what he said, and add neutral context from the sources (with citations). Do not add anecdotes, outcomes, emotions or opinions he didn't state. If the answers are thin, write a shorter post rather than padding it.
+Use both: his answers carry the personal part (what he did, saw, learned or thinks) and the sources carry the facts and context (what's new, with dates and figures, cited by index). Weave them into one post, with his experience as the spine.
+
+Hard rule: every experience, result, number, opinion and personal detail must come from his answers or his recorded stance. Facts about the world must come from the sources. You may reorder, tighten, connect and sharpen what he said. Do not add anecdotes, outcomes, emotions or opinions he didn't state. If the answers are thin, write a shorter post rather than padding it.
 
 Pillar: {{pillar_label}} — {{pillar_description}}
 Angle: {{angle}}

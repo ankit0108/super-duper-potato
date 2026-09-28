@@ -64,7 +64,7 @@ TABLES: dict[str, Table] = {
            "topic_id request_id delivery_id kind platform mode pillar format affairs_type issue_key title "
            "why_now angle format_note draft draft_original hooks hook_type sources claims flags questions "
            "answers status rank score score_parts explore experiment_id arm versions llm work working skip "
-           "rewrite_count delivered_at expires_at status_changed_at post_id draft_state created_at "
+           "rewrite_count delivered_at expires_at status_changed_at post_id draft_state draft_basis created_at "
            "updated_at revision",
            json_cols="draft draft_original hooks sources claims flags questions answers score_parts versions "
                      "llm work working skip",

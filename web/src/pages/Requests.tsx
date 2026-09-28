@@ -9,7 +9,7 @@ import { formatDateTime } from "@/lib/time";
 import { useDesk } from "@/state/store";
 import { useTz } from "@/state/hooks";
 import { Badge, PlatformMark, type Tone } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Button, cx } from "@/components/ui/Button";
 import { Empty, Panel } from "@/components/ui/Feedback";
 import { Field, Stepper, Textarea } from "@/components/ui/Field";
 
@@ -21,6 +21,31 @@ const STATUS: Record<RequestRow["status"] & string, { tone: Tone; label: string 
   failed: { tone: "bad", label: "Failed" },
   cancelled: { tone: "neutral", label: "Cancelled" },
 };
+
+const PRESETS = [
+  { label: "LinkedIn", li: 2, x: 0 },
+  { label: "X", li: 0, x: 3 },
+  { label: "Both", li: 2, x: 3 },
+];
+
+type SearchInfo = { interpretation?: string; queries?: string[]; exclude?: string[]; recency_days?: number; results?: number; kept?: number; checked?: boolean };
+
+/** What the search understood, so a wrong reading is visible (and fixable with the notes field). */
+function SearchSummary({ search }: { search: SearchInfo }) {
+  return (
+    <div className="mt-2 rounded-xl bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
+      <p>
+        <span className="font-medium text-text">Understood as:</span> {search.interpretation}
+      </p>
+      <p className="mt-0.5">
+        Searched {search.queries?.length ? search.queries.map((q) => `“${q}”`).join(", ") : "the topic"}
+        {search.exclude?.length ? `, leaving out ${search.exclude.join(", ")}` : ""}
+        {search.recency_days ? `, last ${search.recency_days} days` : ""}
+        {search.results != null ? ` · ${search.kept ?? 0} of ${search.results} results kept${search.checked ? " after a relevance check" : ""}` : ""}
+      </p>
+    </div>
+  );
+}
 
 export function Requests() {
   const view = useDesk((s) => s.view);
@@ -48,7 +73,10 @@ export function Requests() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Requests</h1>
-        <p className="mt-1 text-sm text-muted">Any topic, any time. The pipeline searches Google News, Hacker News, arXiv, Wikipedia and Reddit (plus Google Search when the free tier allows) and returns full drafts.</p>
+        <p className="mt-1 text-sm text-muted">
+          Any topic, any time. The pipeline first works out what you mean from your profile and pillars (so “AI automation” means automating business processes, not factory robots), then
+          searches recent Google News, Hacker News, arXiv and Reddit, keeps what's relevant and returns full drafts.
+        </p>
       </header>
       <Panel title="New request">
         <form
@@ -61,9 +89,29 @@ export function Requests() {
           <Field label="Topic" htmlFor="rq-q" hint='For example "Bihar semiconductor packaging plans" or "evals for agentic RPA".'>
             <Textarea id="rq-q" value={query} onChange={(e) => setQuery(e.target.value)} minRows={2} placeholder="What should the drafts be about?" />
           </Field>
-          <Field label="Angle or notes (optional)" htmlFor="rq-n" hint="Anything the drafter should lean into or avoid.">
+          <Field label="Angle or notes (optional)" htmlFor="rq-n" hint="What you mean or want, for example “automation tools for manual business processes, not robotics”. The search and the drafter both use it.">
             <Textarea id="rq-n" value={notes} onChange={(e) => setNotes(e.target.value)} minRows={2} />
           </Field>
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Platforms">
+            <span className="mr-1 text-[13px] font-medium">Drafts for</span>
+            {PRESETS.map((pr) => (
+              <button
+                key={pr.label}
+                type="button"
+                aria-pressed={li === pr.li && x === pr.x}
+                onClick={() => {
+                  setLi(pr.li);
+                  setX(pr.x);
+                }}
+                className={cx(
+                  "rounded-full border px-3 py-1 text-[13px] transition-colors",
+                  li === pr.li && x === pr.x ? "border-accent bg-accent-soft text-accent" : "border-border text-muted hover:text-text",
+                )}
+              >
+                {pr.label}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-wrap items-end gap-6">
             <div className="space-y-1.5">
               <span className="flex items-center gap-1.5 text-[13px] font-medium">
@@ -118,6 +166,7 @@ export function Requests() {
                     </div>
                   </div>
                   {r.error && <p className="mt-2 text-[13px] text-bad">{r.error}</p>}
+                  {!!(r.search as SearchInfo | null | undefined)?.interpretation && <SearchSummary search={r.search as SearchInfo} />}
                   {results.length > 0 && (
                     <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                       {results.map((c) => (

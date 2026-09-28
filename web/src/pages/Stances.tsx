@@ -27,49 +27,74 @@ function StanceCard({ stance }: { stance: Stance }) {
   const pending = useDesk((s) => s.pending.stances.has(stance.id));
   const tz = useTz();
   const chosen = stance.chosen;
-  const [own, setOwn] = useState(chosen?.custom_text ?? "");
-  const [writing, setWriting] = useState(!!chosen?.custom_text);
-  const pick = (key: string) => act({ type: "stance.upsert", stance_id: stance.id, chosen_key: key, custom_text: null }, { toast: "Stance saved." });
-  const saveOwn = () => own.trim() && act({ type: "stance.upsert", stance_id: stance.id, chosen_key: null, custom_text: own.trim() }, { toast: "Your stance is saved in your own words." });
-  const clear = () => act({ type: "stance.upsert", stance_id: stance.id, clear_choice: true });
+  const saved = chosen?.custom_text ?? "";
+  const [own, setOwn] = useState(saved);
+  const [writing, setWriting] = useState(false);
+  const picked = !saved ? (stance.positions ?? []).find((p) => p.key === chosen?.position_key) : undefined;
+  const pick = (key: string) => {
+    act({ type: "stance.upsert", stance_id: stance.id, chosen_key: key, custom_text: null }, { toast: "Stance saved." });
+    setWriting(false);
+  };
+  const saveOwn = () => {
+    if (!own.trim()) return;
+    act({ type: "stance.upsert", stance_id: stance.id, chosen_key: null, custom_text: own.trim() }, { toast: "Your stance is saved in your own words." });
+    setWriting(false);
+  };
+  const startWriting = () => {
+    setOwn(saved);
+    setWriting(true);
+  };
+  const clear = () => act({ type: "stance.upsert", stance_id: stance.id, clear_choice: true }, { toast: "Stance cleared." });
   const bg = safeUrl(stance.sources?.[0]?.url);
   return (
-    <article className="rounded-2xl border border-border bg-surface p-4">
+    <article className="rounded-2xl border border-border bg-surface p-4" aria-label={`Stance: ${stance.issue}`}>
       <div className="flex items-start justify-between gap-3">
         <h3 className="min-w-0 font-semibold">{stance.issue}</h3>
         <div className="flex shrink-0 items-center gap-1.5">
-          {pending && <Badge tone="neutral">Syncing</Badge>}
+          {pending && (
+            <Badge tone="neutral" title="Saved on this device; the pipeline picks it up on its next run">
+              Saved · syncs on the next run
+            </Badge>
+          )}
           {chosen ? <Badge tone="ok">Stance recorded</Badge> : <Badge tone="warn">No stance yet</Badge>}
         </div>
       </div>
       {stance.context && <p className="mt-1 text-[13.5px] text-muted">{stance.context}</p>}
-      <div role="radiogroup" aria-label={`Positions on ${stance.issue}`} className="mt-3 grid gap-2 md:grid-cols-2">
-        {(stance.positions ?? []).map((p) => {
-          const selected = chosen?.position_key === p.key && !chosen?.custom_text;
-          return (
-            <button
-              key={p.key}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              onClick={() => pick(p.key)}
-              className={cx(
-                "rounded-xl border p-3 text-left transition-colors",
-                selected ? "border-accent bg-accent-soft/50" : "border-border hover:border-border-strong hover:bg-surface-2",
-              )}
-            >
-              <div className="text-[13.5px] font-semibold">{p.label}</div>
-              <div className="mt-0.5 text-[13px] text-muted">{p.text}</div>
-            </button>
-          );
-        })}
-      </div>
+      {(saved || picked) && !writing && (
+        <div className="mt-3 rounded-xl border border-accent/40 bg-accent-soft/40 p-3">
+          <div className="text-[12px] font-semibold tracking-wide text-accent uppercase">Your stance</div>
+          <p className="mt-0.5 text-[14px] whitespace-pre-line">{saved || `${picked!.label}: ${picked!.text}`}</p>
+        </div>
+      )}
+      {(stance.positions ?? []).length > 0 && (
+        <div role="radiogroup" aria-label={`Positions on ${stance.issue}`} className="mt-3 grid gap-2 md:grid-cols-2">
+          {(stance.positions ?? []).map((p) => {
+            const selected = chosen?.position_key === p.key && !saved;
+            return (
+              <button
+                key={p.key}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => pick(p.key)}
+                className={cx(
+                  "rounded-xl border p-3 text-left transition-colors",
+                  selected ? "border-accent bg-accent-soft/50" : "border-border hover:border-border-strong hover:bg-surface-2",
+                )}
+              >
+                <div className="text-[13.5px] font-semibold">{p.label}</div>
+                <div className="mt-0.5 text-[13px] text-muted">{p.text}</div>
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div className="mt-3">
         {writing ? (
           <div className="space-y-2">
-            <Textarea aria-label="Your own stance" value={own} onChange={(e) => setOwn(e.target.value)} minRows={2} placeholder="Your view in one to three lines, in your own words." />
+            <Textarea aria-label="Your own stance" value={own} onChange={(e) => setOwn(e.target.value)} minRows={2} maxLength={1000} placeholder="Your view in one to three lines, in your own words." autoFocus />
             <div className="flex gap-2">
-              <Button size="sm" variant="primary" onClick={saveOwn} disabled={!own.trim()}>
+              <Button size="sm" variant="primary" onClick={saveOwn} disabled={!own.trim() || own.trim() === saved}>
                 Save my wording
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setWriting(false)}>
@@ -79,8 +104,8 @@ function StanceCard({ stance }: { stance: Stance }) {
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="ghost" onClick={() => setWriting(true)}>
-              Write my own
+            <Button size="sm" variant="ghost" onClick={startWriting}>
+              {saved ? "Edit my wording" : "Write my own"}
             </Button>
             {chosen && (
               <Button size="sm" variant="ghost" onClick={clear}>

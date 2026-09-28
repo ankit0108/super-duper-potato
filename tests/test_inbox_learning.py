@@ -4,7 +4,7 @@ import json
 
 from conftest import fake_providers, write_inbox
 
-from pbs import draft, inbox, learn, playbook, reflect, timeutil
+from pbs import deliver, draft, inbox, learn, playbook, reflect, timeutil
 from pbs.deliver import morning_delivery
 
 
@@ -12,6 +12,12 @@ def _delivered(make_ctx):
     ctx = make_ctx()
     morning_delivery(ctx)
     return ctx
+
+
+def _interview_card(ctx, platform="linkedin"):
+    """A card that asks for his experience: the Saturday batch always makes some."""
+    deliver.weekly_batch(ctx)
+    return ctx.store.select("cards", "kind = 'interview' AND platform = ?", (platform,), order="created_at")[0]
 
 
 def _card(ctx, platform="linkedin", status="suggested", fmt=None):
@@ -80,8 +86,11 @@ def test_bad_events_are_rejected_with_reasons_not_fatal(make_ctx):
 
 
 def test_answers_trigger_a_draft_from_answers_only(make_ctx):
-    ctx = _delivered(make_ctx)
-    card = _card(ctx, "linkedin", "needs_input")
+    ctx = make_ctx()
+    card = _interview_card(ctx)
+    # Drafted right away from recent sources; the questions are optional.
+    assert card["questions"] and card["status"] == "suggested" and card["draft_basis"] == "sources"
+    assert card["sources"]
     q = card["questions"][0]["id"]
     write_inbox(ctx.data_root, [{"id": "a1", "type": "card.answers", "card_id": card["id"],
                                  "answers": [{"question_id": q, "answer": "We learned exception handling matters."}]}])
@@ -89,10 +98,11 @@ def test_answers_trigger_a_draft_from_answers_only(make_ctx):
     assert "work" in ctx.hints
     draft.process_work(ctx)
     card = ctx.store.get("cards", card["id"])
-    assert card["status"] == "suggested" and card["draft"]["text"]
+    assert card["status"] == "suggested" and card["draft"]["text"] and card["draft_basis"] == "answers"
     assert "exception handling" in card["draft"]["text"]
     personal = [c for p in ctx.llm._providers.values() for c in p.calls if c.task == "draft_personal"]
     assert personal and personal[-1].personal
+    assert '"sources"' in personal[-1].prompt and card["sources"][0]["url"] in personal[-1].prompt  # both used
 
 
 def test_rewrite_uses_working_text_and_logs_feedback(make_ctx):
@@ -186,11 +196,11 @@ def test_manual_metrics_produce_relative_rewards(make_ctx):
 def test_expiry_rules(make_ctx):
     ctx = _delivered(make_ctx)
     news = _card(ctx, "x")
-    interview = _card(ctx, "linkedin", "needs_input")
+    interview = _interview_card(ctx)
     timeutil.freeze("2026-09-28T19:45:00Z")  # next morning
     learn.expire_cards(ctx)
     assert ctx.store.get("cards", news["id"])["status"] == "expired"
-    assert ctx.store.get("cards", interview["id"])["status"] == "needs_input"  # lasts a week
+    assert ctx.store.get("cards", interview["id"])["status"] == interview["status"] != "expired"  # lasts a week
 
 
 def test_reflection_writes_playbook_experiments_and_report(make_ctx):

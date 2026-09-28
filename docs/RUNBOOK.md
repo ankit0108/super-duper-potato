@@ -3,18 +3,24 @@
 ## The routine
 
 **Every morning (10–15 minutes).** Open the desk. *Today's picks* is ranked best first. Open a card, tweak the
-draft (swap an opening, trim, use the thread tools), tap **Copy**, then **Open LinkedIn/X**, post it, come back
-and tap **Posted**. Skip what you won't use, with a reason: it's the most useful signal you can give the
-ranker. Cards you don't touch expire when the next morning's set arrives, and that's fine.
+draft (swap or edit an opening, trim, use the thread tools), tap **Copy**, then **Open LinkedIn/X**, post it,
+come back and tap **Posted**. Skip what you won't use, with a reason: it's the most useful signal you can give the
+ranker. "Other" asks you to say why in a line, and any skip can get a reason afterwards (**Add why** on the
+toast). The next morning's ranking reads your reasons; **Insights → Learning** lists the ones in use. Cards you
+don't touch expire when the next morning's set arrives, and that's fine.
 
-**When a card asks you questions.** Firsthand and learning-in-public posts are drafted only from your answers.
-Answer in a sentence or two (typing or dictation) and the draft arrives in about two minutes.
+**When a card has questions.** Firsthand and learning-in-public cards arrive already drafted from recent
+sources, with one or two optional questions under **Make it yours**. Post the draft as it is, or answer a
+question in a sentence or two (typing or dictation): about two minutes later the draft is rewritten from your
+answers plus the sources. A card with no recent sources waits for your answers.
 
 **Sunday (15 minutes).** Metrics: upload the week's LinkedIn and X analytics screenshots, confirm anything the
 review queue flags, do the follower check-in. Then **System → Run weekly review**. Monday morning, look at
 **Insights → Proposals** and approve or reject each one; the rest of the learning needs nothing from you.
 
-**Anytime.** Requests: any topic, full drafts in a few minutes. Stances: record or change a view.
+**Anytime.** Requests: any topic, full drafts in a few minutes. The request shows what the search understood
+("Understood as: …"); if it's off, say what you mean in the notes and ask again. Stances: record or change a
+view; your wording shows under **Your stance** once saved.
 
 ## When something's wrong
 
@@ -24,7 +30,7 @@ desk is where to look first.
 
 | Symptom | What to do |
 | --- | --- |
-| No cards by 6:30am | GitHub delays or drops scheduled runs sometimes; a catch-up run follows about 90 minutes after the first. To get them now: **System → Deliver the morning set**. If runs are failing, open the latest run's log from System |
+| No cards by 6:30am | GitHub delays or drops scheduled runs, sometimes by hours, so the morning runs start around 1am with catch-ups at about 4am and 6am. To get them now: **System → Deliver the morning set**. If runs are failing, open the latest run's log from System |
 | "The schedule is disabled" | GitHub disables schedules in repos without recent activity. **System → Re-enable** (the Saturday run also keeps it alive) |
 | "No model provider is usable" | Run the doctor (**System → Run doctor**). Usually an expired or missing `GEMINI_API_KEY`; add `GROQ_API_KEY` as a fallback |
 | "No model has answered today" | Every provider failed with an error, not just quota. **System → Free-tier usage** shows each provider's last error, and the run log has one line per provider (`llm: … switched off for this run: …`). "key rejected" means a new key; "model not available" is handled by itself unless you pinned a model in **Settings → Models** (set it back to `auto:flash`). Tap **Draft this** once it's fixed |

@@ -330,6 +330,23 @@
      ],
      "default": null
     },
+    "draft_basis": {
+     "anyOf": [
+      {
+       "enum": [
+        "sources",
+        "answers"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "What the current draft was written from: recent sources, or his answers (plus sources)",
+     "title": "Draft Basis"
+    },
     "draft_original": {
      "anyOf": [
       {
@@ -813,6 +830,22 @@
      "default": null,
      "title": "Hook Index"
     },
+    "hooks": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/HookIn"
+       },
+       "maxItems": 10,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Hooks"
+    },
     "id": {
      "maxLength": 80,
      "minLength": 1,
@@ -886,6 +919,19 @@
      "minLength": 1,
      "title": "Id",
      "type": "string"
+    },
+    "text": {
+     "anyOf": [
+      {
+       "maxLength": 600,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Text"
     },
     "type": {
      "const": "card.hook",
@@ -1976,6 +2022,27 @@
     "text"
    ],
    "title": "Hook",
+   "type": "object"
+  },
+  "HookIn": {
+   "additionalProperties": false,
+   "properties": {
+    "text": {
+     "maxLength": 600,
+     "title": "Text",
+     "type": "string"
+    },
+    "type": {
+     "default": "observation",
+     "maxLength": 24,
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "text"
+   ],
+   "title": "HookIn",
    "type": "object"
   },
   "InboxBatch": {
@@ -3898,6 +3965,20 @@
      "title": "Query",
      "type": "string"
     },
+    "search": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "What the search understood and found: interpretation, queries, exclude, recency_days, results, kept, checked, items",
+     "title": "Search"
+    },
     "status": {
      "default": "queued",
      "enum": [
@@ -5468,6 +5549,22 @@
      ],
      "default": null,
      "title": "Hook Index"
+    },
+    "hooks": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/Hook"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The openings as he edited them (same order; his own added last)",
+     "title": "Hooks"
     },
     "posts": {
      "anyOf": [

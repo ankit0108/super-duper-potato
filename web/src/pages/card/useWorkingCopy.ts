@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Card } from "@/types";
+import type { Card, Hook } from "@/types";
 import { readJSON, remove, writeJSON } from "@/lib/storage";
 
 export type WorkingCopy = {
   text: string;
   posts: string[];
   hookIndex: number | null;
+  hooks: Hook[] | null; // the openings as edited here; null = the drafter's, untouched
   baseKey: string; // which server version these edits started from
   baseText: string; // that version's text/posts, to tell whether Ankit changed anything
   basePosts: string[];
@@ -29,6 +30,7 @@ function fromCard(card: Card): WorkingCopy {
     text,
     posts,
     hookIndex: card.working?.hook_index ?? null,
+    hooks: card.working?.hooks?.length ? card.working.hooks.map((h) => ({ type: h.type ?? "observation", text: h.text })) : null,
     baseKey: draftKey(card),
     baseText: text,
     basePosts: posts,
@@ -37,9 +39,14 @@ function fromCard(card: Card): WorkingCopy {
 }
 
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+const sameHooks = (a: Hook[] | null | undefined, b: Hook[] | null | undefined) =>
+  (a ?? []).length === (b ?? []).length && (a ?? []).every((h, i) => h.text === b![i].text);
 
 export function useWorkingCopy(card: Card) {
-  const [copy, setCopy] = useState<WorkingCopy>(() => readJSON<WorkingCopy | null>(keyOf(card.id), null) ?? fromCard(card));
+  const [copy, setCopy] = useState<WorkingCopy>(() => {
+    const saved = readJSON<WorkingCopy | null>(keyOf(card.id), null);
+    return saved ? { ...saved, hooks: saved.hooks ?? null } : fromCard(card);
+  });
   const [newDraft, setNewDraft] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentKey = draftKey(card);
@@ -109,7 +116,7 @@ export function useWorkingCopy(card: Card) {
   /** Differs from what the server last saw (so a card.edit event is worth sending). */
   const dirtyVsServer = useMemo(() => {
     const server = fromCard(card);
-    return copy.text !== server.text || !same(copy.posts, server.posts) || copy.hookIndex !== server.hookIndex;
+    return copy.text !== server.text || !same(copy.posts, server.posts) || copy.hookIndex !== server.hookIndex || !sameHooks(copy.hooks, server.hooks);
   }, [copy, card]);
 
   return { copy, update, newDraft, acceptNewDraft, keepMine, resetToDraft, clear, finalText, dirtyVsServer };

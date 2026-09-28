@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Card, DeskState, EventInput, InboxBatch, InboxEvent } from "@/types";
+import type { Card, DeskState, EventInput, InboxBatch, InboxEvent, SkipReason } from "@/types";
 import { processDemoEvents, loadDemoDesk } from "@/lib/demo";
 import { GitHub, GitHubError, bytesToBase64, utf8ToBase64, type Connection, type WorkflowRun } from "@/lib/github";
 import { applyEvents, emptyPending, type Pending } from "@/lib/overlay";
@@ -11,6 +11,8 @@ export type RunInfo = { state: RunState; requestedAt?: string; url?: string; sta
 export type ToastTone = "info" | "ok" | "warn" | "bad";
 export type Toast = { id: string; tone: ToastTone; text: string; actionLabel?: string; onAction?: () => void };
 export type Prefs = { theme: "system" | "light" | "dark"; platform: "all" | "linkedin" | "x" };
+/** The "why skip it?" dialog: open for one card, with a reason preselected. */
+export type SkipPrompt = { cardId: string; reason: SkipReason } | null;
 
 type Cache = { desk: DeskState; etag: string | null; fetchedAt: string };
 
@@ -43,6 +45,7 @@ export type DeskStore = {
   toasts: Toast[];
   prefs: Prefs;
   guardTerms: string;
+  skipPrompt: SkipPrompt;
 
   init: () => Promise<void>;
   connect: (conn: Connection) => Promise<void>;
@@ -62,6 +65,8 @@ export type DeskStore = {
   setGuardTerms: (raw: string) => void;
   retryFailed: () => void;
   clearOutbox: () => void;
+  askSkipReason: (cardId: string, reason: SkipReason) => void;
+  closeSkipPrompt: () => void;
 };
 
 function gh(conn: Connection | null): GitHub | null {
@@ -175,6 +180,7 @@ export const useDesk = create<DeskStore>()((set, get) => {
     toasts: [],
     prefs: readJSON<Prefs>(PREFS_KEY, { theme: "system", platform: "all" }),
     guardTerms: readJSON<string>(GUARD_KEY, ""),
+    skipPrompt: null,
 
     init: async () => {
       const conn = readJSON<Connection | null>(CONN_KEY, null);
@@ -435,5 +441,8 @@ export const useDesk = create<DeskStore>()((set, get) => {
       setBase({ outbox: [] });
       persistOutbox();
     },
+
+    askSkipReason: (cardId, reason) => set({ skipPrompt: { cardId, reason } }),
+    closeSkipPrompt: () => set({ skipPrompt: null }),
   };
 });

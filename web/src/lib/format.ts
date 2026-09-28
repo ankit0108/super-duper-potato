@@ -22,13 +22,14 @@ export const STATUS_LABEL: Record<CardStatus, string> = {
   failed: "Failed",
 };
 
-export const SKIP_REASONS: Array<{ value: SkipReason; label: string; help: string }> = [
-  { value: "not_interesting", label: "Not interesting", help: "Stop suggesting topics like this" },
-  { value: "off_brand", label: "Off-brand", help: "Doesn't fit this platform" },
-  { value: "wrong_timing", label: "Wrong timing", help: "Fine idea, not today (no penalty)" },
-  { value: "too_risky", label: "Too risky", help: "Flag similar topics as sensitive" },
-  { value: "already_covered", label: "Already covered", help: "You've said this before" },
-  { value: "other", label: "Other", help: "Say why in a note" },
+/** Skip reasons: `learns` is what the ranking does with each one (shown after a skip). */
+export const SKIP_REASONS: Array<{ value: SkipReason; label: string; help: string; learns: string; needsNote?: boolean }> = [
+  { value: "not_interesting", label: "Not interesting", help: "Fewer topics like this", learns: "Similar topics will rank lower." },
+  { value: "off_brand", label: "Off-brand", help: "Doesn't fit this platform", learns: "Similar topics will rank lower on this platform." },
+  { value: "wrong_timing", label: "Wrong timing", help: "Fine idea, not today (no penalty)", learns: "No penalty: it was only the timing." },
+  { value: "too_risky", label: "Too risky", help: "Flag similar topics as sensitive", learns: "Similar topics will be flagged as sensitive." },
+  { value: "already_covered", label: "Already covered", help: "You've said this before", learns: "Topics like this are held back for a while." },
+  { value: "other", label: "Other", help: "Tell it why: used in tomorrow's ranking", learns: "Your reason feeds tomorrow's ranking and the weekly review.", needsNote: true },
 ];
 
 export const REWRITE_CHIPS = [
@@ -56,6 +57,7 @@ export const HOOK_LABEL: Record<string, string> = {
   story: "Story",
   "how-to": "How-to",
   observation: "Observation",
+  custom: "Your own",
 };
 
 export function pillarLabel(desk: DeskState | null | undefined, platform: Platform, key: string): string {

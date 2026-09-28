@@ -10,41 +10,13 @@ from .bandit import arm_id
 from .context import Ctx
 from .deliver import expiry_for
 from .llm.base import BudgetExhausted, why_unavailable
-from .scout.scouting import DedupIndex
-from .scout.search import run_search
+from .scout import search
 from .topics import pillar_fit, why_now
 
 X_FORMAT_CYCLE = ["x_single", "x_thread", "x_reply", "x_quote"]
 
 
-def _ingest(ctx: Ctx, request: dict[str, Any], found: list[tuple[dict[str, Any], dict[str, Any]]]) -> list[str]:
-    """Store search results as items (reusing existing items for URLs we already have)."""
-    index = DedupIndex(ctx.store, ctx.settings.scouting.dedup_window_days)
-    now = timeutil.now_iso()
-    item_ids: list[str] = []
-    for src, raw in found:
-        canonical = textutil.canonical_url(raw["url"])
-        key = textutil.title_key(raw["title"])
-        existing = index.find(canonical, key, raw["title"])
-        if existing:
-            if existing not in item_ids:
-                item_ids.append(existing)
-            continue
-        item_id = ids.stable_id("itm", canonical or key)
-        signals = dict(raw.get("signals") or {})
-        signals["publisher"] = raw.get("publisher") or src.get("name")
-        ctx.store.upsert("items", {
-            "id": item_id, "source_id": src["id"], "scout": "request", "url": raw["url"], "canonical_url": canonical,
-            "title": raw["title"], "summary": raw.get("summary") or "", "lang": raw.get("lang") or "en",
-            "published_at": raw.get("published_at"), "fetched_at": now, "title_key": key, "signals": signals,
-            "origin": f"request:{request['id']}",
-        })
-        index.add(item_id, canonical, key, raw["title"])
-        item_ids.append(item_id)
-    return item_ids[:12]
-
-
-def _request_topic(ctx: Ctx, request: dict[str, Any], item_ids: list[str]) -> dict[str, Any]:
+def _request_topic(ctx: Ctx, request: dict[str, Any], item_ids: list[str], plan: search.SearchPlan) -> dict[str, Any]:
     items = [ctx.store.get("items", i) for i in item_ids]
     items = [i for i in items if i]
     publishers = []
@@ -52,9 +24,12 @@ def _request_topic(ctx: Ctx, request: dict[str, Any], item_ids: list[str]) -> di
         pub = (it.get("signals") or {}).get("publisher")
         if pub and pub not in publishers:
             publishers.append(pub)
-    text = " ".join([request["query"], *(it.get("title") or "" for it in items[:8])])
-    wn = why_now(items, publishers) if items else {"note": "You asked for this."}
-    wn["note"] = f"You asked for this ({timeutil.local(timeutil.now(), ctx.tz):%a %d %b}). " + wn.get("note", "")
+    text = " ".join([request["query"], plan.interpretation, *(it.get("title") or "" for it in items[:8])])
+    wn = why_now(items, publishers) if items else {"note": ""}
+    # What the search understood reaches the drafter (and the desk) with the card, so drafts stay on his meaning.
+    understood = f" Understood as: {plan.interpretation.rstrip('.')}." if plan.interpretation != plan.query else ""
+    wn["note"] = (f"You asked for this ({timeutil.local(timeutil.now(), ctx.tz):%a %d %b}).{understood} "
+                  + wn.get("note", "")).strip()
     topic = {
         "id": f"top_req_{request['id']}",
         "origin": "request",
@@ -93,9 +68,9 @@ def handle_requests(ctx: Ctx, max_requests: int = 2) -> dict[str, int]:
         attempts = int(request.get("attempts") or 0) + 1
         ctx.store.update("requests", request["id"], status="running", started_at=timeutil.now_iso(), attempts=attempts)
         try:
-            found = run_search(ctx, request["query"])
-            item_ids = _ingest(ctx, request, found)
-            topic = _request_topic(ctx, request, item_ids)
+            res = search.run_search(ctx, request["query"], notes=request.get("notes"))
+            item_ids = search.ingest_results(ctx, res.found, origin=f"request:{request['id']}")
+            topic = _request_topic(ctx, request, item_ids, res.plan)
             sources = draft.select_sources(ctx, topic, limit=6)
             card_ids: list[str] = []
             budget_hit: str | None = None
@@ -124,8 +99,7 @@ def handle_requests(ctx: Ctx, max_requests: int = 2) -> dict[str, int]:
                         draft.make_brief(ctx, card, f"Draft skipped: {budget_hit}. Tap 'Draft this'.")
             status = "partial" if budget_hit else "done"
             ctx.store.update("requests", request["id"], status=status, completed_at=timeutil.now_iso(),
-                             card_ids=card_ids, error=None,
-                             search={"results": len(found), "items": len(item_ids)})
+                             card_ids=card_ids, error=None, search={**res.summary(), "items": len(item_ids)})
             draft.log_interaction(ctx, "request_done", None, request_id=request["id"], cards=len(card_ids))
             stats["done"] += 1
         except Exception as exc:  # noqa: BLE001

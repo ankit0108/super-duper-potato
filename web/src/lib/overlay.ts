@@ -82,7 +82,7 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
       case "card.edit":
         updateCard(ev.card_id, (c) => ({
           ...c,
-          working: { text: ev.text ?? null, posts: ev.posts ?? null, hook_index: ev.hook_index ?? null, updated_at: ev.at },
+          working: { text: ev.text ?? null, posts: ev.posts ?? null, hook_index: ev.hook_index ?? null, hooks: ev.hooks ?? c.working?.hooks ?? null, updated_at: ev.at },
           status: c.status === "suggested" || c.status === "blocked" ? "editing" : c.status,
         }));
         break;

@@ -50,6 +50,9 @@ X_RANK_WEIGHTS = [0.34, 0.2, 0.2, 0.1, 0.11, 0.05]
 SKIP_REASONS = [("not_interesting", 0.45), ("wrong_timing", 0.2), ("off_brand", 0.15), ("already_covered", 0.12),
                 ("too_risky", 0.08)]
 HOOK_PREFERENCE = ["number", "question", "observation", "contrarian", "how-to", "story"]
+# Days when his first skip is "Other", with the reason he typed (the ranking reads these the next morning).
+SKIP_NOTES = {15: "Too much hype, not enough on how teams actually use it at work.",
+              18: "I've seen this angle too often; I'd rather see what changes for operations teams."}
 CLOSERS = ["Where have you seen this play out?", "What would you add?", "Curious where others land on this."]
 # What "auto:flash" and "auto:flash-lite" resolved to when this demo was written.
 DEMO_MODELS = {"gemini": "gemini-3.6-flash", "gemini_lite": "gemini-3.5-flash-lite"}
@@ -417,8 +420,11 @@ class Simulation:
                 reason = self.rng.choices([r for r, _ in SKIP_REASONS], weights=[w for _, w in SKIP_REASONS])[0]
                 if card.get("affairs_type") and reason == "off_brand":
                     reason = "wrong_timing"
-                events.append({"type": "card.skip", "card_id": card["id"], "reason": reason,
-                               "at": timeutil.iso(t + dt.timedelta(minutes=2))})
+                skip = {"type": "card.skip", "card_id": card["id"], "reason": reason,
+                        "at": timeutil.iso(t + dt.timedelta(minutes=2))}
+                if i in SKIP_NOTES and not any(e.get("note") for e in events):
+                    skip.update(reason="other", note=SKIP_NOTES[i])
+                events.append(skip)
         return events
 
     def li_final(self, card: dict[str, Any], week: int) -> tuple[str, int | None]:

@@ -77,12 +77,21 @@ export function rebaseDemo(desk: DeskState, now = new Date()): DeskState {
   return shift(desk) as DeskState;
 }
 
-/** Like the pipeline: an interview draft uses only what was said in the answers, nothing added. */
+/** Like the pipeline: his answers carry the personal part (nothing added), the first source the context. */
 function draftFromAnswers(card: Card): Card["draft"] {
   const answers = (card.answers ?? []).map((a) => a.answer.trim()).filter(Boolean);
-  if (card.format === "x_thread") return { text: "", posts: answers.slice(0, 5) };
+  const source = card.sources?.[0];
+  const context = source ? `Context: ${source.title}${source.publisher ? ` (${source.publisher})` : ""}.` : "";
+  if (card.format === "x_thread") return { text: "", posts: [...answers.slice(0, 4), ...(context ? [context] : [])] };
   if (card.platform === "x") return { text: (answers[0] ?? "").slice(0, 270), posts: [] };
-  return { text: answers.join("\n\n"), posts: [] };
+  return { text: [...answers, context].filter(Boolean).join("\n\n"), posts: [] };
+}
+
+/** Like the pipeline: without answers, analysis from the sources only. */
+function draftFromSources(card: Card): Card["draft"] {
+  const facts = (card.sources ?? []).slice(0, 2).map((s) => s.title).filter(Boolean);
+  const text = [`${card.angle ?? card.title}.`, ...facts, card.why_now ?? ""].filter(Boolean).join("\n\n");
+  return { text: card.platform === "x" ? text.slice(0, 270) : text, posts: card.format === "x_thread" ? [text.slice(0, 270)] : [] };
 }
 
 function rewriteText(card: Card, chips: string[], note: string): Card["draft"] {
@@ -115,7 +124,7 @@ export function processDemoEvents(desk: DeskState, events: InboxEvent[]): DeskSt
     const idx = "card_id" in ev ? cards.findIndex((c) => c.id === (ev as { card_id: string }).card_id) : -1;
     if (ev.type === "card.answers" && idx >= 0) {
       const c = cards[idx];
-      cards[idx] = { ...c, draft: draftFromAnswers(c), draft_state: "full", status: "suggested", work: null, updated_at: now };
+      cards[idx] = { ...c, draft: draftFromAnswers(c), draft_state: "full", draft_basis: "answers", status: "suggested", work: null, working: null, revision: (c.revision ?? 0) + 1, updated_at: now };
     }
     if (ev.type === "card.rewrite" && idx >= 0) {
       const c = cards[idx];
@@ -131,8 +140,7 @@ export function processDemoEvents(desk: DeskState, events: InboxEvent[]): DeskSt
     }
     if (ev.type === "card.draft_now" && idx >= 0) {
       const c = cards[idx];
-      const text = `${c.angle ?? c.title}.\n\n${c.why_now ?? ""}`.trim();
-      cards[idx] = { ...c, draft: { text, posts: c.format === "x_thread" ? [text] : [] }, draft_state: "full", work: null, updated_at: now };
+      cards[idx] = { ...c, draft: draftFromSources(c), draft_state: "full", draft_basis: "sources", status: "suggested", work: null, revision: (c.revision ?? 0) + 1, updated_at: now };
     }
     if (ev.type === "request.create") {
       const ids: string[] = [];
@@ -168,7 +176,16 @@ export function processDemoEvents(desk: DeskState, events: InboxEvent[]): DeskSt
           });
         }
       }
-      next = { ...next, requests: (next.requests ?? []).map((r) => (r.id === ev.request_id ? { ...r, status: "done", card_ids: ids, completed_at: now } : r)) };
+      const search = {
+        interpretation: `${ev.query}, as it relates to your pillars`,
+        queries: [ev.query, `${ev.query} enterprise`],
+        exclude: [],
+        recency_days: 14,
+        results: 24,
+        kept: 8,
+        checked: true,
+      };
+      next = { ...next, requests: (next.requests ?? []).map((r) => (r.id === ev.request_id ? { ...r, status: "done", card_ids: ids, completed_at: now, search } : r)) };
     }
     if (ev.type === "metrics.upload") {
       next = {

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Combine, Copy, Plus, Scissors, Trash2, Wand2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Combine, Copy, Pencil, Plus, Scissors, Trash2, Wand2 } from "lucide-react";
 import type { Hook } from "@/types";
 import { HOOK_LABEL, pct } from "@/lib/format";
 import { diffWords, editRatio, splitSentences, xWeightedLength } from "@/lib/text";
@@ -69,27 +69,96 @@ export function replaceOpening(text: string, hook: string): string {
   return t ? `${hook}\n\n${t}` : hook;
 }
 
-export function HooksPanel({ hooks, selected, onUse }: { hooks: Hook[]; selected: number | null; onUse: (i: number) => void }) {
-  if (!hooks.length) return null;
+/** After he edits the opening that's in use: change it where it sits, or put the new one first. */
+export function swapOpening(text: string, before: string, after: string): string {
+  const t = text.replace(/^\s+/, "");
+  if (before && t.startsWith(before)) return after + t.slice(before.length);
+  if (before && t.includes(before)) return t.replace(before, after);
+  return replaceOpening(text, after);
+}
+
+function HookRow({ hook, index, selected, onUse, onEdit }: { hook: Hook; index: number; selected: boolean; onUse: () => void; onEdit: (text: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(hook.text);
+  const save = () => {
+    const text = draft.replace(/\s+/g, " ").trim();
+    if (text && text !== hook.text) onEdit(text);
+    setEditing(false);
+  };
+  return (
+    <li className={cx("flex items-start gap-2 rounded-xl border p-2.5", selected ? "border-accent bg-accent-soft/50" : "border-border")}>
+      <div className="min-w-0 flex-1">
+        <Badge tone="neutral" className="mb-1">
+          {HOOK_LABEL[hook.type ?? "observation"] ?? hook.type}
+        </Badge>
+        {editing ? (
+          <div className="space-y-1.5">
+            <Textarea aria-label={`Edit opening ${index + 1}`} value={draft} onChange={(e) => setDraft(e.target.value)} minRows={2} maxLength={600} autoFocus />
+            <div className="flex gap-1.5">
+              <Button size="sm" variant="primary" onClick={save} disabled={!draft.trim()}>
+                Save opening
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setDraft(hook.text); setEditing(false); }}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-[13.5px] leading-snug">{hook.text}</p>
+        )}
+      </div>
+      {!editing && (
+        <div className="flex shrink-0 items-center gap-0.5">
+          <IconButton size="sm" label={`Edit opening ${index + 1}`} icon={<Pencil className="size-4" />} onClick={() => { setDraft(hook.text); setEditing(true); }} />
+          <Button size="sm" variant={selected ? "soft" : "secondary"} onClick={onUse} aria-label={`Use opening ${index + 1}`}>
+            {selected ? "Using" : "Use"}
+          </Button>
+        </div>
+      )}
+    </li>
+  );
+}
+
+export function HooksPanel({ hooks, selected, onUse, onEdit, onAdd }: { hooks: Hook[]; selected: number | null; onUse: (i: number) => void; onEdit: (i: number, text: string) => void; onAdd: (text: string) => void }) {
+  const [adding, setAdding] = useState(false);
+  const [own, setOwn] = useState("");
+  const add = () => {
+    const text = own.replace(/\s+/g, " ").trim();
+    if (!text) return;
+    onAdd(text);
+    setOwn("");
+    setAdding(false);
+  };
   return (
     <div className="space-y-2">
       <h3 className="text-[13px] font-semibold">Alternative openings</h3>
-      <ul className="space-y-1.5">
-        {hooks.map((h, i) => (
-          <li key={i} className={cx("flex items-start gap-2 rounded-xl border p-2.5", selected === i ? "border-accent bg-accent-soft/50" : "border-border")}>
-            <div className="min-w-0 flex-1">
-              <Badge tone="neutral" className="mb-1">
-                {HOOK_LABEL[h.type ?? "observation"] ?? h.type}
-              </Badge>
-              <p className="text-[13.5px] leading-snug">{h.text}</p>
-            </div>
-            <Button size="sm" variant={selected === i ? "soft" : "secondary"} onClick={() => onUse(i)} aria-label={`Use opening ${i + 1}`}>
-              {selected === i ? "Using" : "Use"}
+      {hooks.length > 0 && (
+        <ul className="space-y-1.5">
+          {hooks.map((h, i) => (
+            <HookRow key={`${i}:${h.text}`} hook={h} index={i} selected={selected === i} onUse={() => onUse(i)} onEdit={(text) => onEdit(i, text)} />
+          ))}
+        </ul>
+      )}
+      {adding ? (
+        <div className="space-y-1.5 rounded-xl border border-border p-2.5">
+          <Textarea aria-label="Your own opening" value={own} onChange={(e) => setOwn(e.target.value)} minRows={2} maxLength={600} placeholder="The first line, in your words." autoFocus />
+          <div className="flex gap-1.5">
+            <Button size="sm" variant="primary" onClick={add} disabled={!own.trim()}>
+              Add and use
             </Button>
-          </li>
-        ))}
-      </ul>
-      <p className="text-xs text-muted">Swapping an opening teaches the drafter which hook styles you keep.</p>
+            <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        hooks.length < 10 && (
+          <Button size="sm" variant="ghost" icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>
+            Write my own opening
+          </Button>
+        )
+      )}
+      <p className="text-xs text-muted">Edit any opening before or after using it. The openings you keep, edit and write teach the drafter your hook style.</p>
     </div>
   );
 }

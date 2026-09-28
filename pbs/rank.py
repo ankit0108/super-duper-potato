@@ -18,7 +18,7 @@ from typing import Any
 
 import yaml
 
-from . import guardrails, log, prompting, textutil, timeutil
+from . import feedback, guardrails, log, prompting, textutil, timeutil
 from .bandit import ArmState, arm_id
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest, json_rows
@@ -69,6 +69,8 @@ class Memory:
     off_brand: dict[str, list[frozenset[str]]]
     risky: list[frozenset[str]]
     recent_topics: dict[str, set[str]]
+    dull: list[frozenset[str]] = field(default_factory=list)  # skipped as not interesting
+    other: list[frozenset[str]] = field(default_factory=list)  # skipped for another reason (his note says which)
 
 
 def build_memory(ctx: Ctx) -> Memory:
@@ -80,21 +82,27 @@ def build_memory(ctx: Ctx) -> Memory:
     covered: list[frozenset[str]] = []
     off_brand: dict[str, list[frozenset[str]]] = {"linkedin": [], "x": []}
     risky: list[frozenset[str]] = []
+    dull: list[frozenset[str]] = []
+    other: list[frozenset[str]] = []
     recent: dict[str, set[str]] = {"linkedin": set(), "x": set()}
     for c in ctx.store.select("cards", "created_at >= ?", (since,)):
         toks = frozenset(textutil.sim_tokens(c.get("title")))
         if c["status"] == "posted":
             posted.append(toks)
-        reason = (c.get("skip") or {}).get("reason")
+        reason = (c.get("skip") or {}).get("reason") if c["status"] == "skipped" else None
         if reason == "already_covered":
             covered.append(toks)
         elif reason == "off_brand":
             off_brand.setdefault(c["platform"], []).append(toks)
         elif reason == "too_risky":
             risky.append(toks)
+        elif reason == "not_interesting":
+            dull.append(toks)
+        elif reason == "other":
+            other.append(toks)
         if (c.get("created_at") or "") >= block_since and c.get("topic_id"):
             recent.setdefault(c["platform"], set()).add(c["topic_id"])
-    return Memory(posted, covered, off_brand, risky, recent)
+    return Memory(posted, covered, off_brand, risky, recent, dull, other)
 
 
 def _max_overlap(toks: frozenset[str], pool: list[frozenset[str]]) -> float:
@@ -133,6 +141,10 @@ def prescore(ctx: Ctx, topic: dict[str, Any], platform: str, memory: Memory) -> 
         novelty *= 0.1
     if _max_overlap(toks, memory.off_brand.get(platform, [])) >= 0.35:
         novelty *= 0.6
+    if _max_overlap(toks, memory.dull) >= 0.4:
+        novelty *= 0.6
+    if _max_overlap(toks, memory.other) >= 0.4:
+        novelty *= 0.8
     w = rk.weights
     pre = ((fit ** w.get("fit", 1.0)) * ((0.35 + 0.65 * timeliness) ** w.get("timeliness", 1.0))
            * ((0.55 + 0.45 * momentum) ** w.get("momentum", 0.8)) * (max(0.0, novelty) ** w.get("novelty", 1.0)))
@@ -174,6 +186,7 @@ def triage(ctx: Ctx, topics: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     prompt = prompting.render(
         "triage", display_name=ctx.settings.display_name, linkedin_pillars=_pillar_lines(ctx, "linkedin"),
         x_lanes=_pillar_lines(ctx, "x"), stances=_stance_lines(ctx),
+        feedback=feedback.render(feedback.recent_feedback(ctx, notes_first=True)),
         linkedin_affairs=", ".join(ctx.settings.affairs.linkedin_allowed_topics[:4]),
         linkedin_keys=li_keys, x_keys=x_keys, input_json=payload)
     from .draft import _system
@@ -445,13 +458,14 @@ def allocate(ctx: Ctx, platform: str, cands: list[Candidate], arms: dict[str, Ar
                 pick = Candidate(**{**pick.__dict__, "explore": True, "experiment": exp})
                 experiments.remove(exp)
             else:
-                pool_arms = sorted({c.arm for c in pool},
+                # sorted() first: set order varies between processes, and it decides which draw goes where.
+                pool_arms = sorted(sorted({c.arm for c in pool}),
                                    key=lambda a: (arms.get(a).n_obs if a in arms else 0.0, rng.random()))
                 target = pool_arms[0]
                 pick = max((c for c in pool if c.arm == target), key=lambda c: c.base)
                 pick = Candidate(**{**pick.__dict__, "explore": True})
         if pick is None:
-            thetas = {a: (arms[a].sample(rng) if a in arms else rng.betavariate(2, 2)) for a in {c.arm for c in pool}}
+            thetas = {a: (arms[a].sample(rng) if a in arms else rng.betavariate(2, 2)) for a in sorted({c.arm for c in pool})}
             pick = max(pool, key=lambda c: c.base * thetas[c.arm] * (penalty ** arm_counts[c.arm]) * mix(c))
         pick.score = round(pick.base * (arms[pick.arm].mean if pick.arm in arms else 0.5), 4)
         take(pick)

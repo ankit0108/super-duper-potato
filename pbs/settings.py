@@ -26,7 +26,7 @@ class _Strict(BaseModel):
 
 
 class Delivery(_Strict):
-    earliest_local_time: str = "04:00"
+    earliest_local_time: str = "01:00"
     latest_local_time: str = "21:00"
     weekly_batch_day: str = "saturday"
     weekly_batch_local_time: str = "19:00"
@@ -146,6 +146,12 @@ class Learning(_Strict):
     edit_ratio_review_weeks: int = 4
 
 
+class Drafting(_Strict):
+    interview_draft_now: bool = True
+    questions_per_card: int = Field(2, ge=1, le=3)
+    source_search_days: int = Field(30, ge=3, le=90)
+
+
 class Expiry(_Strict):
     interview_days: int = Field(7, ge=1, le=30)
     evergreen_days: int = Field(7, ge=1, le=30)
@@ -227,6 +233,7 @@ class Settings(BaseModel):
     learning: Learning
     rewards: dict[str, dict[str, float]]
     expiry: Expiry = Expiry()
+    drafting: Drafting = Drafting()
     weekly_batch: WeeklyBatch
     llm: LLM
     notify: Notify = Notify()

@@ -227,6 +227,23 @@ def _search(req: LLMRequest, data: Any) -> Any:
     return f"Recent developments on {q}: summary from grounded search."
 
 
+def _search_plan(req: LLMRequest, data: Any) -> Any:
+    q = data.get("query", "the topic") if isinstance(data, dict) else "the topic"
+    automation = "automation" in q.casefold()
+    return {"interpretation": f"{q}, for teams automating business work" if automation
+            else f"{q}, for people building with AI at work",
+            "queries": [q, f"{q} enterprise workflow" if automation else f"{q} latest"],
+            "exclude": ["industrial", "manufacturing"] if automation else [],
+            "arxiv": f'abs:"{q}"', "recency_days": 14, "background": False}
+
+
+def _search_rerank(req: LLMRequest, data: Any) -> Any:
+    """Keeps what's on topic: drops factory robotics, and the mock web's placeholder posts."""
+    rows = data if isinstance(data, list) else []
+    off = ("factory", "earlier post")
+    return {"keep": [r.get("id") for r in rows if not any(w in str(r.get("title", "")).casefold() for w in off)]}
+
+
 def _default(req: LLMRequest, data: Any) -> Any:
     return {"ok": True}
 
@@ -243,5 +260,7 @@ DEFAULT_HANDLERS: dict[str, Handler] = {
     "stances": _stances,
     "evergreen": _evergreen,
     "search": _search,
+    "search_plan": _search_plan,
+    "search_rerank": _search_rerank,
     "default": _default,
 }
