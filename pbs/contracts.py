@@ -827,6 +827,11 @@ class RunRequestEvent(_Event):
     tasks: list[Literal["morning", "weekly_batch", "reflection", "doctor", "report", "scout",
                         "platform_research"]] = []
     force: bool = False
+    # "Get fresh posts" (tasks ["morning"], force): which platforms and how many cards for each (default: the
+    # morning's), and whether to look for new sources first.
+    platforms: list[PlatformName] | None = None
+    per_platform: int | None = Field(default=None, ge=1, le=5)
+    find_sources: bool = True
 
 
 InboxEvent = Annotated[

@@ -153,6 +153,42 @@ def test_when_every_provider_fails_the_error_says_so_and_is_remembered(store):
     assert row["last_error_at"] and not row.get("last_ok_at") and not row.get("requests")
 
 
+def test_an_overloaded_provider_sits_out_the_rest_of_the_run_after_two_calls(store, capsys):
+    busy = LLMError("server error 503", status=503, code="UNAVAILABLE", retryable=True)
+    a = FakeProvider("a", fail_with=busy)
+    b = FakeProvider("b")
+    waits: list[float] = []
+    r = Router(_settings(max_calls_per_run=20, daily_cap=40), store, providers={"a": a, "b": b}, sleep=waits.append)
+    for _ in range(4):
+        assert r.call(LLMRequest(task="draft", system="s", prompt="x")).provider == "b"
+    # One short retry on each of the first two calls, then a is skipped without being called.
+    assert len(a.calls) == 4 and len(b.calls) == 4
+    assert [w for w in waits if w >= 1] == [2.0, 2.0]  # pacing aside: one 2 s retry wait per call, then none
+    assert "llm: a overloaded (server error (HTTP 503 UNAVAILABLE)); using the next provider" in capsys.readouterr().out
+    assert not r.chain_broken("draft")
+
+
+def test_an_overloaded_provider_gets_another_go_when_nothing_else_can_answer(store):
+    busy = LLMError("server error 503", status=503, retryable=True)
+    state = {"n": 0}
+
+    def recovering(req, data):
+        state["n"] += 1
+        if state["n"] <= 4:
+            raise busy
+        return {"ok": True}
+
+    a = FakeProvider("a", handlers={"draft": recovering})
+    b = FakeProvider("b")
+    r = Router(_settings(max_calls_per_run=20, daily_cap=40), store, providers={"a": a, "b": b}, sleep=lambda s: None)
+    r.call(LLMRequest(task="draft", system="s", prompt="x"))
+    r.call(LLMRequest(task="draft", system="s", prompt="x"))
+    assert r._overloaded == {"a": "server error (HTTP 503)"}
+    b.fail_with = LLMError("daily", status=429, quota=True)
+    resp = r.call(LLMRequest(task="draft", system="s", prompt="x"))
+    assert resp.provider == "a" and r._overloaded == {}  # it recovered, so it's back in the rotation
+
+
 def test_out_of_quota_everywhere_is_budget_not_failure(store):
     a = FakeProvider("a", fail_with=LLMError("daily", status=429, quota=True))
     b = FakeProvider("b", fail_with=LLMError("daily", status=429, quota=True))

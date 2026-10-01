@@ -90,6 +90,11 @@ class Router:
         self.usage = RunUsage()
         self._providers: dict[str, Provider] = providers or {}
         self._disabled: dict[str, str] = {}
+        # Overload breaker: calls in a row that a provider answered only with server errors (5xx on every model).
+        # Two strikes and it goes to the back of every route for the rest of the run (Gemini's overloads once
+        # cost ~45 s a call); it answers again only when nothing else can, and a success clears it.
+        self._strikes: dict[str, int] = {}
+        self._overloaded: dict[str, str] = {}
         self._last_call: dict[str, float] = {}
         for name, spec in settings.llm.providers.items():
             if name not in self._providers:
@@ -114,10 +119,12 @@ class Router:
     def used_today(self) -> int:
         return int(self.store.scalar("SELECT COALESCE(SUM(requests), 0) FROM quota WHERE day = ?", (self._day(),)))
 
-    def provider_usable(self, name: str, req: LLMRequest | None = None) -> bool:
+    def provider_usable(self, name: str, req: LLMRequest | None = None, allow_overloaded: bool = False) -> bool:
         provider = self._providers.get(name)
         spec = self.settings.llm.providers.get(name)
         if provider is None or spec is None or name in self._disabled or not provider.available():
+            return False
+        if name in self._overloaded and not allow_overloaded:
             return False
         row = self._quota_row(name)
         if row.get("exhausted_at") or int(row.get("requests") or 0) >= spec.daily_limit:
@@ -149,7 +156,7 @@ class Router:
         ]
         per_provider = 0
         for name in self.chain(task, personal):
-            if self.provider_usable(name):
+            if self.provider_usable(name, allow_overloaded=True):
                 spec = self.settings.llm.providers[name]
                 per_provider += max(0, spec.daily_limit - int(self._quota_row(name).get("requests") or 0))
         return max(0, min([*caps, per_provider]))
@@ -161,6 +168,12 @@ class Router:
         """Every configured provider for the task failed with an error this run (not just out of quota)."""
         configured = [n for n in self.chain(task, personal) if n in self._providers and self._providers[n].available()]
         return bool(configured) and all(n in self._disabled for n in configured)
+
+    def _strike(self, name: str, exc: LLMError) -> None:
+        self._strikes[name] = self._strikes.get(name, 0) + 1
+        if self._strikes[name] >= 2 and name not in self._overloaded:
+            self._overloaded[name] = exc.public()
+            log.info(f"llm: {name} overloaded ({exc.public()}); using the next provider for the rest of this run")
 
     # -- calls ------------------------------------------------------------------------------------
     def call(self, req: LLMRequest) -> LLMResponse:
@@ -175,13 +188,16 @@ class Router:
 
         tried = 0
         last_error: Exception | None = None
-        for name in self.chain(req.task, req.personal):
-            if not self.provider_usable(name, req):
+        chain = self.chain(req.task, req.personal)
+        # Overloaded providers go last: they answer only when nothing else could.
+        for name in [n for n in chain if n not in self._overloaded] + [n for n in chain if n in self._overloaded]:
+            if not self.provider_usable(name, req, allow_overloaded=True):
                 continue
             if tried:
                 self.usage.fallbacks += 1
             tried += 1
             provider = self._providers[name]
+            server_error: LLMError | None = None
             for attempt in range(3):
                 self._pace(name)
                 try:
@@ -208,12 +224,16 @@ class Router:
                     if exc.fatal_for_provider or exc.model_gone:
                         self._disable(name, exc)
                         break
-                    if exc.retryable and attempt < 2:
+                    # Overloaded (5xx on every model): one short retry, then the next provider.
+                    server_error = exc if (exc.status or 0) >= 500 else None
+                    if exc.retryable and attempt < (1 if server_error else 2):
                         wait = min(exc.retry_after or (2.0 * (3**attempt)), 45.0)
                         self.sleep(wait)
                         continue
                     break
                 else:
+                    self._strikes.pop(name, None)
+                    self._overloaded.pop(name, None)
                     self.usage.calls += 1
                     self.usage.tokens_in += resp.tokens_in
                     self.usage.tokens_out += resp.tokens_out
@@ -222,6 +242,8 @@ class Router:
                     self.usage.models[name] = resp.model
                     self._record(name, tokens_in=resp.tokens_in, tokens_out=resp.tokens_out, model=resp.model)
                     return resp
+            if server_error is not None:
+                self._strike(name, server_error)
         if tried == 0:
             if self.chain_broken(req.task, req.personal):
                 raise AllProvidersFailed(f"every provider for '{req.task}' was switched off after errors")

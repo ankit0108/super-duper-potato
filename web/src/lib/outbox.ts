@@ -15,23 +15,48 @@ export type OutboxItem = {
   attempts?: number;
 };
 
-/** Events the pipeline should act on promptly (the desk starts a run after sending them). */
-const RUN_TYPES = new Set<InboxEvent["type"]>([
-  "card.answers",
-  "card.rewrite",
-  "card.draft_now",
-  "request.create",
-  "stance.propose",
-  "metrics.upload",
-  "run.request",
-]);
+/**
+ * Whether the desk starts a pipeline run after sending each kind of event: yes for anything he waits on (a draft,
+ * a rewrite, a cross-post, a visual, a request), no for bookkeeping the next run picks up. Every event type must be
+ * listed, so a new one can't silently wait hours for the schedule (cross-posts and visuals once did).
+ */
+export const STARTS_RUN: Record<InboxEvent["type"], boolean> = {
+  "card.status": false,
+  "card.edit": false,
+  "card.posted": false,
+  "card.skip": false,
+  "card.rewrite": true,
+  "card.crosspost": true,
+  "card.visual": true,
+  "card.answers": true,
+  "card.restore": false,
+  "card.draft_now": true,
+  "card.hook": false,
+  "post.update": false,
+  "post.metrics": false,
+  "metrics.upload": true,
+  "metrics.review": false,
+  "account.stats": false,
+  "request.create": true,
+  "request.cancel": false,
+  "stance.upsert": false,
+  "stance.delete": false,
+  "stance.propose": true,
+  "source.upsert": false,
+  "source.delete": false,
+  "settings.update": false,
+  "profile.update": false,
+  "proposal.decide": false,
+  "playbook.rule": false,
+  "run.request": true,
+};
 
 export function makeEvent(input: EventInput, now: Date = new Date()): InboxEvent {
   return { ...input, id: newId("ev"), at: now.toISOString().replace(/\.\d{3}Z$/, "Z") } as InboxEvent;
 }
 
 export function toItem(event: InboxEvent): OutboxItem {
-  return { event, state: "pending", needsRun: RUN_TYPES.has(event.type) };
+  return { event, state: "pending", needsRun: STARTS_RUN[event.type] ?? true };
 }
 
 export function buildBatch(events: InboxEvent[], device: string, now: Date = new Date()) {

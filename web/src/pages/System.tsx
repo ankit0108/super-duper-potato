@@ -2,11 +2,13 @@ import { useState, type ReactNode } from "react";
 import { CheckCircle2, CircleSlash, Loader2, OctagonAlert, TriangleAlert } from "lucide-react";
 import type { Run } from "@/types";
 import { formatDateTime, relative } from "@/lib/time";
+import { BUILD } from "@/lib/version";
 import { useDesk } from "@/state/store";
 import { useNow, useTz } from "@/state/hooks";
 import { Badge, type Tone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Empty, Panel } from "@/components/ui/Feedback";
+import { FreshPostsDialog } from "@/components/FreshPostsDialog";
 
 const RUN_TONE: Record<string, Tone> = { ok: "ok", partial: "warn", failed: "bad", running: "info" };
 
@@ -78,6 +80,7 @@ export function System() {
   const tz = useTz();
   const now = useNow(30_000);
   const busy = run.state === "queued" || run.state === "running";
+  const [freshOpen, setFreshOpen] = useState(false);
   const request = (tasks: Array<"morning" | "weekly_batch" | "reflection" | "doctor" | "scout">, force: boolean, toast: string) =>
     act({ type: "run.request", tasks, force }, { toast });
   const today = view?.delivery?.local_date;
@@ -90,13 +93,14 @@ export function System() {
         <p className="mt-1 text-sm text-muted">Runs, free-tier usage and health. Every run does whatever is due, so a missed schedule catches up on the next one.</p>
       </header>
 
+      <FreshPostsDialog open={freshOpen} onClose={() => setFreshOpen(false)} />
       <Panel title="Run now" description="Starts the pipeline on GitHub Actions. Results appear here and on the board in a few minutes.">
         <div className="flex flex-wrap gap-2">
           <Button variant="primary" loading={busy} onClick={() => request([], false, "Sync started.")}>
             Sync now
           </Button>
-          <Button onClick={() => request(["morning"], true, deliveredToday ? "Getting another set of cards." : "Delivering the morning set.")} disabled={busy}>
-            {deliveredToday ? "Get another set" : "Deliver the morning set"}
+          <Button onClick={() => setFreshOpen(true)} disabled={busy}>
+            {deliveredToday ? "Get fresh posts" : "Deliver the morning set"}
           </Button>
           <Button onClick={() => request(["scout"], false, "Refreshing sources.")} disabled={busy}>
             Refresh sources
@@ -134,6 +138,10 @@ export function System() {
             )}
           </span>
           <span>Desk updated {relative(view?.meta?.generated_at, now)}</span>
+          <span title={BUILD.id}>
+            Desk version {BUILD.id.split("-")[0]}
+            {BUILD.at ? ` · built ${formatDateTime(new Date(BUILD.at), tz)}` : ""}
+          </span>
           {view?.meta?.next_delivery_local && <span>Next delivery {formatDateTime(new Date(view.meta.next_delivery_local), tz)}</span>}
           {conn?.mode === "github" && (
             <span>

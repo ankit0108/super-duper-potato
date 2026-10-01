@@ -100,7 +100,10 @@ def fill_card(ctx: Ctx, card: dict[str, Any], cand: Candidate | None = None) -> 
         return draft.make_brief(ctx, card, "Drafting failed. Tap 'Draft this' to retry.")
 
 
-def morning_delivery(ctx: Ctx, scout: bool = True, dlv_id: str | None = None) -> dict[str, Any] | None:
+def morning_delivery(ctx: Ctx, scout: bool = True, dlv_id: str | None = None, platforms: list[str] | None = None,
+                     per_platform: int | None = None) -> dict[str, Any] | None:
+    """The day's set (or, from "Get fresh posts", another one): scout, rank, allocate slots and draft. `platforms`
+    and `per_platform` narrow it to what he asked for."""
     local_date = ctx.local_date_str()
     dlv_id = dlv_id or delivery_id(local_date)
     if ctx.store.get("deliveries", dlv_id):
@@ -121,8 +124,9 @@ def morning_delivery(ctx: Ctx, scout: bool = True, dlv_id: str | None = None) ->
     plan: dict[str, list[Candidate]] = {}
     taken: set[str] = set()
     for platform in ("linkedin", "x"):
-        if ctx.settings.platform_enabled(platform):
-            plan[platform] = allocate(ctx, platform, cands.get(platform, []), arms, rng, taken_elsewhere=taken)
+        if ctx.settings.platform_enabled(platform) and (not platforms or platform in platforms):
+            plan[platform] = allocate(ctx, platform, cands.get(platform, []), arms, rng, taken_elsewhere=taken,
+                                      slots=per_platform)
             taken |= {c.topic_key for c in plan[platform]}
     return deliver_plan(ctx, plan, dlv_id)
 

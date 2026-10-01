@@ -1,5 +1,5 @@
 import { card, desk } from "@/test/fixtures";
-import { boardSections } from "./selectors";
+import { boardSections, todaySets } from "./selectors";
 
 const today = "2026-09-29";
 const tz = "Australia/Melbourne";
@@ -21,9 +21,21 @@ describe("boardSections", () => {
   ];
   const s = boardSections(desk({ cards }), today, tz, "all");
 
-  it("keeps today's set together in rank order, whatever each card's state, second set after the first", () => {
-    expect(s.today.linkedin.map((c) => c.id)).toEqual(["t2", "t1", "t3", "t4"]);
+  it("keeps each of today's sets together in rank order, whatever each card's state, the newest set first", () => {
+    expect(s.today.linkedin.map((c) => c.id)).toEqual(["t4", "t2", "t1", "t3"]);
     expect(s.today.x.map((c) => c.id)).toEqual(["x1"]);
+    expect(todaySets(s.today.linkedin, today).map((set) => [set.kind, set.cards.map((c) => c.id)])).toEqual([
+      ["fresh", ["t4"]],
+      ["morning", ["t2", "t1", "t3"]],
+    ]);
+  });
+
+  it("lists a cross-post he made today of an earlier card with today's picks, on top", () => {
+    const xp = card({ id: "xp", platform: "x", format: "x_single", kind: "adapt", crosspost_of: "old-editing", delivery_id: "dly_2026-09-28", status: "suggested", created_at: "2026-09-28T23:30:00Z" });
+    const out = boardSections(desk({ cards: [...cards, xp] }), today, tz, "all");
+    expect(out.today.x.map((c) => c.id)).toEqual(["xp", "x1"]);
+    expect(todaySets(out.today.x, today).map((set) => set.kind)).toEqual(["crossposts", "morning"]);
+    expect(out.thisWeek.map((c) => c.id)).not.toContain("xp");
   });
 
   it("routes older cards by what they need", () => {

@@ -614,6 +614,13 @@ def _run_request(ctx: Ctx, ev: C.RunRequestEvent) -> None:
     ctx.hints.update(ev.tasks)
     if ev.force:
         ctx.force = True
+    if "morning" in ev.tasks and ev.force:
+        # "Get fresh posts": a new set now. When he asks (hour, platforms, how many) is a signal of its own.
+        ctx.fresh = {"platforms": list(ev.platforms or []) or None, "per_platform": ev.per_platform,
+                     "find_sources": ev.find_sources}
+        draft.log_interaction(ctx, "fresh_requested", None, platforms=ctx.fresh["platforms"],
+                              per_platform=ev.per_platform, find_sources=ev.find_sources,
+                              local_hour=ctx.local_now().hour)
 
 
 APPLY = {

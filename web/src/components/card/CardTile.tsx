@@ -4,7 +4,7 @@ import type { Card } from "@/types";
 import { FORMAT_LABEL, MENU_SKIP_REASONS, PLATFORM_LABEL, draftText } from "@/lib/format";
 import { navigate } from "@/lib/router";
 import { useDesk } from "@/state/store";
-import { usePillarLabels } from "@/state/hooks";
+import { useNow, usePillarLabels } from "@/state/hooks";
 import { Badge, PlatformMark, StatusBadge } from "../ui/Badge";
 import { Button, cx } from "../ui/Button";
 import { Menu } from "../ui/Menu";
@@ -18,6 +18,32 @@ export function workLabel(card: Card): string | null {
   if (card.work.kind === "questions") return "Preparing questions…";
   if ((card.answers?.length ?? 0) > 0) return "Drafting from your answers + sources…";
   return card.mode === "interview" ? "Drafting from recent sources…" : "Drafting…";
+}
+
+/** Work that has waited over three minutes with no pipeline run going: say so and offer to start one. */
+export function StillWaiting({ card, className }: { card: Card; className?: string }) {
+  const run = useDesk((s) => s.run);
+  const dispatch = useDesk((s) => s.dispatchNow);
+  const github = useDesk((s) => s.connection?.mode === "github");
+  const now = useNow(20_000);
+  const since = card.work?.requested_at ? new Date(card.work.requested_at).getTime() : NaN;
+  const busy = run.state === "queued" || run.state === "running";
+  if (!github || !card.work || Number.isNaN(since) || busy || now.getTime() - since < 3 * 60_000) return null;
+  return (
+    <span className={cx("text-[12.5px] text-muted", className)}>
+      Still waiting ·{" "}
+      <button
+        type="button"
+        className="font-medium text-accent hover:underline"
+        onClick={(e) => {
+          e.stopPropagation();
+          void dispatch();
+        }}
+      >
+        Run now
+      </button>
+    </span>
+  );
 }
 
 export function FlagIcons({ card }: { card: Card }) {
@@ -58,7 +84,7 @@ export function SkipMenu({ card, size = "sm", side = "bottom" }: { card: Card; s
   const move = () =>
     act(
       { type: "card.crosspost", card_id: card.id, target_platform: other, mode: "switch", note: "" },
-      { toast: `Moving it to ${PLATFORM_LABEL[other]}: the new card appears in about two minutes. The topic counts as a good pick, only the platform as wrong.` },
+      { toast: `Moving it to ${PLATFORM_LABEL[other]}: the new card appears within 1–3 minutes. The topic counts as a good pick, only the platform as wrong.` },
     );
   return (
     <Menu
@@ -126,8 +152,9 @@ export function CardTile({ card, pending }: { card: Card; pending?: boolean }) {
       {card.why_now && <p className="mt-1 line-clamp-1 text-[13px] text-muted">{card.why_now}</p>}
       <div className="mt-2.5 min-h-[3.2rem] rounded-xl bg-surface-2 px-3 py-2 text-[13.5px] leading-relaxed text-text/90">
         {work ? (
-          <span className="flex items-center gap-2 text-accent">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-accent">
             <Loader2 className="size-4 animate-spin" /> {work}
+            <StillWaiting card={card} />
           </span>
         ) : questions ? (
           <span className="flex items-start gap-2 text-warn">

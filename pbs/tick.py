@@ -81,7 +81,7 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
             if morning_wanted and ctx.store.get("deliveries", deliver.delivery_id(ctx.local_date_str())):
                 s["result"] = _extra_delivery(ctx)
             else:
-                s["result"] = morning(ctx) if morning else deliver.morning_delivery(ctx)
+                s["result"] = morning(ctx) if morning else deliver.morning_delivery(ctx, **_fresh_args(ctx))
             res = s["result"]
             if res and send_notifications and ctx.settings.notify.on_delivery:
                 title, msg = notify.delivery_message(res["counts"], res["needs_input"], ctx.run.degraded)
@@ -134,9 +134,16 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
 
 
 def _extra_delivery(ctx: Ctx) -> dict[str, Any] | None:
-    """'Get more cards': a second set for today under a suffixed delivery id."""
+    """'Get fresh posts': another set for today under a suffixed delivery id."""
     base = deliver.delivery_id(ctx.local_date_str())
     n = 2
     while ctx.store.get("deliveries", f"{base}_{n}"):
         n += 1
-    return deliver.morning_delivery(ctx, scout=True, dlv_id=f"{base}_{n}")
+    return deliver.morning_delivery(ctx, dlv_id=f"{base}_{n}", **_fresh_args(ctx))
+
+
+def _fresh_args(ctx: Ctx) -> dict[str, Any]:
+    """The desk's "Get fresh posts" options (platforms, cards per platform, look for new sources first)."""
+    fresh = ctx.fresh or {}
+    return {"scout": bool(fresh.get("find_sources", True)), "platforms": fresh.get("platforms") or None,
+            "per_platform": fresh.get("per_platform") or None}

@@ -116,6 +116,9 @@ class Ctx:
     _router: Any = None
     # Inbox files ingested by this run: deleted once the store that includes them is saved (inbox.cleanup).
     inbox_consumed: list[Path] = field(default_factory=list)
+    # "Get fresh posts" options from the desk: {"platforms": [...] | None, "per_platform": n | None,
+    # "find_sources": bool}. None: the morning set as configured.
+    fresh: dict[str, Any] | None = None
 
     @classmethod
     def create(cls, data_root: str | Path, task: str = "tick", trigger: str = "manual", hints: set[str] | None = None,

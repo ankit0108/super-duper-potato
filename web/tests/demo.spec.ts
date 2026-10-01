@@ -91,7 +91,7 @@ test("a card with questions arrives drafted from sources; the questions are opti
 test("a card waiting for answers can be drafted from sources without answering", async ({ page }) => {
   await page.getByRole("article", { name: "LinkedIn card: Testing an agent on messy data" }).getByRole("button", { name: "Answer" }).click();
   await page.getByRole("button", { name: "Draft from sources only" }).click();
-  await expect(page.getByText("Drafting it from recent sources. About two minutes.")).toBeVisible();
+  await expect(page.getByText("Drafting it from recent sources. Takes 1–3 minutes.")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "LinkedIn post" })).toBeVisible();
 });
 
@@ -121,6 +121,48 @@ test("skipping for another reason asks why, and the reason shows in what the ran
   await page.goto("/#/insights?tab=learning");
   await expect(page.getByRole("heading", { name: "Your recent feedback" })).toBeVisible();
   await expect(page.getByText(`“${why}”`)).toBeVisible();
+});
+
+test("“Other…” asks why on a tap, from the card page too", async ({ page }, testInfo) => {
+  const press = (l: ReturnType<Page["locator"]>) => (testInfo.project.name === "mobile" ? l.tap() : l.click());
+  await press(todaySection(page).locator("[data-tile]").nth(1).locator("h3"));
+  const title = (await page.getByRole("heading", { level: 1 }).textContent())!;
+  await press(page.getByRole("button", { name: "Skip", exact: true }));
+  await press(page.getByRole("menuitem", { name: /^Other…/ }));
+  const dialog = page.getByRole("dialog", { name: "Why skip it?" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText(title)).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Skip with this reason" })).toBeDisabled();
+  await dialog.getByRole("textbox").fill("Too close to yesterday's post");
+  await press(dialog.getByRole("button", { name: "Skip with this reason" }));
+  await expect(page.getByText("Skipped. Your reason feeds tomorrow's ranking and the weekly review.")).toBeVisible();
+  await expect(page.getByText("Other — Too close to yesterday's post")).toBeVisible();
+});
+
+test("get fresh posts: a new set lands on top of today's picks", async ({ page }) => {
+  const firstX = (await todaySection(page).getByRole("article", { name: /^X card:/ }).first().getAttribute("aria-label"))!;
+  await page.getByRole("button", { name: "Get fresh posts" }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Get fresh posts" });
+  await dialog.getByRole("radio", { name: "X", exact: true }).click();
+  await dialog.getByRole("radio", { name: "2", exact: true }).click();
+  await dialog.getByRole("button", { name: "Get 2 fresh posts" }).click();
+  await expect(page.getByText("Getting 2 fresh posts. They land on top of Today's picks, usually within 2–4 minutes.")).toBeVisible();
+  await expect(page.getByText("2 new posts are ready on the board.")).toBeVisible();
+  await expect(todaySection(page).getByText(/^Fresh set/)).toBeVisible();
+  const xTiles = todaySection(page).getByRole("article", { name: /^X card:/ });
+  await expect(xTiles.nth(2)).toHaveAttribute("aria-label", firstX); // the morning set now follows the fresh one
+  await noSidewaysScroll(page);
+});
+
+test("a newer deployed desk is noticed and offered as a reload, and System shows the version", async ({ page }) => {
+  const built = await (await page.request.get("/version.json")).json();
+  expect(built.id).toMatch(/^[\w-]+$/);
+  await page.goto("/#/system");
+  await expect(page.getByText(new RegExp(`^Desk version ${built.id.split("-")[0]}`))).toBeVisible();
+  await expect(page.getByText(/The desk was updated/)).toHaveCount(0);
+  await page.route("**/version.json*", (route) => route.fulfill({ json: { id: "a-newer-build", at: "2026-10-01T09:00:00Z" } }));
+  await page.reload();
+  await expect(page.getByText("The desk was updated. Reload to get the new version (your edits are kept).")).toBeVisible();
 });
 
 test("edit an opening, write your own, and they go into the draft", async ({ page }) => {
@@ -166,6 +208,7 @@ test("move a card to the other platform from the Skip menu", async ({ page }) =>
   await tile.getByRole("button", { name: "Skip" }).click();
   await page.getByRole("menuitem", { name: /^Move to LinkedIn instead/ }).click();
   await expect(page.getByText(/^Moving it to LinkedIn/)).toBeVisible();
+  await expect(page.getByText(/^Your LinkedIn version of “.+” is ready\.$/)).toBeVisible();
   await expect(todaySection(page).getByRole("article", { name: `LinkedIn card: ${title}` }).getByText("Cross-post")).toBeVisible();
   await expect(doneSection(page).getByRole("listitem").filter({ hasText: title }).getByText("Wrong platform")).toBeVisible();
   await page.goto("/#/insights?tab=learning");
@@ -181,7 +224,8 @@ test("make an X version of a LinkedIn card, and the two link to each other", asy
   await dialog.getByLabel("Format on X").selectOption("x_thread");
   await dialog.getByRole("button", { name: "Make the X version" }).click();
   await expect(page.getByText(/^Making the X version/)).toBeVisible();
-  await page.getByRole("link", { name: "X version" }).first().click();
+  const ready = page.locator("[aria-live=polite] > div").filter({ hasText: /^Your X version of “.+” is ready\./ });
+  await ready.getByRole("button", { name: "Open" }).click();
   await expect(page.getByText(/Cross-post of the LinkedIn card/)).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
   await expect(page.getByRole("textbox", { name: /^Post 1 of/ })).toBeVisible();
@@ -226,6 +270,7 @@ test("draw a flowchart for a post, edit its words and post it with the visual", 
   await panel.getByLabel("Kind").selectOption("flow");
   await panel.getByRole("button", { name: "Create visual" }).click();
   await expect(page.getByText(/^Drawing a flowchart for this post/)).toBeVisible();
+  await expect(page.getByText(/^The visual for “.+” is ready\.$/)).toBeVisible();
   await expect(panel.locator("h3").getByText("Flowchart", { exact: true })).toBeVisible();
   await panel.getByRole("button", { name: "Edit text" }).click();
   await panel.getByLabel("Headline").fill("Three corridors, five steps");

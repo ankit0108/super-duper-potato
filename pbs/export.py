@@ -26,7 +26,7 @@ def warnings(ctx: Ctx) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     now = timeutil.now_iso()
     llm = ctx.llm
-    if not any(llm.provider_usable(p) for p in ctx.settings.llm.providers):
+    if not any(llm.provider_usable(p, allow_overloaded=True) for p in ctx.settings.llm.providers):
         out.append({"level": "error", "code": "no_llm", "at": now,
                     "message": "No model provider is usable. Add the GEMINI_API_KEY secret (free), and GROQ_API_KEY "
                                "as a fallback, then run the doctor from System."})
