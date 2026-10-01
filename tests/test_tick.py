@@ -103,6 +103,48 @@ def test_run_request_force_gives_another_set(tmp_path, web, monkeypatch):
     assert out["delivery"]["id"].endswith("_2")
 
 
+def test_get_fresh_posts_makes_a_new_set_of_what_he_asked_for(tmp_path, web, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "x")
+    first = _run(tmp_path, web, trigger="schedule")
+    first_topics = {c["topic_id"] for c in json.loads((tmp_path / "data" / "desk" / "desk.json").read_text())["cards"]
+                    if c.get("delivery_id") == first["delivery"]["id"]}
+    # From the desk: no hints on the dispatch itself, just the event (what the desk sends).
+    write_inbox(tmp_path / "data", [{"id": "fresh1", "type": "run.request", "tasks": ["morning"], "force": True,
+                                     "platforms": ["x"], "per_platform": 2, "find_sources": False}])
+    out = _run(tmp_path, web, trigger="workflow_dispatch")
+    assert out["delivery"]["id"] == f"{first['delivery']['id']}_2" and out["delivery"]["counts"] == {"x": 2}
+    desk = json.loads((tmp_path / "data" / "desk" / "desk.json").read_text())
+    fresh = [c for c in desk["cards"] if c.get("delivery_id") == out["delivery"]["id"]]
+    assert len(fresh) == 2 and {c["platform"] for c in fresh} == {"x"}
+    assert not {c["topic_id"] for c in fresh} & first_topics  # new topics, not today's again
+    ctx = Ctx.create(tmp_path / "data")
+    asked = ctx.store.select("interactions", "type = 'fresh_requested'")
+    assert asked and asked[0]["data"]["platforms"] == ["x"] and asked[0]["data"]["per_platform"] == 2
+
+
+def test_a_cross_post_and_a_visual_from_the_desk_are_done_in_the_run_they_start(tmp_path, web, monkeypatch):
+    """The whole loop the desk relies on: its event starts a run, and that one run finishes the work."""
+    monkeypatch.setenv("GEMINI_API_KEY", "x")
+    _run(tmp_path, web, trigger="schedule")
+    desk = json.loads((tmp_path / "data" / "desk" / "desk.json").read_text())
+    li = next(c for c in desk["cards"] if c["status"] == "suggested" and c["platform"] == "linkedin")
+    x = next(c for c in desk["cards"] if c["status"] == "suggested" and c["platform"] == "x" and c.get("draft"))
+    write_inbox(tmp_path / "data", [
+        {"id": "cp1", "type": "card.crosspost", "card_id": li["id"], "target_platform": "x", "mode": "both",
+         "note": ""},
+        {"id": "vis1", "type": "card.visual", "card_id": x["id"], "kind": "auto", "note": ""},
+    ])
+    out = _run(tmp_path, web, trigger="workflow_dispatch")
+    assert out["status"] == "ok"
+    desk = json.loads((tmp_path / "data" / "desk" / "desk.json").read_text())
+    assert {"cp1", "vis1"} <= set(desk["processed_event_ids"])
+    cards = {c["id"]: c for c in desk["cards"]}
+    made = [c for c in desk["cards"] if c.get("crosspost_of") == li["id"]]
+    assert len(made) == 1 and made[0]["platform"] == "x" and made[0]["status"] == "suggested" and made[0]["draft"]
+    assert cards[li["id"]].get("work") is None and cards[li["id"]]["status"] == "suggested"
+    assert cards[x["id"]].get("work") is None and cards[x["id"]]["visual"]["items"]
+
+
 def test_offline_ctx_has_no_real_network(make_ctx, web):
     ctx: Ctx = make_ctx()
     tick.run(ctx.data_root, transport=web.transport(), llm_providers=fake_providers(), sleep=lambda s: None,

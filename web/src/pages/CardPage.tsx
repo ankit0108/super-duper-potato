@@ -15,7 +15,7 @@ import { Badge, PlatformMark, StatusBadge } from "@/components/ui/Badge";
 import { Button, LinkButton, cx } from "@/components/ui/Button";
 import { Banner, Empty, Panel } from "@/components/ui/Feedback";
 import { Tabs } from "@/components/ui/Tabs";
-import { FlagIcons, SkipMenu, workLabel } from "@/components/card/CardTile";
+import { FlagIcons, SkipMenu, StillWaiting, workLabel } from "@/components/card/CardTile";
 import { DiffPanel, HooksPanel, LinkedInEditor, LiveChecks, ThreadEditor, XPostEditor, numbered, replaceOpening, swapOpening } from "./card/Editor";
 import { Details, PipelineFlags, ReplyHelper, Sources, WhyAngle } from "./card/Context";
 import { CrosspostDialog, PostedDialog, RewriteDialog, type CrosspostPayload, type PostedPayload } from "./card/Dialogs";
@@ -132,7 +132,7 @@ function CardView({ card }: { card: Card }) {
     if (wc.dirtyVsServer) events.push(editEvent(card, wc.copy));
     events.push({ type: "card.visual", card_id: card.id, kind, note });
     const label = VISUAL_KINDS.find((k) => k.value === kind)?.label.toLowerCase();
-    act(events, { toast: kind === "auto" ? "Drawing a visual for this post. It arrives in about two minutes." : `Drawing a ${label} for this post. It arrives in about two minutes.` });
+    act(events, { toast: kind === "auto" ? "Drawing a visual for this post. It arrives within 1–3 minutes." : `Drawing a ${label} for this post. It arrives within 1–3 minutes.` });
   };
   const editVisual = (v: import("@/types").Visual) => {
     markEditing();
@@ -256,7 +256,7 @@ function CardView({ card }: { card: Card }) {
     } else {
       events.push({ type: "card.rewrite", card_id: card.id, note: r.note, chips: r.chips, target_platform: null, target_format: r.target_format ?? null });
     }
-    act(events, { toast: r.target_platform ? `Making the ${PLATFORM_LABEL[r.target_platform]} version. It appears on the board in about two minutes.` : "Rewrite requested. The new draft arrives in about two minutes." });
+    act(events, { toast: r.target_platform ? `Making the ${PLATFORM_LABEL[r.target_platform]} version. It appears on the board within 1–3 minutes.` : "Rewrite requested. The new draft arrives within 1–3 minutes." });
     setRewriting(false);
   };
   const confirmCrosspost = (c: CrosspostPayload) => {
@@ -265,7 +265,7 @@ function CardView({ card }: { card: Card }) {
     events.push({ type: "card.crosspost", card_id: card.id, target_platform: c.target_platform, target_format: c.target_format, mode: c.mode, note: c.note });
     const other = PLATFORM_LABEL[c.target_platform];
     act(events, {
-      toast: c.mode === "switch" ? `Moving it to ${other}: the new card appears in about two minutes, and this one is skipped as the wrong platform.` : `Making the ${other} version. It appears on the board in about two minutes.`,
+      toast: c.mode === "switch" ? `Moving it to ${other}: the new card appears within 1–3 minutes, and this one is skipped as the wrong platform.` : `Making the ${other} version. It appears on the board within 1–3 minutes.`,
     });
     setCrossposting(false);
     if (c.mode === "switch") navigate("/");
@@ -357,6 +357,7 @@ function CardView({ card }: { card: Card }) {
               <Loader2 className="size-4 animate-spin" /> {work} The pipeline is on it; this page updates by itself.
             </span>
             {card.work?.last_error && <span className="block text-xs text-muted">{card.work.last_error}</span>}
+            <StillWaiting card={card} className="block" />
           </Banner>
         </div>
       )}

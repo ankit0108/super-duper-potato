@@ -62,11 +62,11 @@ export function Interview({ card }: { card: Card }) {
         reusable,
         ...(opinion && saveStance && stanceText ? { save_as_stance: { stance_id: card.issue_key ?? null, issue: issue.trim() || card.title, text: stanceText.slice(0, 1000) } } : {}),
       },
-      { toast: "Thanks. The new draft arrives in about two minutes, built from your answers plus the sources." },
+      { toast: "Thanks. The new draft arrives within 1–3 minutes, built from your answers plus the sources." },
     );
     remove(key);
   };
-  const draftFromSources = () => act({ type: "card.draft_now", card_id: card.id }, { toast: "Drafting it from recent sources. About two minutes." });
+  const draftFromSources = () => act({ type: "card.draft_now", card_id: card.id }, { toast: "Drafting it from recent sources. Takes 1–3 minutes." });
 
   if (!questions.length) return <p className="text-sm text-muted">No questions on this card yet. They arrive with the next run.</p>;
   return (

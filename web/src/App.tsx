@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRoute } from "@/lib/router";
 import { useDesk } from "@/state/store";
+import { useUpdateCheck } from "@/state/update";
 import { AppShell } from "@/components/shell/AppShell";
 import { Dialog } from "@/components/ui/Dialog";
 import { Empty, Kbd, Spinner, Toasts } from "@/components/ui/Feedback";
@@ -95,6 +96,7 @@ export function App() {
   const route = useRoute();
   const connection = useDesk((s) => s.connection);
   const [ready, setReady] = useState(false);
+  useUpdateCheck();
   useEffect(() => {
     void useDesk
       .getState()

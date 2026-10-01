@@ -4522,6 +4522,11 @@
      "title": "At",
      "type": "string"
     },
+    "find_sources": {
+     "default": true,
+     "title": "Find Sources",
+     "type": "boolean"
+    },
     "force": {
      "default": false,
      "title": "Force",
@@ -4532,6 +4537,39 @@
      "minLength": 1,
      "title": "Id",
      "type": "string"
+    },
+    "per_platform": {
+     "anyOf": [
+      {
+       "maximum": 5,
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Per Platform"
+    },
+    "platforms": {
+     "anyOf": [
+      {
+       "items": {
+        "enum": [
+         "linkedin",
+         "x"
+        ],
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Platforms"
     },
     "tasks": {
      "default": [],

@@ -164,7 +164,7 @@ export function RewriteDialog({
       open={open}
       onClose={onClose}
       title="Send back for a rewrite"
-      description="The redraft arrives in about two minutes. Your note also teaches the voice profile."
+      description="The redraft arrives within 1–3 minutes. Your note also teaches the voice profile."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -261,7 +261,7 @@ export function CrosspostDialog({ open, onClose, card, onConfirm }: { open: bool
       open={open}
       onClose={onClose}
       title={`Make ${a} ${other} version`}
-      description={`Rewritten for how ${other} works, not just trimmed. It arrives in about two minutes.`}
+      description={`Rewritten for how ${other} works, not just trimmed. It arrives within 1–3 minutes.`}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>

@@ -104,7 +104,7 @@ URL: `https://<you>.github.io/<repo name>/`.
 | Light ticks | Three times a day: desk events, expiry, learning |
 | Saturday batch | Saturday evening: the week's interview and evergreen cards |
 | Weekly review | When you tap **Run weekly review** after your Sunday screenshots, or Monday morning at the latest |
-| Desk actions | Answers, rewrites, requests and "run now" start a run straight away (results in about two minutes) |
+| Desk actions | Answers, rewrites, cross-posts, visuals, requests, "Get fresh posts" and "run now" start a run straight away (results in one to four minutes) |
 
 GitHub sometimes delays scheduled runs; every run catches up on anything overdue, and the desk warns you if
 nothing has run for 30 hours.

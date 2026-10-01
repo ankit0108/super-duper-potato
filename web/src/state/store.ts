@@ -2,8 +2,11 @@ import { create } from "zustand";
 import type { Card, DeskState, EventInput, InboxBatch, InboxEvent, SkipReason } from "@/types";
 import { processDemoEvents, loadDemoDesk } from "@/lib/demo";
 import { GitHub, GitHubError, bytesToBase64, utf8ToBase64, type Connection, type WorkflowRun } from "@/lib/github";
+import { arrivals } from "@/lib/arrivals";
 import { applyEvents, emptyPending, type Pending } from "@/lib/overlay";
 import { buildBatch, makeEvent, reconcile, toItem, type OutboxItem } from "@/lib/outbox";
+import { navigate } from "@/lib/router";
+import type { Build } from "@/lib/version";
 import { newId, readJSON, remove, writeJSON } from "@/lib/storage";
 
 export type RunState = "idle" | "queued" | "running" | "done" | "failed";
@@ -46,6 +49,8 @@ export type DeskStore = {
   prefs: Prefs;
   guardTerms: string;
   skipPrompt: SkipPrompt;
+  /** A newer desk build is deployed (src/state/update.ts). */
+  update: Build | null;
 
   init: () => Promise<void>;
   connect: (conn: Connection) => Promise<void>;
@@ -90,11 +95,21 @@ export const useDesk = create<DeskStore>()((set, get) => {
   const applyReconcile = (desk: DeskState) => {
     const { items, rejected } = reconcile(get().outbox, desk);
     if (items.length !== get().outbox.length) {
-      set({ outbox: items });
+      // Recompute too: the overlay must stop showing work the pipeline has finished.
+      setBase({ outbox: items });
       persistOutbox();
     }
     for (const r of rejected) {
       get().toast("bad", `Couldn't apply "${r.item.event.type}": ${r.error}`);
+    }
+  };
+
+  /** "Ready · Open" for work he was waiting on that the new desk finished (a cross-post, a visual, a draft). */
+  const announce = (before: DeskState | null) => {
+    const found = arrivals(before, get().view);
+    const shown = found.length > 3 ? [...found.slice(0, 2), { tone: "ok" as const, cardId: null, text: `${found.length - 2} more things you asked for are ready.` }] : found;
+    for (const a of shown) {
+      get().toast(a.tone, a.text, { label: a.cardId ? "Open" : "Show", onAction: () => navigate(a.cardId ? `/card/${a.cardId}` : "/") });
     }
   };
 
@@ -181,6 +196,7 @@ export const useDesk = create<DeskStore>()((set, get) => {
     prefs: readJSON<Prefs>(PREFS_KEY, { theme: "system", platform: "all" }),
     guardTerms: readJSON<string>(GUARD_KEY, ""),
     skipPrompt: null,
+    update: null,
 
     init: async () => {
       const conn = readJSON<Connection | null>(CONN_KEY, null);
@@ -258,8 +274,10 @@ export const useDesk = create<DeskStore>()((set, get) => {
           }
           const fetchedAt = new Date().toISOString();
           writeJSON(`pbs.cache.${repoKey(conn)}`, { desk, etag: res.etag, fetchedAt } satisfies Cache);
+          const before = get().view;
           setBase({ base: desk, etag: res.etag, fetchedAt, loadError: null });
           applyReconcile(desk);
+          announce(before);
         }
         const processed = new Set(get().base?.processed_event_ids ?? []);
         await fetchRemoteEvents(client, conn.device, processed);
@@ -308,8 +326,10 @@ export const useDesk = create<DeskStore>()((set, get) => {
         await new Promise((r) => setTimeout(r, 350));
         const processed = processDemoEvents(base, ready.map((i) => i.event));
         const ids = new Set(ready.map((i) => i.event.id));
+        const before = get().view;
         setBase({ base: processed, outbox: get().outbox.filter((i) => !ids.has(i.event.id)) });
         persistOutbox();
+        announce(before);
         return;
       }
       if (!get().online) return;
@@ -406,7 +426,7 @@ export const useDesk = create<DeskStore>()((set, get) => {
     toast: (tone, text, action) => {
       const id = newId("t");
       set({ toasts: [...get().toasts.slice(-3), { id, tone, text, actionLabel: action?.label, onAction: action?.onAction }] });
-      setTimeout(() => get().dismissToast(id), tone === "bad" ? 9000 : 4500);
+      setTimeout(() => get().dismissToast(id), tone === "bad" || action ? 9000 : 4500);
     },
 
     dismissToast: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),

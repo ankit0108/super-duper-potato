@@ -392,9 +392,12 @@ def target_shares(ctx: Ctx, platform: str, arms: dict[str, ArmState]) -> dict[st
 
 
 def allocate(ctx: Ctx, platform: str, cands: list[Candidate], arms: dict[str, ArmState],
-             rng: random.Random, taken_elsewhere: set[str] | None = None) -> list[Candidate]:
+             rng: random.Random, taken_elsewhere: set[str] | None = None, slots: int | None = None) -> list[Candidate]:
     pconf = getattr(ctx.settings.platforms, platform)
-    n = pconf.slots
+    n = slots or pconf.slots
+    reply_slots = getattr(pconf, "reply_slots", 0)  # X only
+    if slots:
+        reply_slots = min(reply_slots, n // 2)  # a small fresh set stays mostly posts, not replies
     cap_interview = pconf.max_interview_per_day
     penalty = ctx.settings.ranking.diversity_arm_penalty
     rate = explore_rate(ctx)
@@ -426,13 +429,13 @@ def allocate(ctx: Ctx, platform: str, cands: list[Candidate], arms: dict[str, Ar
     max_replies = n
     if platform == "x":
         followers = x_followers(ctx)
-        if pconf.reply_slots and (followers is None or followers < pconf.reply_until_followers):
-            max_replies = pconf.reply_slots + 1
+        if reply_slots and (followers is None or followers < pconf.reply_until_followers):
+            max_replies = reply_slots + 1
             pool = [c for c in cands if c.kind == "news" and not c.sensitive and c.mode == "external"
                     and "x_reply" in (ctx.settings.pillar("x", c.pillar).formats if ctx.settings.pillar("x", c.pillar) else [])]
             pool.sort(key=lambda c: -(c.base * (0.6 + 0.4 * c.parts.get("momentum", 0))))
             for c in pool:
-                if len([x for x in chosen if x.fmt == "x_reply"]) >= pconf.reply_slots:
+                if len([x for x in chosen if x.fmt == "x_reply"]) >= reply_slots:
                     break
                 if c.topic_key in used_topics:
                     continue

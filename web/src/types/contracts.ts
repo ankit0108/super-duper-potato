@@ -228,8 +228,11 @@ export type RuleId = string | null;
 export type Text8 = string | null;
 export type Type27 = "playbook.rule";
 export type At27 = string;
+export type FindSources = boolean;
 export type Force = boolean;
 export type Id27 = string;
+export type PerPlatform = number | null;
+export type Platforms1 = ("linkedin" | "x")[] | null;
 export type Tasks = ("morning" | "weekly_batch" | "reflection" | "doctor" | "report" | "scout" | "platform_research")[];
 export type Type28 = "run.request";
 export type Events = (
@@ -1110,8 +1113,11 @@ export interface PlaybookRuleEvent {
  */
 export interface RunRequestEvent {
   at: At27;
+  find_sources?: FindSources;
   force?: Force;
   id: Id27;
+  per_platform?: PerPlatform;
+  platforms?: Platforms1;
   tasks?: Tasks;
   type: Type28;
 }
@@ -1638,12 +1644,12 @@ export interface Request {
   error?: Error1;
   id: Id43;
   notes?: Notes4;
-  platforms?: Platforms1;
+  platforms?: Platforms2;
   query: Query2;
   search?: Search;
   status?: Status8;
 }
-export interface Platforms1 {
+export interface Platforms2 {
   [k: string]: number;
 }
 /**

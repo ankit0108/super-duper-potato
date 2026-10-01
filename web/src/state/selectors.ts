@@ -14,11 +14,40 @@ export type BoardSections = {
 const byRank = (a: Card, b: Card) => (a.rank ?? 99) - (b.rank ?? 99) || (b.score ?? 0) - (a.score ?? 0);
 const byNewest = (a: Card, b: Card) => (b.created_at ?? "").localeCompare(a.created_at ?? "");
 
+/** A set within today's picks: the morning's (1), a fresh set he asked for (2, 3, …), or cross-posts he made of
+ * earlier cards (Infinity: newest of all). */
+export function setNumber(c: Card, today: string): number {
+  const id = c.delivery_id ?? "";
+  if (!id.startsWith(`dly_${today}`)) return Number.POSITIVE_INFINITY;
+  const m = /^_(\d+)$/.exec(id.slice(`dly_${today}`.length));
+  return m ? Number(m[1]) : 1;
+}
+
+export type TodaySet = { key: string; kind: "morning" | "fresh" | "crossposts"; at: string | null; cards: Card[] };
+
+/** Today's cards for one platform, split into sets, newest set first (they arrive sorted that way). */
+export function todaySets(cards: Card[], today: string): TodaySet[] {
+  const out: TodaySet[] = [];
+  for (const c of cards) {
+    const n = setNumber(c, today);
+    const key = String(n);
+    let set = out.find((s) => s.key === key);
+    if (!set) {
+      set = { key, kind: n === Number.POSITIVE_INFINITY ? "crossposts" : n === 1 ? "morning" : "fresh", at: c.delivered_at ?? c.created_at ?? null, cards: [] };
+      out.push(set);
+    }
+    set.cards.push(c);
+  }
+  return out;
+}
+
 export function boardSections(view: DeskState | null, today: string, tz: string, platform: "all" | Platform): BoardSections {
   const all = view?.cards ?? [];
   const matches = (c: Card) => platform === "all" || c.platform === platform;
-  const deliveredToday = (c: Card) => !!c.delivery_id && c.delivery_id.startsWith(`dly_${today}`);
   const changedToday = (c: Card) => localDateKey(c.status_changed_at ?? c.updated_at ?? c.created_at, tz) === today;
+  // Today's sets, plus the cross-posts he made today of earlier cards (they belong with what he's working on).
+  const deliveredToday = (c: Card) =>
+    (!!c.delivery_id && c.delivery_id.startsWith(`dly_${today}`)) || (!!c.crosspost_of && localDateKey(c.created_at, tz) === today);
 
   const needsYou: Card[] = [];
   const today_: Record<Platform, Card[]> = { linkedin: [], x: [] };
@@ -48,10 +77,10 @@ export function boardSections(view: DeskState | null, today: string, tz: string,
     else thisWeek.push(c);
   }
   needsYou.sort(byNewest);
-  // A second set ("Get another set") follows the first, each in rank order.
-  const bySetThenRank = (a: Card, b: Card) => (a.delivery_id ?? "").localeCompare(b.delivery_id ?? "") || byRank(a, b);
-  today_.linkedin.sort(bySetThenRank);
-  today_.x.sort(bySetThenRank);
+  // Newest set first (a fresh set above the morning's), each in rank order; his cross-posts of earlier cards on top.
+  const newestSetFirst = (a: Card, b: Card) => setNumber(b, today) - setNumber(a, today) || byRank(a, b) || byNewest(a, b);
+  today_.linkedin.sort(newestSetFirst);
+  today_.x.sort(newestSetFirst);
   inProgress.sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""));
   thisWeek.sort((a, b) => Number(b.status === "needs_input") - Number(a.status === "needs_input") || byNewest(a, b));
   doneToday.sort((a, b) => (b.status_changed_at ?? "").localeCompare(a.status_changed_at ?? ""));

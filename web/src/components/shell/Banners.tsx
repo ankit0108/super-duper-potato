@@ -17,6 +17,7 @@ export function Banners() {
   const enable = useDesk((s) => s.enableWorkflow);
   const dispatch = useDesk((s) => s.dispatchNow);
   const run = useDesk((s) => s.run);
+  const update = useDesk((s) => s.update);
   const now = useNow(60_000);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const dismiss = (k: string) => setDismissed(new Set([...dismissed, k]));
@@ -27,6 +28,21 @@ export function Banners() {
   const serverWarnings = (view?.warnings ?? []).filter((w) => w.level !== "info" && !dismissed.has(w.code));
 
   const items = [];
+  if (update) {
+    items.push(
+      <Banner
+        key="update"
+        tone="info"
+        action={
+          <Button size="sm" variant="secondary" onClick={() => window.location.reload()}>
+            Reload
+          </Button>
+        }
+      >
+        The desk was updated. Reload to get the new version (your edits are kept).
+      </Banner>,
+    );
+  }
   if (mode === "demo" && !dismissed.has("demo")) {
     items.push(
       <Banner

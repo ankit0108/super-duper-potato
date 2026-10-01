@@ -122,7 +122,7 @@ export function VisualPanel({
 
       {busy ? (
         <p className="flex items-center gap-2 text-[13px] text-accent">
-          <Loader2 className="size-4 animate-spin" /> Drawing the visual from this post and its sources. About two minutes.
+          <Loader2 className="size-4 animate-spin" /> Drawing the visual from this post and its sources. Takes 1–3 minutes.
         </p>
       ) : !visual ? (
         <>

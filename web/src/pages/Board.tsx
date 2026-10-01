@@ -1,13 +1,14 @@
-import { useEffect, useMemo, type ReactNode } from "react";
-import { CalendarClock, CheckCircle2, Inbox, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { CalendarClock, CheckCircle2, Inbox, Loader2, Sparkles } from "lucide-react";
 import type { Card, Platform } from "@/types";
 import { useDesk } from "@/state/store";
 import { useNow, useToday, useTz } from "@/state/hooks";
-import { boardSections } from "@/state/selectors";
+import { boardSections, todaySets, type TodaySet } from "@/state/selectors";
 import { formatTime, greeting, localDateKey } from "@/lib/time";
 import { FORMAT_LABEL, SKIP_REASONS } from "@/lib/format";
 import { Link } from "@/lib/router";
 import { CardTile } from "@/components/card/CardTile";
+import { FreshPostsDialog } from "@/components/FreshPostsDialog";
 import { Badge, PlatformMark } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Empty, Skeleton } from "@/components/ui/Feedback";
@@ -24,6 +25,19 @@ function Section({ title, hint, count, children, id }: { title: string; hint?: R
       </div>
       {children}
     </section>
+  );
+}
+
+/** The divider above each set in Today's picks when there's more than one. */
+function SetLabel({ set, tz }: { set: TodaySet; tz: string }) {
+  const at = set.at ? formatTime(set.at, tz) : "";
+  const label = set.kind === "crossposts" ? "Cross-posts you made" : set.kind === "fresh" ? `Fresh set${at ? ` · ${at}` : ""}` : `Morning set${at ? ` · ${at}` : ""}`;
+  return (
+    <p className="mb-2 flex items-center gap-2 text-[12px] font-medium tracking-wide text-muted uppercase">
+      {set.kind === "fresh" && <Sparkles className="size-3.5 text-accent" aria-hidden />}
+      {label}
+      <span aria-hidden className="h-px flex-1 bg-border" />
+    </p>
   );
 }
 
@@ -51,6 +65,8 @@ export function Board() {
   const prefs = useDesk((s) => s.prefs);
   const setPrefs = useDesk((s) => s.setPrefs);
   const loading = useDesk((s) => s.loading);
+  const freshPending = useDesk((s) => s.pending.runRequested.includes("morning"));
+  const [freshOpen, setFreshOpen] = useState(false);
   const tz = useTz();
   const today = useToday();
   const now = useNow(60_000);
@@ -111,6 +127,9 @@ export function Board() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
+          <Button size="sm" variant="secondary" icon={freshPending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />} onClick={() => setFreshOpen(true)} disabled={freshPending}>
+            {freshPending ? "Getting fresh posts…" : "Get fresh posts"}
+          </Button>
           <div className="flex items-center gap-2 text-[13px]" aria-label="Posted today">
             {(["linkedin", "x"] as const).map((p) => (
               <span key={p} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2 py-1">
@@ -144,10 +163,23 @@ export function Board() {
         </Section>
       )}
 
-      <Section id="sec-today" title="Today's picks" count={todayCount} hint={<>Ranked best first<span className="hidden lg:inline"> · press j / k to move, Enter to open</span></>}>
+      <Section id="sec-today" title="Today's picks" count={todayCount} hint={<>Newest set first, ranked best first<span className="hidden lg:inline"> · press j / k to move, Enter to open</span></>}>
+        {freshPending && (
+          <p role="status" className="mb-3 flex items-center gap-2 rounded-xl border border-accent/30 bg-accent-soft px-3 py-2 text-[13.5px] text-accent">
+            <Loader2 className="size-4 shrink-0 animate-spin" /> Getting fresh posts: finding stories, ranking, drafting. Usually 2–4 minutes; they appear here.
+          </p>
+        )}
         {todayCount === 0 ? (
-          <Empty icon={<Sparkles className="size-7" />} title={deliveredToday ? "All of today's picks are handled" : "Today's picks haven't arrived yet"}>
-            {deliveredToday ? "Nice. Anything else still open is under This week." : "They arrive by about 6am. You can also ask for any topic on the Requests page."}
+          <Empty
+            icon={<Sparkles className="size-7" />}
+            title={deliveredToday ? "All of today's picks are handled" : "Today's picks haven't arrived yet"}
+            action={
+              <Button size="sm" variant="primary" icon={<Sparkles className="size-4" />} onClick={() => setFreshOpen(true)} disabled={freshPending}>
+                Get fresh posts
+              </Button>
+            }
+          >
+            {deliveredToday ? "Nice. Want more? Get a fresh set now. Anything else still open is under This week." : "They arrive by about 6am, or get a fresh set now. You can also ask for any topic on the Requests page."}
           </Empty>
         ) : (
           <div className={platforms.length > 1 ? "grid gap-6 xl:grid-cols-2" : ""}>
@@ -158,7 +190,15 @@ export function Board() {
                     <PlatformMark platform={p} className="size-4 text-[9px]" /> {p === "linkedin" ? "LinkedIn" : "X"} · {sections.today[p].length}
                   </h3>
                 )}
-                <div className="grid gap-3">{sections.today[p].map((c) => <CardTile key={c.id} card={c} pending={pending.cards.has(c.id)} />)}</div>
+                {(() => {
+                  const sets = todaySets(sections.today[p], today);
+                  return sets.map((set) => (
+                    <div key={set.key} className="mb-4 last:mb-0">
+                      {sets.length > 1 && <SetLabel set={set} tz={tz} />}
+                      <div className="grid gap-3">{set.cards.map((c) => <CardTile key={c.id} card={c} pending={pending.cards.has(c.id)} />)}</div>
+                    </div>
+                  ));
+                })()}
               </div>
             ))}
           </div>
@@ -193,6 +233,8 @@ export function Board() {
           </ul>
         </Section>
       )}
+
+      <FreshPostsDialog open={freshOpen} onClose={() => setFreshOpen(false)} />
 
       <div className="mt-8 flex justify-center">
         <Link to="/requests">

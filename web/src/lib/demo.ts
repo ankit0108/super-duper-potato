@@ -110,6 +110,43 @@ function packPosts(sentences: string[], max: number, limit: number): string[] {
   return posts.slice(0, limit);
 }
 
+/**
+ * "Get fresh posts" in the demo: there's no pipeline to scout, so earlier days' unused picks come back as a new
+ * set for today (the real run finds new stories, ranks them against today's and drafts them).
+ */
+function demoFreshSet(desk: DeskState, cards: Card[], ev: Extract<InboxEvent, { type: "run.request" }>, now: string): Card[] {
+  const today = desk.delivery?.local_date ?? now.slice(0, 10);
+  const base = `dly_${today}`;
+  let n = 2;
+  while (cards.some((c) => c.delivery_id === `${base}_${n}`)) n++;
+  const settings = desk.settings as Record<string, any> | undefined;
+  const platforms: Card["platform"][] = ev.platforms?.length ? ev.platforms : ["linkedin", "x"];
+  const out: Card[] = [];
+  for (const p of platforms) {
+    const want = ev.per_platform ?? Math.min(3, settings?.platforms?.[p]?.slots ?? 3);
+    const pool = cards.filter((c) => c.platform === p && c.kind === "news" && !!c.draft && !c.crosspost_of && !(c.delivery_id ?? "").startsWith(base) && c.status !== "posted");
+    pool.slice(0, want).forEach((c, i) =>
+      out.push({
+        ...c,
+        id: `demo_fresh_${n}_${p}_${i + 1}`,
+        delivery_id: `${base}_${n}`,
+        rank: i + 1,
+        status: "suggested",
+        created_at: now,
+        delivered_at: now,
+        updated_at: now,
+        status_changed_at: now,
+        work: null,
+        working: null,
+        skip: null,
+        post_id: null,
+        visual: null,
+      }),
+    );
+  }
+  return out;
+}
+
 /** Like the pipeline's adapt(): a version for the other platform, delivered with the original's set. */
 function crosspostCard(desk: DeskState, source: Card, ev: Extract<InboxEvent, { type: "card.crosspost" }>, now: string): Card {
   const platform = ev.target_platform;
@@ -259,6 +296,9 @@ export function processDemoEvents(desk: DeskState, events: InboxEvent[]): DeskSt
     if (ev.type === "card.draft_now" && idx >= 0) {
       const c = cards[idx];
       cards[idx] = { ...c, draft: draftFromSources(c), draft_state: "full", draft_basis: "sources", status: "suggested", work: null, revision: (c.revision ?? 0) + 1, updated_at: now };
+    }
+    if (ev.type === "run.request" && ev.force && ev.tasks?.includes("morning")) {
+      cards.unshift(...demoFreshSet(next, cards, ev, now));
     }
     if (ev.type === "request.create") {
       const ids: string[] = [];
