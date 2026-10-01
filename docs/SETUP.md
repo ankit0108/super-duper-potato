@@ -57,6 +57,8 @@ In **this** repo: **Settings → Secrets and variables → Actions → Secrets �
 | `GROQ_API_KEY` | Recommended | The Groq key from step 4: the fallback, and the first choice for your own words |
 | `PBS_BLOCKLIST` | Strongly recommended | One term per line: your employer, clients, colleagues, internal system names and code names, with common variants. Drafts containing a term are blocked (never reworded), and the terms are redacted from every model call |
 | `OPENROUTER_API_KEY` | Optional | A last free fallback ([openrouter.ai](https://openrouter.ai) → Keys) |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | Optional | Free AI images for visuals: see [AI images](#ai-images-optional-free) below |
+| `GEMINI_IMAGE_API_KEY`, `XAI_API_KEY` | Optional | Paid AI images (Gemini or Grok), used after Cloudflare: see below |
 | `PBS_NTFY_TOPIC` | Optional | A long random [ntfy](https://ntfy.sh) topic name for "drafts are ready" pings (content-free) |
 | `PBS_TELEGRAM_BOT_TOKEN`, `PBS_TELEGRAM_CHAT_ID` | Optional | The Telegram alternative to ntfy |
 
@@ -95,6 +97,31 @@ URL: `https://<you>.github.io/<repo name>/`.
   it. Opinion posts on an issue are drafted only once you've recorded a stance.
 - **Metrics → Weekly check-in**: today's follower counts, so the growth charts have a baseline.
 - **Sources**: pause anything you don't want and add your favourite feeds or Google News queries.
+
+## AI images (optional, free)
+
+A visual can be an AI illustration for the post, or a carousel cover, big number or quote card with an AI picture
+behind it. The picture never contains words: the desk draws every word on top, so they stay exactly as written and
+checked. Without an image service everything else works; the desk just doesn't offer AI pictures.
+
+**Cloudflare Workers AI (free, recommended).** Its free daily allowance (10,000 "neurons") covers about 60 images
+a day with FLUX.2 [klein]; PBS stops at 20 a day by default (**Settings → AI images**).
+
+1. Create a free account at [dash.cloudflare.com](https://dash.cloudflare.com/sign-up). No card is needed.
+2. **Account ID:** on the dashboard home, open your account's **⋯ → Copy account ID** (it's also in the URL:
+   `dash.cloudflare.com/<account id>/...`).
+3. **API token:** **My Profile → API Tokens → Create Token → Workers AI** template (permission *Workers AI:
+   Read* on your account) → **Continue to summary → Create Token** → copy it (it's shown once).
+4. In this repo, add the secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (step 5's page).
+5. On the desk, **System → Run doctor**. The run log and System show `Images: cloudflare (…flux-2-klein-4b) ok`
+   with a test image's size and timing. **Visual → Kind: AI image** and **Add an AI background** are now on.
+
+**Paid alternatives (only if you want them).** They're tried after Cloudflare, in this order:
+- `GEMINI_IMAGE_API_KEY`: Gemini's image models ("Nano Banana"). Google gives API keys no free image quota, so
+  create a key in a **separate Google Cloud project with billing on** (about US$0.04–0.07 an image); keep your
+  free `GEMINI_API_KEY` for text, or every text call becomes paid too.
+- `XAI_API_KEY`: Grok Imagine from [console.x.ai](https://console.x.ai) with prepaid credits (about US$0.02 an
+  image).
 
 ## What runs when (Melbourne time)
 

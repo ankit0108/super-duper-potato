@@ -1,17 +1,20 @@
 // Visuals for posts, laid out as pages of shapes and wrapped text: svg.ts draws them, export.ts turns them into
 // PNG images or a PDF carousel. Pure geometry (text is measured by a function passed in), so it's testable.
-// There's no image model: every word comes from the card's visual, which the pipeline checked like a draft.
+// Every word comes from the card's visual, which the pipeline checked like a draft. An AI image (kind "image",
+// or a background behind a carousel cover, big number or quote card) is only ever a picture under the words.
 import type { Visual } from "@/types";
 
 export type Measure = (text: string, size: number, weight: number) => number;
 export type Prim =
-  | { t: "rect"; x: number; y: number; w: number; h: number; r?: number; fill: string; stroke?: string; sw?: number }
+  | { t: "rect"; x: number; y: number; w: number; h: number; r?: number; fill: string; stroke?: string; sw?: number; opacity?: number }
+  | { t: "image"; x: number; y: number; w: number; h: number; href: string }
   | { t: "circle"; cx: number; cy: number; r: number; fill: string; stroke?: string; sw?: number }
   | { t: "text"; x: number; y: number; lines: string[]; size: number; weight: number; fill: string; lh: number; anchor?: "start" | "middle" | "end"; italic?: boolean }
   | { t: "path"; d: string; stroke?: string; sw?: number; fill?: string };
 export type Page = { w: number; h: number; bg: string; prims: Prim[] };
 export type VisualPlatform = "linkedin" | "x";
-export type LayoutOptions = { platform: VisualPlatform; name: string; accent?: string | null; measure?: Measure };
+/** `image`: the visual's AI image as a data URL (loaded by the desk), or null while it loads or if there's none. */
+export type LayoutOptions = { platform: VisualPlatform; name: string; accent?: string | null; measure?: Measure; image?: string | null };
 
 /** LinkedIn: portrait 4:5 (feed images and document carousels). X: landscape 16:9. */
 export const SIZES: Record<VisualPlatform, { w: number; h: number }> = { linkedin: { w: 1080, h: 1350 }, x: { w: 1600, h: 900 } };
@@ -180,12 +183,20 @@ function caption(page: Page, v: Visual, g: Geo, pal: Palette, m: Measure, dark =
 
 const items = (v: Visual) => (v.items ?? []).filter((it) => (it.title ?? "").trim() || (it.body ?? "").trim());
 
+/** An AI picture filling the page under a wash of `tint`, so the words on top stay readable. */
+function backdrop(page: Page, img: string | null | undefined, tint: string, opacity: number) {
+  if (!img) return;
+  page.prims.push({ t: "image", x: 0, y: 0, w: page.w, h: page.h, href: img });
+  page.prims.push({ t: "rect", x: 0, y: 0, w: page.w, h: page.h, fill: tint, opacity });
+}
+
 // --- the six kinds ---------------------------------------------------------------------------------------------
 
-function carousel(v: Visual, g: Geo, pal: Palette, name: string, m: Measure): Page[] {
+function carousel(v: Visual, g: Geo, pal: Palette, name: string, m: Measure, img?: string | null): Page[] {
   const slides = items(v);
   const total = slides.length + 1;
   const cover: Page = { w: g.w, h: g.h, bg: pal.cover, prims: [] };
+  backdrop(cover, img, pal.cover, 0.72);
   const t = fit(v.title || "", g.cw, g.wide ? [84, 50] : [96, 56], 800, g.wide ? 4 : 6, m);
   const subSize = g.wide ? 34 : 40;
   const sub = v.subtitle ? wrap(v.subtitle, g.cw, subSize, 400, 3, m) : [];
@@ -371,8 +382,9 @@ function list(v: Visual, g: Geo, pal: Palette, name: string, m: Measure): Page {
   return page;
 }
 
-function stat(v: Visual, g: Geo, pal: Palette, name: string, m: Measure): Page {
+function stat(v: Visual, g: Geo, pal: Palette, name: string, m: Measure, img?: string | null): Page {
   const page: Page = { w: g.w, h: g.h, bg: pal.paper, prims: [] };
+  backdrop(page, img, pal.paper, 0.86);
   const top = header(page, v, g, pal, m);
   const bottom = caption(page, v, g, pal, m);
   const it = items(v)[0] ?? { title: "", body: "" };
@@ -387,8 +399,9 @@ function stat(v: Visual, g: Geo, pal: Palette, name: string, m: Measure): Page {
   return page;
 }
 
-function quote(v: Visual, g: Geo, pal: Palette, name: string, m: Measure): Page {
+function quote(v: Visual, g: Geo, pal: Palette, name: string, m: Measure, img?: string | null): Page {
   const page: Page = { w: g.w, h: g.h, bg: pal.accentSoft, prims: [] };
+  backdrop(page, img, pal.accentSoft, 0.86);
   const top = header(page, v, g, pal, m);
   const bottom = caption(page, v, g, pal, m);
   const it = items(v)[0] ?? { title: "", body: "" };
@@ -406,13 +419,35 @@ function quote(v: Visual, g: Geo, pal: Palette, name: string, m: Measure): Page 
   return page;
 }
 
+/** An AI illustration filling the page; the headline, if any, on a dark band at the bottom with his name. */
+function illustration(v: Visual, g: Geo, pal: Palette, name: string, m: Measure, img?: string | null): Page {
+  const page: Page = { w: g.w, h: g.h, bg: pal.cover, prims: [] };
+  if (img) page.prims.push({ t: "image", x: 0, y: 0, w: g.w, h: g.h, href: img });
+  const nameSize = g.wide ? 26 : 30;
+  const title = (v.title ?? "").trim();
+  if (title) {
+    const t = fit(title, g.cw, g.wide ? [60, 38] : [68, 42], 800, 3, m);
+    const pad = g.wide ? 44 : 60;
+    const top = g.footer - nameSize - pad - blockHeight(t.lines.length, t.size, 800) - pad;
+    page.prims.push({ t: "rect", x: 0, y: top, w: g.w, h: g.h - top, fill: "#0b1020", opacity: 0.66 });
+    page.prims.push(text(g.m, top + pad + t.size, t.lines, t.size, 800, pal.onDark));
+  } else if (name) {
+    const top = g.footer - nameSize - (g.wide ? 30 : 40);
+    page.prims.push({ t: "rect", x: 0, y: top, w: g.w, h: g.h - top, fill: "#0b1020", opacity: 0.5 });
+  }
+  if (name) page.prims.push(text(g.m, g.footer, wrap(name, g.cw * 0.7, nameSize, 700, 1, m), nameSize, 700, pal.onDark));
+  return page;
+}
+
 export function layoutVisual(v: Visual, o: LayoutOptions): Page[] {
   const m = o.measure ?? measureText;
   const g = geo(o.platform);
   const pal = palette(o.accent);
   switch (v.kind) {
+    case "image":
+      return [illustration(v, g, pal, o.name, m, o.image)];
     case "carousel":
-      return carousel(v, g, pal, o.name, m);
+      return carousel(v, g, pal, o.name, m, o.image);
     case "flow":
       return [flow(v, g, pal, o.name, m)];
     case "compare":
@@ -420,9 +455,9 @@ export function layoutVisual(v: Visual, o: LayoutOptions): Page[] {
     case "list":
       return [list(v, g, pal, o.name, m)];
     case "stat":
-      return [stat(v, g, pal, o.name, m)];
+      return [stat(v, g, pal, o.name, m, o.image)];
     case "quote":
-      return [quote(v, g, pal, o.name, m)];
+      return [quote(v, g, pal, o.name, m, o.image)];
     default:
       return [];
   }

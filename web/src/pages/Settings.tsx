@@ -8,7 +8,7 @@ import { useDesk } from "@/state/store";
 import { Badge } from "@/components/ui/Badge";
 import { Button, IconButton } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Feedback";
-import { Field, Input, Textarea, Toggle } from "@/components/ui/Field";
+import { Field, Input, Stepper, Textarea, Toggle } from "@/components/ui/Field";
 import { Segmented } from "@/components/ui/Tabs";
 
 type S = Record<string, any>;
@@ -201,7 +201,7 @@ function VisualsSection({ settings }: { settings: S }) {
     <Section
       id="visuals"
       title="Visuals"
-      description="Carousels, flowcharts, comparisons, lists, big numbers and quote cards, written from the post and drawn in the desk. No image model: every word can be edited."
+      description="Carousels, flowcharts, comparisons, lists, big numbers and quote cards, written from the post and drawn in the desk: every word can be edited. AI pictures are set below."
       onSave={() => accentOk && act({ type: "settings.update", patch: { visuals: { ...v, name_linkedin: v.name_linkedin.trim(), name_x: v.name_x.trim() } } }, { toast: "Saved." })}
       dirty={dirty && accentOk}
       pending={pending}
@@ -221,6 +221,41 @@ function VisualsSection({ settings }: { settings: S }) {
               <Input id="vis-accent" value={v.accent} onChange={(e) => setV({ ...v, accent: e.target.value })} className="w-32" maxLength={7} />
             </div>
           </Field>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+/** AI images: an illustration for a post, or a picture behind a carousel cover, big number or quote card. */
+function ImagesSection({ settings }: { settings: S }) {
+  const act = useDesk((s) => s.act);
+  const pending = useDesk((s) => s.pending.settings);
+  const status = useDesk((s) => s.view?.images);
+  const initial = useMemo(() => ({ enabled: settings.images?.enabled ?? true, daily_limit: settings.images?.daily_limit ?? 20 }), [settings]);
+  const [v, setV, dirty] = useDraft(initial);
+  const services = status?.providers ?? [];
+  return (
+    <Section
+      id="images"
+      title="AI images"
+      description="Pictures from an image model, never words: the desk draws every word on top. Cloudflare's free allowance covers about 60 a day."
+      onSave={() => act({ type: "settings.update", patch: { images: v } }, { toast: "Saved." })}
+      dirty={dirty}
+      pending={pending}
+    >
+      <div className="space-y-4">
+        <p className="text-[13px] text-muted">
+          {services.length
+            ? `Image service${services.length > 1 ? "s" : ""}: ${services.join(", ")} · ${status?.used_today ?? 0} of ${status?.daily_limit ?? v.daily_limit} used today (UTC).`
+            : "No image service is set up. Add the free CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN secrets (docs/SETUP.md, “AI images”), then run the doctor from System."}
+          {status?.last_error ? ` Last problem: ${status.last_error}.` : ""}
+        </p>
+        <Toggle checked={v.enabled} onChange={(b) => setV({ ...v, enabled: b })} label="Offer AI images and backgrounds" />
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm">At most</span>
+          <Stepper value={v.daily_limit} onChange={(n) => setV({ ...v, daily_limit: n })} min={0} max={100} label="images a day" />
+          <span className="text-sm text-muted">images a day</span>
         </div>
       </div>
     </Section>
@@ -565,6 +600,7 @@ export function Settings() {
           <VolumeSection settings={settings} />
           <HashtagsSection settings={settings} />
           <VisualsSection settings={settings} />
+          <ImagesSection settings={settings} />
           <StrategySection settings={settings} />
           <RewardsSection settings={settings} />
           <LearningSection settings={settings} />

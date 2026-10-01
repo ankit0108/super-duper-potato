@@ -570,7 +570,10 @@ VISUALS: dict[str, dict[str, Any]] = {
 def _visual(req: LLMRequest, data: Any) -> Any:
     key = _key_for((data or {}).get("topic") or "", VISUALS) if isinstance(data, dict) else None
     if key and ("Make a document carousel" in req.prompt or "Pick the kind" in req.prompt):
-        return VISUALS[key]
+        out = dict(VISUALS[key])
+        if '"image_prompt"' in req.prompt:  # a background was asked for too
+            out["image_prompt"] = "Quiet rows of soft geometric blocks fading into a warm gradient, like an orderly workflow."
+        return out
     return DEFAULT_HANDLERS["visual"](req, data)
 
 

@@ -116,6 +116,9 @@ TABLES: dict[str, Table] = {
         _t("settings", "value updated_at", json_cols="value"),
         _t("processed_events", "batch_id at type status error", shard="at"),
         _t("doctor_reports", "created_at checks summary", json_cols="checks summary"),
+        # One row per AI image attempt: today's usage, the provider's errors, and the file it made.
+        _t("images", "day provider model card_id purpose path content_type bytes width height ms status error "
+           "created_at", indexes="day card_id"),
     ]
 }
 

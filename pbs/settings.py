@@ -168,6 +168,20 @@ class Visuals(_Strict):
     accent: str = Field("#4F46E5", pattern=r"^#[0-9a-fA-F]{6}$")
 
 
+class Images(_Strict):
+    """AI images for visuals (pbs/images.py). Each provider is used only when its secret is set: Cloudflare
+    Workers AI is free (a daily allowance of about 60 images); Gemini and xAI images are paid per image."""
+    enabled: bool = True
+    providers: list[Literal["cloudflare", "gemini_image", "xai"]] = ["cloudflare", "gemini_image", "xai"]
+    daily_limit: int = Field(20, ge=0, le=200)
+    cloudflare_models: list[str] = ["@cf/black-forest-labs/flux-2-klein-4b", "@cf/black-forest-labs/flux-1-schnell"]
+    gemini_models: list[str] = ["gemini-2.5-flash-image", "gemini-3.1-flash-image-preview"]
+    xai_model: str = "grok-imagine-image"
+    # Added to every image prompt: the house look, and no words (the desk draws the words, exactly).
+    style: str = Field("clean editorial illustration, flat shapes with soft gradients and gentle depth, a calm "
+                       "limited palette, generous empty space, modern and professional", max_length=400)
+
+
 class Drafting(_Strict):
     interview_draft_now: bool = True
     questions_per_card: int = Field(2, ge=1, le=3)
@@ -258,6 +272,7 @@ class Settings(BaseModel):
     drafting: Drafting = Drafting()
     hashtags: Hashtags = Hashtags()
     visuals: Visuals = Visuals()
+    images: Images = Images()
     weekly_batch: WeeklyBatch
     llm: LLM
     notify: Notify = Notify()

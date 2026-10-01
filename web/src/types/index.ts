@@ -37,6 +37,7 @@ export type DeskWarning = Item<DeskState["warnings"]>;
 export type DeliveryInfo = NonNullable<DeskState["delivery"]>;
 export type RejectedEvent = Item<DeskState["rejected_events"]>;
 export type DoctorReport = NonNullable<DeskState["doctor"]>;
+export type ImagesStatus = NonNullable<DeskState["images"]>;
 
 export type Platform = Card["platform"];
 export type CardStatus = Card["status"];

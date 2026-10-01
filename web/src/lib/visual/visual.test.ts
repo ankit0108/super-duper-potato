@@ -80,6 +80,37 @@ describe("layoutVisual", () => {
     }
   });
 
+  it("an AI image fills the page, with the headline on a dark band and nothing but its words drawn", () => {
+    const pic = "data:image/png;base64,iVBORw0KGgo=";
+    for (const platform of ["linkedin", "x"] as const) {
+      const [page] = layoutVisual(visual({ kind: "image", title: "A calmer back office", items: [] }), { platform, name: "Ankit", measure, image: pic });
+      const img = page.prims.find((p) => p.t === "image");
+      expect(img).toMatchObject({ x: 0, y: 0, w: SIZES[platform].w, h: SIZES[platform].h, href: pic });
+      const band = page.prims.find((p) => p.t === "rect" && p.opacity);
+      expect(band).toBeTruthy();
+      expect(page.prims.indexOf(img!)).toBeLessThan(page.prims.indexOf(band!)); // the words sit on top
+      expect(pageText(page)).toContain("A calmer back office");
+      expect(pageText(page)).toContain("Ankit");
+    }
+    // While the picture loads (or without one) the page still draws, on the cover colour.
+    const [bare] = layoutVisual(visual({ kind: "image", title: "", items: [] }), { platform: "x", name: "", measure });
+    expect(bare.prims.filter((p) => p.t === "image")).toHaveLength(0);
+  });
+
+  it("an AI background goes behind the carousel cover, the big number and the quote, under a wash", () => {
+    const pic = "data:image/png;base64,iVBORw0KGgo=";
+    const cover = layoutVisual(visual({ items: slides }), { platform: "linkedin", name: "A", measure, image: pic });
+    expect(cover[0].prims[0]).toMatchObject({ t: "image", href: pic });
+    expect(cover[0].prims[1]).toMatchObject({ t: "rect", opacity: 0.72 });
+    expect(cover.slice(1).every((p) => !p.prims.some((q) => q.t === "image"))).toBe(true); // slides stay plain
+    for (const kind of ["stat", "quote"] as const) {
+      const items = kind === "stat" ? [{ title: "41%", body: "of tasks" }] : [{ title: "The paper", body: "Exceptions break agents." }];
+      const [page] = layoutVisual(visual({ kind, items }), { platform: "x", name: "A", measure, image: pic });
+      expect(page.prims[0]).toMatchObject({ t: "image" });
+      expect(page.prims[1]).toMatchObject({ t: "rect", opacity: 0.86 });
+    }
+  });
+
   it("a flow on X with five steps wraps into two rows joined by arrows", () => {
     const five = [...slides, { title: "Four", body: "" }, { title: "Five", body: "" }];
     const [page] = layoutVisual(visual({ kind: "flow", items: five }), { platform: "x", name: "", measure });
@@ -98,6 +129,16 @@ describe("svg", () => {
     expect(svg).toContain("R&amp;D &lt;budgets&gt;");
     expect(svg).toContain("&quot;Quoted&quot; &amp; &#39;single&#39;");
     expect(svg).not.toMatch(/<budgets>/);
+    expect(new DOMParser().parseFromString(svg, "image/svg+xml").querySelector("parsererror")).toBeNull();
+  });
+});
+
+describe("svg with a picture", () => {
+  it("embeds the image covering its box and the wash's opacity", () => {
+    const [page] = layoutVisual(visual({ kind: "image", title: "T", items: [] }), { platform: "x", name: "", measure, image: "data:image/png;base64,AAAA" });
+    const svg = pageToSvg(page);
+    expect(svg).toContain('<image href="data:image/png;base64,AAAA" x="0" y="0" width="1600" height="900" preserveAspectRatio="xMidYMid slice"/>');
+    expect(svg).toMatch(/fill-opacity="0\.66"/);
     expect(new DOMParser().parseFromString(svg, "image/svg+xml").querySelector("parsererror")).toBeNull();
   });
 });
@@ -134,6 +175,20 @@ describe("visual events", () => {
     const next = out.cards![0];
     expect(next.work).toMatchObject({ kind: "visual", visual_kind: "flow", note: "five steps" });
     expect(next.working?.visual).toMatchObject({ title: "Mine", created_at: base.created_at, sources: [0] });
+  });
+
+  it("the demo makes an AI image, or puts one behind a carousel, from a picture it already has", () => {
+    const pic = { path: "media/ai/crd_1/20260928T060000Z-abc.png", width: 320, height: 400, content_type: "image/png", provider: "cloudflare", model: "@cf/black-forest-labs/flux-2-klein-4b" };
+    const c = card({ platform: "linkedin", draft: { text: "Agents finish 41% of tasks. Exceptions break the rest. Teams should test their own cases.", posts: [] } });
+    const img = demoVisual(c, "image", "2026-09-28T06:00:00Z", pic);
+    expect(img).toMatchObject({ kind: "image", items: [], image: { path: pic.path } });
+    expect(img.alt_text).toMatch(/^AI-generated illustration/);
+    expect(demoVisual(c, "carousel", "2026-09-28T06:00:00Z", pic, true).image?.path).toBe(pic.path);
+    expect(demoVisual(c, "flow", "2026-09-28T06:00:00Z", pic, true).image).toBeUndefined(); // only cover, number, quote
+    const out = processDemoEvents(desk({ cards: [c, card({ id: "has-pic", visual: { kind: "image", title: "", items: [], alt_text: "", image: pic } })] }), [
+      event("card.visual", { card_id: c.id, kind: "image", note: "" }),
+    ]);
+    expect(out.cards!.find((x) => x.id === c.id)?.visual?.image?.path).toBe(pic.path);
   });
 
   it("the demo draws a visual from the post", () => {

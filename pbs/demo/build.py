@@ -19,6 +19,7 @@ import json
 import os
 import random
 import re
+import shutil
 import tempfile
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -113,9 +114,13 @@ def request_world(ref: dt.datetime) -> dict[str, tuple[int, str, str]]:
 @contextmanager
 def _demo_environment() -> Iterator[None]:
     keep = {k: os.environ.get(k) for k in ("PBS_BLOCKLIST", "GEMINI_API_KEY", "GROQ_API_KEY", "PBS_NTFY_TOPIC",
-                                           "PBS_TELEGRAM_BOT_TOKEN", "PBS_TELEGRAM_CHAT_ID", "PBS_PUBLIC_LOGS")}
-    os.environ.update({"PBS_BLOCKLIST": BLOCKLIST, "GEMINI_API_KEY": "demo", "GROQ_API_KEY": "demo"})
-    for k in ("PBS_NTFY_TOPIC", "PBS_TELEGRAM_BOT_TOKEN", "PBS_TELEGRAM_CHAT_ID"):
+                                           "PBS_TELEGRAM_BOT_TOKEN", "PBS_TELEGRAM_CHAT_ID", "PBS_PUBLIC_LOGS",
+                                           "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "GEMINI_IMAGE_API_KEY",
+                                           "XAI_API_KEY")}
+    # The demo's image service is the mock web's Cloudflare (web.py): small generated pictures, no network.
+    os.environ.update({"PBS_BLOCKLIST": BLOCKLIST, "GEMINI_API_KEY": "demo", "GROQ_API_KEY": "demo",
+                       "CLOUDFLARE_ACCOUNT_ID": "demo", "CLOUDFLARE_API_TOKEN": "demo"})
+    for k in ("PBS_NTFY_TOPIC", "PBS_TELEGRAM_BOT_TOKEN", "PBS_TELEGRAM_CHAT_ID", "GEMINI_IMAGE_API_KEY", "XAI_API_KEY"):
         os.environ.pop(k, None)
     os.environ["PBS_PUBLIC_LOGS"] = "1"
     ids.seed(2609)
@@ -142,6 +147,10 @@ def build_demo(out: Path, data_dir: Path | None = None) -> Path:
         out.mkdir(parents=True, exist_ok=True)
         path = out / "desk.json"
         path.write_text(json.dumps(desk, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        # The AI images the demo's visuals use: the desk loads them from ./demo/media/ai/.
+        shutil.rmtree(out / "media", ignore_errors=True)
+        if (root / "media" / "ai").is_dir():
+            shutil.copytree(root / "media" / "ai", out / "media" / "ai")
         log.info(f"demo: {len(desk.get('cards', []))} cards, {len(desk.get('posts', []))} posts -> {path}")
         return path
 
@@ -644,6 +653,8 @@ class Simulation:
                         and c is not li_top), None)
         move = next((c for c in reversed(cards["x"]) if c["status"] == "suggested" and c is not x_top
                      and c["format"] in ("x_single", "x_thread") and c.get("mode") != "interview"), None)
+        illustrate = next((c for c in cards["x"] if c["status"] == "suggested" and c is not x_top and c is not move
+                           and c["format"] == "x_single" and c.get("draft")), None)
         events: list[dict[str, Any]] = []
         t = self.at(TODAY, "06:22")
         if x_top:
@@ -653,9 +664,12 @@ class Simulation:
         if skip:
             events.append({"type": "card.skip", "card_id": skip["id"], "reason": "already_covered",
                            "at": timeutil.iso(t + dt.timedelta(minutes=5))})
-        if li_top:  # a carousel for the top LinkedIn card
+        if li_top:  # a carousel for the top LinkedIn card, with an AI picture behind its cover
             events.append({"type": "card.visual", "card_id": li_top["id"], "kind": "carousel", "note": "",
-                           "at": timeutil.iso(t + dt.timedelta(minutes=4))})
+                           "ai_background": True, "at": timeutil.iso(t + dt.timedelta(minutes=4))})
+        if illustrate:  # an AI illustration for an X post
+            events.append({"type": "card.visual", "card_id": illustrate["id"], "kind": "image", "note": "",
+                           "at": timeutil.iso(t + dt.timedelta(minutes=5))})
         if li_next:  # an X thread of another LinkedIn card, as well
             events.append({"type": "card.crosspost", "card_id": li_next["id"], "target_platform": "x",
                            "target_format": "x_thread", "mode": "both", "note": "",

@@ -120,7 +120,8 @@ This repository is written by the Personal Brand System. Keep it **private**.
 - `db/` — state as JSON Lines, one table per file (written by the pipeline only)
 - `desk/desk.json` — what the desk renders (written by the pipeline only)
 - `inbox/` — events from the desk (written by the desk only; the pipeline ingests and deletes them)
-- `media/` — processed analytics screenshots (kept 60 days)
+- `media/` — processed analytics screenshots (kept 60 days); `media/ai/` — AI images for visuals (removed when
+  nothing uses them)
 """
 
 

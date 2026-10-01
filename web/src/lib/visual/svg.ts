@@ -8,7 +8,10 @@ const n = (v: number) => String(Math.round(v * 10) / 10);
 function prim(p: Prim): string {
   switch (p.t) {
     case "rect":
-      return `<rect x="${n(p.x)}" y="${n(p.y)}" width="${n(p.w)}" height="${n(p.h)}"${p.r ? ` rx="${n(p.r)}"` : ""} fill="${p.fill}"${p.stroke ? ` stroke="${p.stroke}" stroke-width="${p.sw ?? 1}"` : ""}/>`;
+      return `<rect x="${n(p.x)}" y="${n(p.y)}" width="${n(p.w)}" height="${n(p.h)}"${p.r ? ` rx="${n(p.r)}"` : ""} fill="${p.fill}"${p.opacity != null ? ` fill-opacity="${p.opacity}"` : ""}${p.stroke ? ` stroke="${p.stroke}" stroke-width="${p.sw ?? 1}"` : ""}/>`;
+    case "image":
+      // Cover the box (cropping the overflow), as a photo would.
+      return `<image href="${esc(p.href)}" x="${n(p.x)}" y="${n(p.y)}" width="${n(p.w)}" height="${n(p.h)}" preserveAspectRatio="xMidYMid slice"/>`;
     case "circle":
       return `<circle cx="${n(p.cx)}" cy="${n(p.cy)}" r="${n(p.r)}" fill="${p.fill}"${p.stroke ? ` stroke="${p.stroke}" stroke-width="${p.sw ?? 1}"` : ""}/>`;
     case "path":

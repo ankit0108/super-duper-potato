@@ -251,6 +251,10 @@ test("a card's carousel: flip through it, download the PDF and a slide", async (
   await page.getByRole("article", { name: /^LinkedIn card: AgentBench/ }).click();
   const panel = page.getByRole("region", { name: "Visual" });
   await expect(panel.getByRole("img")).toHaveAttribute("alt", /Carousel: 41% end to end/);
+  // Its cover has an AI picture behind it (made by the pipeline's demo image service); the words are drawn on top.
+  await expect(panel.locator("h3").getByText("AI background", { exact: true })).toBeVisible();
+  await expect(panel.getByText(/^Picture: AI-generated \(cloudflare, flux-2-klein-4b\)/)).toBeVisible();
+  await expect.poll(async () => decodeURIComponent((await panel.getByRole("img").getAttribute("src")) ?? "")).toContain("<image href=\"data:image/png;base64,");
   await expect(panel.getByText("Slide 1 of 6")).toBeVisible();
   await panel.getByRole("button", { name: "Next slide" }).click();
   await expect(panel.getByText("Slide 2 of 6")).toBeVisible();
@@ -264,12 +268,54 @@ test("a card's carousel: flip through it, download the PDF and a slide", async (
   expect(readFileSync((await png.path())!).subarray(1, 4).toString("latin1")).toBe("PNG");
 });
 
+test("an AI image for a post: made by the image service, headline drawn on it, downloaded as PNG", async ({ page }) => {
+  await todaySection(page).getByRole("article", { name: /^LinkedIn card:/ }).nth(1).click();
+  const panel = page.getByRole("region", { name: "Visual" });
+  await panel.getByLabel("Kind").selectOption("image");
+  await panel.getByRole("button", { name: "Create visual" }).click();
+  await expect(page.getByText(/^Making an AI image for this post/)).toBeVisible();
+  await expect(page.getByText(/^The visual for “.+” is ready\.$/)).toBeVisible();
+  await expect(panel.locator("h3").getByText("AI image", { exact: true })).toBeVisible();
+  await expect(panel.getByRole("img")).toHaveAttribute("alt", /^AI-generated illustration/);
+  await expect(panel.getByText(/^Picture: AI-generated/)).toBeVisible();
+  const [png] = await Promise.all([page.waitForEvent("download"), panel.getByRole("button", { name: "Download PNG" }).click()]);
+  expect(readFileSync((await png.path())!).subarray(1, 4).toString("latin1")).toBe("PNG");
+});
+
+test("a carousel can get an AI background", async ({ page }) => {
+  await todaySection(page).getByRole("article", { name: /^X card:/ }).first().click();
+  const panel = page.getByRole("region", { name: "Visual" });
+  await panel.getByLabel("Kind").selectOption("carousel");
+  await panel.getByRole("checkbox", { name: "Add an AI background" }).check();
+  await panel.getByRole("button", { name: "Create visual" }).click();
+  await expect(page.getByText(/^Making a carousel with an AI background for this post/)).toBeVisible();
+  await expect(panel.locator("h3").getByText("AI background", { exact: true })).toBeVisible();
+});
+
+test.describe("without an image service", () => {
+  // The service worker would answer desk.json itself, out of this test's reach.
+  test.use({ serviceWorkers: "block" });
+
+  test("the AI options say what to add instead of failing later", async ({ page }) => {
+    await page.route("**/demo/desk.json", async (route) => {
+      const desk = await (await route.fetch()).json();
+      await route.fulfill({ json: { ...desk, images: { available: false, providers: [], used_today: 0, daily_limit: 20 } } });
+    });
+    await page.goto("/"); // a fresh load, still in demo mode
+    await todaySection(page).getByRole("article", { name: /^X card:/ }).nth(1).click();
+    const panel = page.getByRole("region", { name: "Visual" });
+    await expect(panel.getByRole("option", { name: "AI image (set up first)" })).toBeDisabled();
+    await expect(panel.getByText(/AI images need an image service: add the free CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN secrets/)).toBeVisible();
+    await expect(panel.getByRole("checkbox", { name: /Add an AI background/ })).not.toBeChecked();
+  });
+});
+
 test("draw a flowchart for a post, edit its words and post it with the visual", async ({ page }) => {
   await todaySection(page).getByRole("article", { name: /^X card:/ }).first().click();
   const panel = page.getByRole("region", { name: "Visual" });
   await panel.getByLabel("Kind").selectOption("flow");
   await panel.getByRole("button", { name: "Create visual" }).click();
-  await expect(page.getByText(/^Drawing a flowchart for this post/)).toBeVisible();
+  await expect(page.getByText(/^Making a flowchart for this post/)).toBeVisible();
   await expect(page.getByText(/^The visual for “.+” is ready\.$/)).toBeVisible();
   await expect(panel.locator("h3").getByText("Flowchart", { exact: true })).toBeVisible();
   await panel.getByRole("button", { name: "Edit text" }).click();

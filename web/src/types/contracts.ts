@@ -26,7 +26,7 @@ export type Title = string;
  * @maxItems 12
  */
 export type Items = VisualItemIn[];
-export type Kind = "carousel" | "flow" | "compare" | "list" | "stat" | "quote";
+export type Kind = "carousel" | "flow" | "compare" | "list" | "stat" | "quote" | "image";
 export type Subtitle = string | null;
 export type Title1 = string;
 export type At2 = string;
@@ -73,10 +73,11 @@ export type Note2 = string;
 export type TargetFormat1 = ("li_text" | "x_single" | "x_thread" | "x_quote" | "x_reply") | null;
 export type TargetPlatform1 = "linkedin" | "x";
 export type Type6 = "card.crosspost";
+export type AiBackground = boolean;
 export type At6 = string;
 export type CardId6 = string;
 export type Id6 = string;
-export type Kind1 = ("carousel" | "flow" | "compare" | "list" | "stat" | "quote") | "auto";
+export type Kind1 = ("carousel" | "flow" | "compare" | "list" | "stat" | "quote" | "image") | "auto";
 export type Note3 = string;
 export type Type7 = "card.visual";
 export type Answer = string;
@@ -387,6 +388,16 @@ export type AltText1 = string;
  */
 export type Caption1 = string | null;
 export type CreatedAt2 = string | null;
+export type ContentType = string;
+export type CreatedAt3 = string | null;
+export type Height = number;
+export type Model1 = string | null;
+/**
+ * File in the data repo, like media/ai/<card id>/<stamp>.jpg
+ */
+export type Path = string;
+export type Provider1 = string;
+export type Width = number;
 /**
  * Supporting text; a comparison column has one point per line
  */
@@ -396,7 +407,7 @@ export type Body1 = string;
  */
 export type Title4 = string;
 export type Items1 = VisualItem[];
-export type Kind5 = "carousel" | "flow" | "compare" | "list" | "stat" | "quote";
+export type Kind5 = "carousel" | "flow" | "compare" | "list" | "stat" | "quote" | "image";
 /**
  * Indexes of the card's sources it draws on
  */
@@ -408,6 +419,7 @@ export type Title5 = string;
  */
 export type Unsourced1 = string[];
 export type WhyNow = string | null;
+export type AiBackground1 = boolean | null;
 export type Attempts = number;
 export type Chips1 = string[];
 export type Crosspost = ("both" | "switch") | null;
@@ -417,7 +429,7 @@ export type Note7 = string | null;
 export type RequestedAt = string | null;
 export type TargetFormat2 = ("li_text" | "x_single" | "x_thread" | "x_quote" | "x_reply") | null;
 export type TargetPlatform2 = ("linkedin" | "x") | null;
-export type VisualKind = ("carousel" | "flow" | "compare" | "list" | "stat" | "quote") | "auto" | null;
+export type VisualKind = ("carousel" | "flow" | "compare" | "list" | "stat" | "quote" | "image") | "auto" | null;
 /**
  * The hashtags he kept or added (null: the suggested ones)
  */
@@ -441,9 +453,9 @@ export type Detail = string | null;
 export type Name1 = string;
 export type Status3 = "ok" | "warn" | "fail" | "skip";
 export type Checks = DoctorCheck[];
-export type CreatedAt3 = string;
-export type Id34 = string;
 export type CreatedAt4 = string;
+export type Id34 = string;
+export type CreatedAt5 = string;
 export type Hypothesis = string | null;
 export type Id35 = string;
 export type Instruction = string;
@@ -453,6 +465,14 @@ export type Platform5 = ("linkedin" | "x") | null;
 export type Status4 = "active" | "promoted" | "retired";
 export type Trials = number;
 export type Experiments = Experiment[];
+export type Available = boolean;
+export type DailyLimit = number;
+export type LastError1 = string | null;
+/**
+ * Providers with their secrets set, in the order they're tried
+ */
+export type Providers = string[];
+export type UsedToday = number;
 export type AppVersion = string;
 export type DisplayName = string;
 export type GeneratedAt = string;
@@ -462,7 +482,7 @@ export type SchemaVersion = number;
 export type Timezone = string;
 export type CapturedAt1 = string | null;
 export type Comments1 = number | null;
-export type CreatedAt5 = string | null;
+export type CreatedAt6 = string | null;
 export type ExtractionConfidence = number | null;
 export type FollowersGained1 = number | null;
 export type Id36 = string;
@@ -492,7 +512,7 @@ export type PlatformGuide = {
 export type Changes = {
   [k: string]: unknown;
 }[];
-export type CreatedAt6 = string;
+export type CreatedAt7 = string;
 export type Experiments1 = string[];
 export type Id37 = string;
 export type AddedIn = string | null;
@@ -531,7 +551,7 @@ export type Title6 = string | null;
 export type Posts5 = Post[];
 export type ProcessedEventIds = string[];
 export type Confidence1 = "low" | "medium" | "high";
-export type CreatedAt7 = string | null;
+export type CreatedAt8 = string | null;
 export type DecidedAt = string | null;
 export type DecisionNote = string | null;
 export type Detail1 = string | null;
@@ -542,14 +562,14 @@ export type Source5 = string | null;
 export type Status7 = "pending" | "approved" | "rejected" | "applied";
 export type Title7 = string;
 export type Proposals = Proposal[];
-export type DailyLimit = number | null;
+export type DailyLimit1 = number | null;
 export type Day = string;
 export type ExhaustedAt = string | null;
-export type LastError1 = string | null;
+export type LastError2 = string | null;
 export type LastErrorAt = string | null;
 export type LastOkAt = string | null;
-export type Model1 = string | null;
-export type Provider1 = string;
+export type Model2 = string | null;
+export type Provider2 = string;
 export type Requests = number;
 export type TokensIn = number;
 export type TokensOut = number;
@@ -562,7 +582,7 @@ export type RejectedEvents = RejectedEvent[];
 export type Actions = {
   [k: string]: unknown;
 }[];
-export type CreatedAt8 = string;
+export type CreatedAt9 = string;
 export type Id42 = string;
 export type Proposals1 = string[];
 export type Week1 = string;
@@ -571,7 +591,7 @@ export type ReportsIndex = {
 }[];
 export type CardIds = string[];
 export type CompletedAt = string | null;
-export type CreatedAt9 = string | null;
+export type CreatedAt10 = string | null;
 export type Error1 = string | null;
 export type Id43 = string;
 export type Notes4 = string | null;
@@ -607,7 +627,7 @@ export type BestEffort = boolean;
 export type ConsecutiveFailures = number;
 export type ItemsLastRun = number | null;
 export type ItemsTotal = number | null;
-export type LastError2 = string | null;
+export type LastError3 = string | null;
 export type LastFetchAt = string | null;
 export type LastSuccessAt = string | null;
 export type Id45 = string;
@@ -636,7 +656,7 @@ export type Status10 = "proposed" | "active" | "archived";
 export type Tier4 = "world" | "india" | "bihar" | "other";
 export type UpdatedAt2 = string | null;
 export type Stances = Stance[];
-export type CreatedAt10 = string | null;
+export type CreatedAt11 = string | null;
 export type Error2 = string | null;
 export type Id47 = string;
 export type Note8 = string | null;
@@ -652,7 +672,7 @@ export type AddedPhrases = {
   [k: string]: unknown;
 }[];
 export type Avoid = string[];
-export type CreatedAt11 = string;
+export type CreatedAt12 = string;
 export type CutPhrases = {
   [k: string]: unknown;
 }[];
@@ -800,12 +820,14 @@ export interface CardCrosspostEvent {
   type: Type6;
 }
 /**
- * Draw a visual for the post: a carousel, flowchart, comparison, list, big number or quote.
+ * Draw a visual for the post: a carousel, flowchart, comparison, list, big number, quote or an AI image.
+ * `ai_background` adds an AI image behind a carousel cover, big number or quote card.
  *
  * This interface was referenced by `Contracts`'s JSON-Schema
  * via the `definition` "CardVisualEvent".
  */
 export interface CardVisualEvent {
+  ai_background?: AiBackground;
   at: At6;
   card_id: CardId6;
   id: Id6;
@@ -1133,6 +1155,7 @@ export interface DeskState {
   delivery?: DeliveryInfo | null;
   doctor?: DoctorReport | null;
   experiments?: Experiments;
+  images?: ImagesStatus | null;
   meta: DeskMeta;
   metrics?: Metrics;
   platform_guide?: PlatformGuide;
@@ -1345,7 +1368,7 @@ export interface Versions {
   voice?: Voice;
 }
 /**
- * A diagram or carousel the desk draws (SVG) and exports as PNG or a PDF carousel. No image model.
+ * A diagram, carousel or AI illustration the desk draws (SVG) and exports as PNG or a PDF carousel.
  *
  * This interface was referenced by `Contracts`'s JSON-Schema
  * via the `definition` "Visual".
@@ -1354,12 +1377,29 @@ export interface Visual {
   alt_text?: AltText1;
   caption?: Caption1;
   created_at?: CreatedAt2;
+  image?: VisualImage | null;
   items?: Items1;
   kind: Kind5;
   sources?: Sources1;
   subtitle?: Subtitle1;
   title?: Title5;
   unsourced?: Unsourced1;
+}
+/**
+ * An AI image in a visual: the picture itself (kind "image") or the background of a carousel cover, big
+ * number or quote card. It never contains words; the desk draws those over it.
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "VisualImage".
+ */
+export interface VisualImage {
+  content_type?: ContentType;
+  created_at?: CreatedAt3;
+  height: Height;
+  model?: Model1;
+  path: Path;
+  provider: Provider1;
+  width: Width;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -1374,6 +1414,7 @@ export interface VisualItem {
  * via the `definition` "Work".
  */
 export interface Work {
+  ai_background?: AiBackground1;
   attempts?: Attempts;
   chips?: Chips1;
   crosspost?: Crosspost;
@@ -1423,7 +1464,7 @@ export interface Counts {
  */
 export interface DoctorReport {
   checks?: Checks;
-  created_at: CreatedAt3;
+  created_at: CreatedAt4;
   id: Id34;
   summary?: Summary1;
 }
@@ -1444,7 +1485,7 @@ export interface Summary1 {
  * via the `definition` "Experiment".
  */
 export interface Experiment {
-  created_at: CreatedAt4;
+  created_at: CreatedAt5;
   hypothesis?: Hypothesis;
   id: Id35;
   instruction: Instruction;
@@ -1457,6 +1498,19 @@ export interface Experiment {
 }
 export interface Stats {
   [k: string]: unknown;
+}
+/**
+ * Whether the desk can offer AI images, and today's use (UTC day).
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "ImagesStatus".
+ */
+export interface ImagesStatus {
+  available?: Available;
+  daily_limit?: DailyLimit;
+  last_error?: LastError1;
+  providers?: Providers;
+  used_today?: UsedToday;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -1478,7 +1532,7 @@ export interface DeskMeta {
 export interface Metric {
   captured_at?: CapturedAt1;
   comments?: Comments1;
-  created_at?: CreatedAt5;
+  created_at?: CreatedAt6;
   extraction_confidence?: ExtractionConfidence;
   followers_gained?: FollowersGained1;
   id: Id36;
@@ -1503,7 +1557,7 @@ export interface Metric {
  */
 export interface Playbook1 {
   changes?: Changes;
-  created_at: CreatedAt6;
+  created_at: CreatedAt7;
   experiments?: Experiments1;
   id: Id37;
   rules?: Rules;
@@ -1572,7 +1626,7 @@ export interface RewardParts {
  */
 export interface Proposal {
   confidence?: Confidence1;
-  created_at?: CreatedAt7;
+  created_at?: CreatedAt8;
   decided_at?: DecidedAt;
   decision_note?: DecisionNote;
   detail?: Detail1;
@@ -1592,14 +1646,14 @@ export interface Payload {
  * via the `definition` "Quota".
  */
 export interface Quota1 {
-  daily_limit?: DailyLimit;
+  daily_limit?: DailyLimit1;
   day: Day;
   exhausted_at?: ExhaustedAt;
-  last_error?: LastError1;
+  last_error?: LastError2;
   last_error_at?: LastErrorAt;
   last_ok_at?: LastOkAt;
-  model?: Model1;
-  provider: Provider1;
+  model?: Model2;
+  provider: Provider2;
   requests?: Requests;
   tokens_in?: TokensIn;
   tokens_out?: TokensOut;
@@ -1620,7 +1674,7 @@ export interface RejectedEvent {
  */
 export interface SystemReport {
   actions?: Actions;
-  created_at: CreatedAt8;
+  created_at: CreatedAt9;
   id: Id42;
   period?: Period;
   proposals?: Proposals1;
@@ -1640,7 +1694,7 @@ export interface Sections {
 export interface Request {
   card_ids?: CardIds;
   completed_at?: CompletedAt;
-  created_at?: CreatedAt9;
+  created_at?: CreatedAt10;
   error?: Error1;
   id: Id43;
   notes?: Notes4;
@@ -1712,7 +1766,7 @@ export interface SourceHealth {
   consecutive_failures?: ConsecutiveFailures;
   items_last_run?: ItemsLastRun;
   items_total?: ItemsTotal;
-  last_error?: LastError2;
+  last_error?: LastError3;
   last_fetch_at?: LastFetchAt;
   last_success_at?: LastSuccessAt;
 }
@@ -1761,7 +1815,7 @@ export interface Stats1 {
  * via the `definition` "MetricUpload".
  */
 export interface MetricUpload {
-  created_at?: CreatedAt10;
+  created_at?: CreatedAt11;
   error?: Error2;
   id: Id47;
   note?: Note8;
@@ -1778,7 +1832,7 @@ export interface MetricUpload {
 export interface VoiceProfile {
   added_phrases?: AddedPhrases;
   avoid?: Avoid;
-  created_at: CreatedAt11;
+  created_at: CreatedAt12;
   cut_phrases?: CutPhrases;
   examples?: Examples;
   id: Id48;
@@ -1828,7 +1882,7 @@ export interface SourceHealth1 {
   consecutive_failures?: ConsecutiveFailures;
   items_last_run?: ItemsLastRun;
   items_total?: ItemsTotal;
-  last_error?: LastError2;
+  last_error?: LastError3;
   last_fetch_at?: LastFetchAt;
   last_success_at?: LastSuccessAt;
 }

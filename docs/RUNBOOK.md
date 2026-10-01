@@ -12,7 +12,8 @@ reads your reasons; **Insights → Learning** lists the ones in use. Cards you d
 morning's set arrives, and that's fine.
 
 **A visual (optional).** On a card, **Visual → Create visual** (or pick a kind: carousel, flowchart,
-comparison, numbered list, big number, quote card). It starts a run straight away; one to three minutes later
+comparison, numbered list, big number, quote card, or an **AI image**; tick **Add an AI background** for a picture
+behind a carousel cover, big number or quote, once AI images are set up: SETUP, "AI images"). It starts a run straight away; one to three minutes later
 it's drawn from the post and its sources, in your style, and a "ready · Open" note pops up. Flip through it, **Edit text** if a word is off, then **Download PDF** (a carousel: on
 LinkedIn, add a document to the post and upload it) or **Download PNG** / **Copy image**, and paste the alt text.
 When you tap **Posted**, keep **Posted with the visual** ticked: Insights compares posts with and without one.
@@ -68,6 +69,7 @@ desk is where to look first.
 | The desk looks out of date (a fix "isn't there") | The desk checks for a new version whenever you come back to it and reloads by itself when nothing is unsent; otherwise a banner offers **Reload**. **System** shows the desk version and when it was built |
 | Something says "Still waiting · Run now" | The work was sent but no run has picked it up for three minutes (GitHub can be slow to start runs). Tap **Run now** |
 | Hashtags you never use keep coming | Drop them on the card: after a few posts the drafter stops suggesting the ones you remove (and suggests none on a platform where you remove them all). **Settings → Hashtags** turns them off or changes how many |
+| An AI image didn't come, or a visual says "drawn without an AI background" | The card's note says why: no image service set up (SETUP, "AI images"), today's limit or the free allowance used up (it resets at midnight UTC), or the service had an error (ask again). **System → Run doctor** tests each image service with one small image. **System → Free-tier usage** doesn't count images; the doctor's lines and the run log (`images: …`) do |
 | A visual says something the post doesn't, or flags a figure | Figures the sources don't contain are listed above the visual: fix them with **Edit text**, or **Make a different one**. A visual that mentioned a blocklist term isn't kept (the card says so) |
 | A cross-post didn't appear | It starts a run straight away and usually lands in one to three minutes, on top of Today's picks. If the card shows **Still waiting · Run now**, tap it. If it says **Drafting failed**, open it: the original's text is there to work from, or tap **Rewrite** |
 | A guide change made drafts worse | Add your own rule under **Insights → Playbook** saying what you want instead: your rules win over the platform guide. The guide shows each researched rule with the articles behind it, and never changes without your approval, so reject proposals like it |
