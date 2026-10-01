@@ -172,7 +172,7 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
         break;
       }
       case "card.visual":
-        updateCard(ev.card_id, (c) => ({ ...c, work: { kind: "visual", visual_kind: ev.kind ?? "auto", note: ev.note ?? "", requested_at: ev.at } }));
+        updateCard(ev.card_id, (c) => ({ ...c, work: { kind: "visual", visual_kind: ev.kind ?? "auto", note: ev.note ?? "", requested_at: ev.at, ai_background: ev.ai_background || null } }));
         break;
       case "card.answers":
         updateCard(ev.card_id, (c) => {

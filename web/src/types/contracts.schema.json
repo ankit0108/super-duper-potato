@@ -1446,8 +1446,13 @@
   },
   "CardVisualEvent": {
    "additionalProperties": false,
-   "description": "Draw a visual for the post: a carousel, flowchart, comparison, list, big number or quote.",
+   "description": "Draw a visual for the post: a carousel, flowchart, comparison, list, big number, quote or an AI image.\n`ai_background` adds an AI image behind a carousel cover, big number or quote card.",
    "properties": {
+    "ai_background": {
+     "default": false,
+     "title": "Ai Background",
+     "type": "boolean"
+    },
     "at": {
      "title": "At",
      "type": "string"
@@ -1471,7 +1476,8 @@
         "compare",
         "list",
         "stat",
-        "quote"
+        "quote",
+        "image"
        ],
        "type": "string"
       },
@@ -1720,6 +1726,17 @@
      },
      "title": "Experiments",
      "type": "array"
+    },
+    "images": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/ImagesStatus"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
     },
     "meta": {
      "$ref": "#/$defs/DeskMeta"
@@ -2299,6 +2316,49 @@
     "text"
    ],
    "title": "HookIn",
+   "type": "object"
+  },
+  "ImagesStatus": {
+   "description": "Whether the desk can offer AI images, and today's use (UTC day).",
+   "properties": {
+    "available": {
+     "default": false,
+     "title": "Available",
+     "type": "boolean"
+    },
+    "daily_limit": {
+     "default": 0,
+     "title": "Daily Limit",
+     "type": "integer"
+    },
+    "last_error": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Last Error"
+    },
+    "providers": {
+     "default": [],
+     "description": "Providers with their secrets set, in the order they're tried",
+     "items": {
+      "type": "string"
+     },
+     "title": "Providers",
+     "type": "array"
+    },
+    "used_today": {
+     "default": 0,
+     "title": "Used Today",
+     "type": "integer"
+    }
+   },
+   "title": "ImagesStatus",
    "type": "object"
   },
   "InboxBatch": {
@@ -5661,7 +5721,7 @@
    "type": "object"
   },
   "Visual": {
-   "description": "A diagram or carousel the desk draws (SVG) and exports as PNG or a PDF carousel. No image model.",
+   "description": "A diagram, carousel or AI illustration the desk draws (SVG) and exports as PNG or a PDF carousel.",
    "properties": {
     "alt_text": {
      "default": "",
@@ -5693,6 +5753,17 @@
      "default": null,
      "title": "Created At"
     },
+    "image": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/VisualImage"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
     "items": {
      "default": [],
      "items": {
@@ -5708,7 +5779,8 @@
       "compare",
       "list",
       "stat",
-      "quote"
+      "quote",
+      "image"
      ],
      "title": "Kind",
      "type": "string"
@@ -5755,6 +5827,65 @@
    "title": "Visual",
    "type": "object"
   },
+  "VisualImage": {
+   "description": "An AI image in a visual: the picture itself (kind \"image\") or the background of a carousel cover, big\nnumber or quote card. It never contains words; the desk draws those over it.",
+   "properties": {
+    "content_type": {
+     "default": "image/jpeg",
+     "title": "Content Type",
+     "type": "string"
+    },
+    "created_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Created At"
+    },
+    "height": {
+     "title": "Height",
+     "type": "integer"
+    },
+    "model": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Model"
+    },
+    "path": {
+     "description": "File in the data repo, like media/ai/<card id>/<stamp>.jpg",
+     "title": "Path",
+     "type": "string"
+    },
+    "provider": {
+     "title": "Provider",
+     "type": "string"
+    },
+    "width": {
+     "title": "Width",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "path",
+    "width",
+    "height",
+    "provider"
+   ],
+   "title": "VisualImage",
+   "type": "object"
+  },
   "VisualIn": {
    "additionalProperties": false,
    "properties": {
@@ -5793,7 +5924,8 @@
       "compare",
       "list",
       "stat",
-      "quote"
+      "quote",
+      "image"
      ],
      "title": "Kind",
      "type": "string"
@@ -5949,6 +6081,18 @@
   },
   "Work": {
    "properties": {
+    "ai_background": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Ai Background"
+    },
     "attempts": {
      "default": 0,
      "title": "Attempts",
@@ -6068,7 +6212,8 @@
         "compare",
         "list",
         "stat",
-        "quote"
+        "quote",
+        "image"
        ],
        "type": "string"
       },

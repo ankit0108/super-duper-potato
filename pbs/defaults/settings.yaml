@@ -217,11 +217,22 @@ hashtags:
 
 visuals:
   # Carousels, flowcharts, comparisons, lists, big numbers and quote cards, written from the post and drawn by
-  # the desk (no image model). The name on every image: empty uses display_name.
+  # the desk. AI images (below) add an illustration or a background; the words are always drawn by the desk.
+  # The name on every image: empty uses display_name.
   enabled: true
   name_linkedin: ""
   name_x: ""
   accent: "#4F46E5"
+
+images:
+  # AI images for visuals: an illustration for a post, or a background for a carousel cover, big number or
+  # quote card. Providers in order; each is used only when its secrets are set:
+  #   cloudflare    CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN: free daily allowance (about 60 images)
+  #   gemini_image  GEMINI_IMAGE_API_KEY: paid per image (Google has no free image quota)
+  #   xai           XAI_API_KEY: paid per image (Grok Imagine)
+  enabled: true
+  providers: [cloudflare, gemini_image, xai]
+  daily_limit: 20
 
 drafting:
   # Cards that ask for his experience arrive already drafted from recent sources; the questions are optional,

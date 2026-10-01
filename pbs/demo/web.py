@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import base64
 import datetime as dt
 import json
+import re
 from email.utils import format_datetime
 from typing import Any
 from xml.sax.saxutils import escape
@@ -11,6 +13,7 @@ from xml.sax.saxutils import escape
 import httpx
 
 from .. import ids, timeutil
+from ..images import demo_png
 
 
 def rss(title: str, items: list[dict[str, Any]]) -> str:
@@ -207,6 +210,8 @@ class MockWeb:
         url = str(request.url)
         self.requests.append(url)
         hit = self._match(url)
+        if hit is None and (image := self._image(request, url)) is not None:
+            return image
         if hit is None:
             if "algolia" in url or "api/" in url:
                 return httpx.Response(200, json={"hits": [], "events": []})
@@ -215,6 +220,31 @@ class MockWeb:
         status, ctype, body = hit
         return httpx.Response(status, headers={"content-type": ctype, "etag": f'"{hash(body) & 0xffff}"'},
                               content=body.encode("utf-8"))
+
+    @staticmethod
+    def _image(request: httpx.Request, url: str) -> httpx.Response | None:
+        """The image services, answering like the real ones with a small generated picture (images.demo_png)."""
+        kind = ("cloudflare" if "api.cloudflare.com" in url and "/ai/run/" in url
+                else "gemini" if "generativelanguage.googleapis.com" in url and "image" in url and ":generateContent" in url
+                else "xai" if "api.x.ai/v1/images/generations" in url else None)
+        if kind is None:
+            return None
+        body = request.content or b""
+        wide = False
+        m = re.search(rb'name="width"\r\n\r\n(\d+)\r\n.*?name="height"\r\n\r\n(\d+)', body, re.S)
+        if m:
+            wide = int(m.group(1)) > int(m.group(2))
+        elif b'"16:9"' in body:
+            wide = True
+        size = (400, 225) if wide else (320, 400)
+        png = demo_png(f"{url}:{len(body)}", *size)
+        b64 = base64.b64encode(png).decode("ascii")
+        if kind == "cloudflare":
+            return httpx.Response(200, json={"result": {"image": b64}, "success": True, "errors": [], "messages": []})
+        if kind == "gemini":
+            return httpx.Response(200, json={"candidates": [{"content": {"parts": [
+                {"inlineData": {"mimeType": "image/png", "data": b64}}]}}]})
+        return httpx.Response(200, json={"data": [{"b64_json": b64}]})
 
     @staticmethod
     def _older_posts(url: str) -> list[dict[str, Any]]:

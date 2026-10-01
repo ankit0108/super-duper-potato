@@ -7,7 +7,7 @@ picks, what he changes and how the posts perform.
 - **Never posts for you.** No auto-posting, liking, replying or messaging. You copy, open the app, post, and tap *Posted*.
 - **Never makes things up.** Every figure is checked against the sources; your experiences come only from your answers (cards with questions arrive drafted from recent sources, and answering is optional); opinions on public issues only from stances you recorded.
 - **Writes for each platform.** Drafts follow a guide to what works on LinkedIn and on X now, researched monthly and changed only with your approval. Each comes with hashtags to keep or drop and a first comment with the source link, and any card can be cross-posted or moved to the other platform.
-- **Draws visuals without an image model.** A carousel, flowchart, comparison, numbered list, big number or quote card, written from the post and its sources and drawn by the desk in your style: PNG images, or a PDF to post on LinkedIn as a document. Every word can be edited, and figures the sources don't have are flagged.
+- **Draws visuals, with AI pictures if you like.** A carousel, flowchart, comparison, numbered list, big number or quote card, written from the post and its sources and drawn by the desk in your style: PNG images, or a PDF to post on LinkedIn as a document. Every word can be edited, and figures the sources don't have are flagged. With a free Cloudflare key, an AI illustration for the post or an AI picture behind a cover, big number or quote (FLUX; Gemini and Grok as paid options). The picture never contains words: the desk draws them.
 - **Keeps work private.** A blocklist (your employer, clients, colleagues, internal systems) blocks drafts before you see them and is redacted from every model call.
 - **Costs nothing.** GitHub Actions, GitHub Pages, free model tiers (Gemini, Groq) and free news sources.
 
@@ -67,7 +67,7 @@ weekly reviews, then a fresh morning.
 
 | Path | What's there |
 | --- | --- |
-| `pbs/` | The pipeline: `tick.py` (orchestrator), `scout/`, `topics.py`, `rank.py`, `bandit.py`, `draft.py`, `hashtags.py`, `platform.py` (platform guide and research), `visuals.py`, `guardrails.py`, `learn.py`, `voice.py`, `reflect.py`, `report.py`, `metrics.py`, `llm/`, `export.py`, `contracts.py` (the desk contract) |
+| `pbs/` | The pipeline: `tick.py` (orchestrator), `scout/`, `topics.py`, `rank.py`, `bandit.py`, `draft.py`, `hashtags.py`, `platform.py` (platform guide and research), `visuals.py`, `images.py` (AI images), `guardrails.py`, `learn.py`, `voice.py`, `reflect.py`, `report.py`, `metrics.py`, `llm/`, `export.py`, `contracts.py` (the desk contract) |
 | `pbs/defaults/` | Default settings, sources, stances, the platform guide, voice rules, interview questions and the profile template |
 | `pbs/prompts/` | Versioned prompt templates |
 | `pbs/demo/` | Offline world (mock feeds + demo model) and the demo builder |

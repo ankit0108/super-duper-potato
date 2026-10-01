@@ -1,4 +1,4 @@
-Task: design the content of a visual for {{display_name}}'s {{platform_label}} post below. The desk draws it in his own clean style at {{size}}, so write only the words: no colours, fonts or layout.
+Task: design the content of a visual for {{display_name}}'s {{platform_label}} post below. The desk draws it in his own clean style at {{size}}, so write only the words: no colours, fonts or layout. When a picture is asked for, an image model paints it from your description; the desk still draws every word.
 
 {{kind_rule}}
 
@@ -12,6 +12,7 @@ Rules:
 - "caption" is the source line, like "Source: AgentBench-Enterprise (Hugging Face papers, Sept 2026)", or "" when there are no sources.
 - "alt_text" describes the visual for people using screen readers: what it shows and all of its text, in reading order (at most 500 characters).
 - "sources" lists the indexes of the sources it draws on.
+{{image_rule}}
 
 Material:
 <input>
@@ -19,4 +20,4 @@ Material:
 </input>
 
 Reply with JSON only:
-{"kind": "carousel|flow|compare|list|stat|quote", "title": "…", "subtitle": "…", "items": [{"title": "…", "body": "…"}], "caption": "…", "alt_text": "…", "sources": [0]}
+{"kind": "carousel|flow|compare|list|stat|quote|image", "title": "…", "subtitle": "…", "items": [{"title": "…", "body": "…"}], "caption": "…", "alt_text": "…", "sources": [0]{{image_field}}}

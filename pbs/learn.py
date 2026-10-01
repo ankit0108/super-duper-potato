@@ -8,7 +8,7 @@ import re
 import statistics
 from typing import Any
 
-from . import draft, guardrails, hashtags, ids, log, textutil, timeutil
+from . import draft, guardrails, hashtags, ids, images, log, textutil, timeutil
 from .context import Ctx
 
 # ---------------------------------------------------------------------------
@@ -326,4 +326,6 @@ def prune(ctx: Ctx) -> dict[str, int]:
     out["runs"] = ctx.store.delete_where("runs", "started_at < ?", (run_cutoff,))
     old_quota = (timeutil.now() - dt.timedelta(days=60)).strftime("%Y-%m-%d")
     out["quota"] = ctx.store.delete_where("quota", "day < ?", (old_quota,))
+    out["image_rows"] = ctx.store.delete_where("images", "day < ?", (old_quota,))
+    out["media"] = images.prune_media(ctx)
     return out

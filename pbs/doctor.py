@@ -7,7 +7,7 @@ import os
 import time
 from typing import Any
 
-from . import ids, log, notify, timeutil
+from . import ids, images, log, notify, timeutil
 from .context import Ctx
 from .llm.base import LLMError, LLMRequest
 from .scout.fetch import FetchJob, fetch_all, no_sleep
@@ -21,6 +21,33 @@ def _check(name: str, status: str, detail: str | None = None, private: str | Non
     if private and private != detail:
         out["detail"] = f"{detail} · {private}" if detail else private
         out["_public"] = detail
+    return out
+
+
+def _image_checks(ctx: Ctx) -> list[dict[str, Any]]:
+    """One small test image per image service with its secrets set (each counts toward today's image limit)."""
+    if not ctx.settings.images.enabled:
+        return [_check("AI images", "skip", "Turned off in Settings")]
+    chain = [p for p in images.providers(ctx) if p.available()]
+    if not chain:
+        return [_check("AI images", "skip", "Optional, not set up. For free AI images add the CLOUDFLARE_ACCOUNT_ID "
+                                            "and CLOUDFLARE_API_TOKEN secrets (docs/SETUP.md, AI images).")]
+    out = []
+    prompt = f"A small test picture: one calm abstract shape on a soft gradient. {images.NO_WORDS}"
+    with images.client_for(ctx) as client:
+        for p in chain:
+            started = time.monotonic()
+            try:
+                res = p.generate(client, prompt, 512, 512)
+            except images.ImageError as exc:
+                images.record(ctx, p.name, None, "doctor", error=exc)
+                out.append(_check(f"Images: {p.name}", "warn" if exc.quota else "fail", exc.public(),
+                                  private=str(exc)[:200]))
+                continue
+            images.record(ctx, p.name, None, "doctor", result=res)
+            ms = int((time.monotonic() - started) * 1000)
+            out.append(_check(f"Images: {p.name} ({res.model})", "ok",
+                              f"made a {res.width}x{res.height} test image in {ms} ms"))
     return out
 
 
@@ -89,6 +116,9 @@ def run_doctor(ctx: Ctx, probe_llm: bool = True, probe_sources: bool = True) -> 
                 public = raw.public() if isinstance(raw, LLMError) else type(raw).__name__
                 checks.append(_check("Google Search grounding", "warn",
                                      f"Not available ({public}). Requests use the free search feeds."))
+
+    if probe_llm:
+        checks.extend(_image_checks(ctx))
 
     if probe_sources:
         sync_seeds(ctx.store)

@@ -114,6 +114,20 @@ export class GitHub {
     }
   }
 
+  /** A binary file from the data repo (an AI image under media/), or null when it isn't there. */
+  async getBytes(path: string): Promise<{ bytes: Uint8Array; type: string } | null> {
+    const { dataRepo, dataBranch } = this.conn;
+    try {
+      const res = await this.req(`/repos/${dataRepo}/contents/${encodePath(path)}?ref=${encodeURIComponent(dataBranch)}`, {
+        accept: "application/vnd.github.raw",
+      });
+      return { bytes: new Uint8Array(await res.arrayBuffer()), type: res.headers.get("content-type") ?? "" };
+    } catch (e) {
+      if (e instanceof GitHubError && e.status === 404) return null;
+      throw e;
+    }
+  }
+
   async listDir(path: string): Promise<Array<{ name: string; path: string; sha: string; type: string; size: number }>> {
     const { dataRepo, dataBranch } = this.conn;
     try {

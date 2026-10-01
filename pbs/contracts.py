@@ -20,7 +20,7 @@ CardStatus = Literal["drafting", "suggested", "needs_input", "editing", "posted"
                      "blocked", "failed"]
 CardKind = Literal["news", "evergreen", "interview", "request", "adapt"]
 FormatName = Literal["li_text", "x_single", "x_thread", "x_quote", "x_reply"]
-VisualKind = Literal["carousel", "flow", "compare", "list", "stat", "quote"]
+VisualKind = Literal["carousel", "flow", "compare", "list", "stat", "quote", "image"]
 SkipReason = Literal["not_interesting", "off_brand", "wrong_timing", "too_risky", "already_covered", "other",
                      "wrong_platform"]
 Tier = Literal["world", "india", "bihar", "other"]
@@ -105,8 +105,20 @@ class VisualItem(_Out):
     body: str = Field("", description="Supporting text; a comparison column has one point per line")
 
 
+class VisualImage(_Out):
+    """An AI image in a visual: the picture itself (kind "image") or the background of a carousel cover, big
+    number or quote card. It never contains words; the desk draws those over it."""
+    path: str = Field(description="File in the data repo, like media/ai/<card id>/<stamp>.jpg")
+    width: int
+    height: int
+    content_type: str = "image/jpeg"
+    provider: str
+    model: str | None = None
+    created_at: str | None = None
+
+
 class Visual(_Out):
-    """A diagram or carousel the desk draws (SVG) and exports as PNG or a PDF carousel. No image model."""
+    """A diagram, carousel or AI illustration the desk draws (SVG) and exports as PNG or a PDF carousel."""
     kind: VisualKind
     title: str = ""
     subtitle: str | None = None
@@ -115,6 +127,7 @@ class Visual(_Out):
     alt_text: str = ""
     sources: list[int] = Field([], description="Indexes of the card's sources it draws on")
     unsourced: list[str] = Field([], description="Figures in it that the sources don't contain")
+    image: VisualImage | None = None
     created_at: str | None = None
 
 
@@ -129,6 +142,7 @@ class Work(_Out):
     target_format: FormatName | None = None
     crosspost: Literal["both", "switch"] | None = None
     visual_kind: VisualKind | Literal["auto"] | None = None
+    ai_background: bool | None = None
 
 
 class Working(_Out):
@@ -518,6 +532,15 @@ class DeskMeta(_Out):
     next_delivery_local: str | None = None
 
 
+class ImagesStatus(_Out):
+    """Whether the desk can offer AI images, and today's use (UTC day)."""
+    available: bool = False
+    providers: list[str] = Field([], description="Providers with their secrets set, in the order they're tried")
+    used_today: int = 0
+    daily_limit: int = 0
+    last_error: str | None = None
+
+
 class DeskState(_Out):
     meta: DeskMeta
     settings: dict[str, Any]
@@ -547,6 +570,7 @@ class DeskState(_Out):
     processed_event_ids: list[str] = []
     doctor: DoctorReport | None = None
     archive_months: list[str] = []
+    images: ImagesStatus | None = None
     platform_guide: dict[str, Any] | None = Field(
         None, description="What works on each platform: {reviewed, rules: [{id, platform, format, text, source, "
                           "sources}], research: {month, summary, articles, proposals}}")
@@ -629,11 +653,13 @@ class CardRewriteEvent(_Event):
 
 
 class CardVisualEvent(_Event):
-    """Draw a visual for the post: a carousel, flowchart, comparison, list, big number or quote."""
+    """Draw a visual for the post: a carousel, flowchart, comparison, list, big number, quote or an AI image.
+    `ai_background` adds an AI image behind a carousel cover, big number or quote card."""
     type: Literal["card.visual"]
     card_id: str
     kind: VisualKind | Literal["auto"] = "auto"
     note: str = Field("", max_length=1000)
+    ai_background: bool = False
 
 
 class CardCrosspostEvent(_Event):

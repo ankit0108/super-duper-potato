@@ -193,7 +193,35 @@ function crosspostCard(desk: DeskState, source: Card, ev: Extract<InboxEvent, { 
 }
 
 /** Like the pipeline's visuals.make_visual (with the demo model): a visual from the post's own sentences. */
-export function demoVisual(card: Card, kind: string, now: string): NonNullable<Card["visual"]> {
+type DemoImage = NonNullable<NonNullable<Card["visual"]>["image"]>;
+
+/** A picture the demo already has (made by the pipeline's demo image service), to stand in for a new one. */
+export function demoImage(desk: DeskState): DemoImage | null {
+  for (const c of desk.cards ?? []) if (c.visual?.image) return c.visual.image;
+  return null;
+}
+
+export function demoVisual(card: Card, kind: string, now: string, image: DemoImage | null = null, background = false): NonNullable<Card["visual"]> {
+  const clipTitle = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+  if (kind === "image") {
+    return {
+      kind: "image",
+      title: clipTitle(card.title, 60),
+      subtitle: null,
+      items: [],
+      caption: null,
+      alt_text: `AI-generated illustration: a calm scene for a post about ${card.title}`.slice(0, 600),
+      sources: [],
+      unsourced: [],
+      image: image ? { ...image, created_at: now } : null,
+      created_at: now,
+    };
+  }
+  const drawn = demoVisualDrawn(card, kind, now);
+  return background && image && ["carousel", "stat", "quote"].includes(drawn.kind) ? { ...drawn, image: { ...image, created_at: now } } : drawn;
+}
+
+function demoVisualDrawn(card: Card, kind: string, now: string): NonNullable<Card["visual"]> {
   const d = card.working ?? card.draft ?? { text: "", posts: [] };
   const text = d.posts?.length ? d.posts.join(" ") : (d.text ?? "");
   const sentences = splitSentences(text.replace(/\s*\n+\s*/g, " ")).filter((s) => s.split(/\s+/).length >= 4);
@@ -291,7 +319,7 @@ export function processDemoEvents(desk: DeskState, events: InboxEvent[]): DeskSt
     }
     if (ev.type === "card.visual" && idx >= 0) {
       const c = cards[idx];
-      cards[idx] = { ...c, visual: demoVisual(c, ev.kind ?? "auto", now), work: null, working: c.working ? { ...c.working, visual: null } : c.working, updated_at: now };
+      cards[idx] = { ...c, visual: demoVisual(c, ev.kind ?? "auto", now, demoImage(next), !!ev.ai_background), work: null, working: c.working ? { ...c.working, visual: null } : c.working, updated_at: now };
     }
     if (ev.type === "card.draft_now" && idx >= 0) {
       const c = cards[idx];

@@ -15,7 +15,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from . import contracts as C
-from . import draft, hashtags, ids, learn, log, playbook, settings, timeutil
+from . import draft, hashtags, ids, images, learn, log, playbook, settings, timeutil
 from .context import Ctx
 
 
@@ -184,8 +184,9 @@ def _edited_visual(card: dict[str, Any], visual: C.VisualIn) -> dict[str, Any] |
     base = card.get("visual")
     if not base:
         return None
+    # The picture isn't his to edit: his words go over the same AI image.
     return {**visual.model_dump(), "sources": base.get("sources") or [], "unsourced": base.get("unsourced") or [],
-            "created_at": base.get("created_at")}
+            "image": base.get("image"), "created_at": base.get("created_at")}
 
 
 def _minutes(n: int):
@@ -282,11 +283,15 @@ def _card_visual(ctx: Ctx, ev: C.CardVisualEvent) -> None:
         raise Reject("the card is busy with a rewrite or draft; ask again when it's done")
     if not ctx.settings.visuals.enabled:
         raise Reject("visuals are turned off in settings")
+    wants_picture = ev.kind == "image" or ev.ai_background
+    if wants_picture and not images.configured(ctx):
+        raise Reject(f"AI images need an image service: {images.SETUP_HINT}")
     at = _event_time(ev)
-    card["work"] = {"kind": "visual", "visual_kind": ev.kind, "note": ev.note, "requested_at": at, "attempts": 0}
+    card["work"] = {"kind": "visual", "visual_kind": ev.kind, "note": ev.note, "requested_at": at, "attempts": 0,
+                    "ai_background": bool(ev.ai_background and ev.kind != "image") or None}
     card["updated_at"] = at  # not a new version of the text: the revision stays
     draft.save_card(ctx, card)
-    draft.log_interaction(ctx, "visual_requested", card, kind=ev.kind)
+    draft.log_interaction(ctx, "visual_requested", card, kind=ev.kind, ai_background=ev.ai_background)
     ctx.hints.add("work")
 
 

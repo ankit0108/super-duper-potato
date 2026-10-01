@@ -267,7 +267,8 @@ def _research(req: LLMRequest, data: Any) -> Any:
 _VISUAL_MARKERS = (("carousel", "Make a document carousel"), ("carousel", "Make a carousel of images"),
                    ("flow", "Make a flowchart"),
                    ("compare", "Make a two-column comparison"), ("list", "Make a numbered list"),
-                   ("stat", "Make one big number"), ("quote", "Make a quote card"))
+                   ("stat", "Make one big number"), ("quote", "Make a quote card"),
+                   ("image", "Make an AI illustration"))
 
 
 def _visual(req: LLMRequest, data: Any) -> Any:
@@ -281,6 +282,11 @@ def _visual(req: LLMRequest, data: Any) -> Any:
     figures = textutil.numeric_claims(post)
     if kind == "stat" and not figures:
         kind = "list"  # a big number needs a figure
+    picture = ({"image_prompt": f"A calm, concrete scene that stands for: {title}. Soft morning light."}
+               if '"image_prompt"' in req.prompt else {})
+    if kind == "image":
+        return {"kind": "image", "title": textutil.truncate(title, 60), "items": [], "caption": "",
+                "alt_text": f"An illustration for a post about {title}", "sources": [], **picture}
     if kind == "stat":
         about = next((s for s in sentences if figures[0] in s), sentences[0] if sentences else title)
         items = [{"title": figures[0], "body": textutil.truncate(about, 120)}]
@@ -299,7 +305,7 @@ def _visual(req: LLMRequest, data: Any) -> Any:
         items = [{"title": textutil.truncate(s, 40), "body": textutil.truncate(s, 200)} for s in chunks]
     return {"kind": kind, "title": title, "subtitle": data.get("angle") or "", "items": items,
             "caption": f"Source: {sources[0].get('title')}" if sources else "", "alt_text": "",
-            "sources": [0] if sources else []}
+            "sources": [0] if sources else [], **picture}
 
 
 def _default(req: LLMRequest, data: Any) -> Any:

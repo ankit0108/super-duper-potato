@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from . import __version__, platform, stats, timeutil
+from . import __version__, images, platform, stats, timeutil
 from .context import Ctx
 from .contracts import DESK_SCHEMA_VERSION, DeskState
 
@@ -157,6 +157,7 @@ def build(ctx: Ctx) -> dict[str, Any]:
         "processed_event_ids": processed,
         "doctor": doctor[0] if doctor else None,
         "archive_months": months,
+        "images": images.status(ctx),
         "platform_guide": {"reviewed": platform.base_guide().get("reviewed"), "rules": platform.current_rules(ctx),
                            "research": store.get_setting("platform_research_summary")},
     }

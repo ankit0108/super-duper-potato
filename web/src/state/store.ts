@@ -28,6 +28,22 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 let runTimer: ReturnType<typeof setInterval> | null = null;
 let dispatchTimer: ReturnType<typeof setTimeout> | null = null;
 const remoteCache = new Map<string, InboxEvent[]>();
+// AI images by repo and path: files never change (a new image gets a new name), so they're fetched once.
+const mediaCache = new Map<string, Promise<string | null>>();
+
+function mediaType(path: string, header: string): string {
+  if (/^image\//.test(header)) return header.split(";")[0];
+  return path.endsWith(".png") ? "image/png" : path.endsWith(".webp") ? "image/webp" : "image/jpeg";
+}
+
+function blobToDataUrl(blob: Blob): Promise<string | null> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(blob);
+  });
+}
 
 export type DeskStore = {
   connection: Connection | null;
@@ -61,6 +77,8 @@ export type DeskStore = {
   requestRun: (reason?: string) => void;
   dispatchNow: () => Promise<void>;
   uploadBlob: (path: string, bytes: Uint8Array) => Promise<void>;
+  /** An AI image from the data repo (or the demo), as a data URL the visual can embed; null if it can't load. */
+  loadMedia: (path: string) => Promise<string | null>;
   loadArchive: (month: string) => Promise<Card[]>;
   enableWorkflow: () => Promise<void>;
   checkWorkflow: () => Promise<void>;
@@ -383,6 +401,32 @@ export const useDesk = create<DeskStore>()((set, get) => {
         set({ run: { state: "failed" } });
         get().toast("bad", `Couldn't start the pipeline: ${(e as Error).message}`);
       }
+    },
+
+    loadMedia: async (path) => {
+      const conn = get().connection;
+      if (!conn || !path) return null;
+      const key = `${repoKey(conn)}:${path}`;
+      const hit = mediaCache.get(key);
+      if (hit) return hit;
+      const pending = (async () => {
+        try {
+          if (conn.mode === "demo") {
+            const res = await fetch(`./demo/${path}`);
+            if (!res.ok) return null;
+            return await blobToDataUrl(await res.blob());
+          }
+          const got = await new GitHub(conn).getBytes(path);
+          if (!got) return null;
+          return `data:${mediaType(path, got.type)};base64,${bytesToBase64(got.bytes)}`;
+        } catch {
+          return null;
+        }
+      })();
+      mediaCache.set(key, pending);
+      const url = await pending;
+      if (!url) mediaCache.delete(key); // try again next time
+      return url;
     },
 
     uploadBlob: async (path, bytes) => {

@@ -125,14 +125,15 @@ function CardView({ card }: { card: Card }) {
   const visualsOn = (settings?.visuals as { enabled?: boolean } | undefined)?.enabled !== false;
   const imageName =
     (card.platform === "linkedin" ? settings?.visuals?.name_linkedin : settings?.visuals?.name_x) || view?.meta?.display_name || settings?.display_name || "";
-  const requestVisual = (kind: VisualChoice, note: string) => {
+  const requestVisual = (kind: VisualChoice, note: string, aiBackground = false) => {
     markEditing(); // asking for a visual picks the card, like editing it
     const events: EventInput[] = [];
     // The visual is drawn from the text as he has it now.
     if (wc.dirtyVsServer) events.push(editEvent(card, wc.copy));
-    events.push({ type: "card.visual", card_id: card.id, kind, note });
-    const label = VISUAL_KINDS.find((k) => k.value === kind)?.label.toLowerCase();
-    act(events, { toast: kind === "auto" ? "Drawing a visual for this post. It arrives within 1–3 minutes." : `Drawing a ${label} for this post. It arrives within 1–3 minutes.` });
+    events.push({ type: "card.visual", card_id: card.id, kind, note, ai_background: aiBackground && kind !== "image" });
+    const label = VISUAL_KINDS.find((k) => k.value === kind)?.label;
+    const what = kind === "auto" ? "a visual" : kind === "image" ? "an AI image" : `a ${label?.toLowerCase()}`;
+    act(events, { toast: `Making ${what}${aiBackground && kind !== "image" ? " with an AI background" : ""} for this post. It arrives within 1–3 minutes.` });
   };
   const editVisual = (v: import("@/types").Visual) => {
     markEditing();
@@ -442,6 +443,7 @@ function CardView({ card }: { card: Card }) {
                   canRequest={visualsOn && (!card.work || visualBusy)}
                   name={imageName}
                   accent={settings?.visuals?.accent}
+                  images={view?.images ?? null}
                   onRequest={requestVisual}
                   onEdit={editVisual}
                 />
