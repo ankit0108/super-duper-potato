@@ -3,7 +3,15 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel
 
-from pbs.llm.base import AllProvidersFailed, BudgetExhausted, LLMError, LLMRequest, extract_json
+from pbs.llm.base import (
+    AllProvidersFailed,
+    BudgetExhausted,
+    LLMError,
+    LLMRequest,
+    LLMResponse,
+    ModelCycle,
+    extract_json,
+)
 from pbs.llm.fake import FakeProvider
 from pbs.llm.router import Router
 from pbs.settings import load
@@ -166,6 +174,60 @@ def test_an_overloaded_provider_sits_out_the_rest_of_the_run_after_two_calls(sto
     assert [w for w in waits if w >= 1] == [2.0, 2.0]  # pacing aside: one 2 s retry wait per call, then none
     assert "llm: a overloaded (server error (HTTP 503 UNAVAILABLE)); using the next provider" in capsys.readouterr().out
     assert not r.chain_broken("draft")
+
+
+def _roomy_settings():
+    """Two providers with room for a run's worth of calls."""
+    return _settings(max_calls_per_run=20, daily_cap=40, providers={
+        "a": {"kind": "fake", "model": "a", "daily_limit": 50, "rpm": 1000, "trains_on_inputs": True},
+        "b": {"kind": "fake", "model": "b", "daily_limit": 50, "rpm": 1000, "trains_on_inputs": False}})
+
+
+class _CycledProvider:
+    """A provider with several models behind one name, like Gemini: `answers(model, n)` says whether the n-th
+    attempt on that model answers (True) or comes back overloaded."""
+
+    def __init__(self, name, models, answers):
+        self.name = name
+        self.cycle = ModelCycle(name, models, quota_per_model=True)
+        self.answers = answers
+        self.attempts: list[str] = []
+
+    def available(self):
+        return True
+
+    def generate(self, req):
+        def attempt(model):
+            self.attempts.append(model)
+            if self.answers(model, self.attempts.count(model)):
+                return LLMResponse(text="{}", provider=self.name, model=model)
+            raise LLMError("server error 503", status=503, code="UNAVAILABLE", retryable=True)
+
+        return self.cycle.run(req, attempt)
+
+
+def test_a_provider_with_every_model_overloaded_costs_two_rounds_per_run_not_two_per_call(store, capsys):
+    # What 1 Oct's morning run did: four Gemini models answering 503, Groq fine. Each call used to walk all four
+    # models, then the router retried and walked them again.
+    a = _CycledProvider("a", ["m1", "m2", "m3", "m4"], answers=lambda model, n: False)
+    b = FakeProvider("b")
+    waits: list[float] = []
+    r = Router(_roomy_settings(), store, providers={"a": a, "b": b}, sleep=waits.append)
+    for _ in range(6):
+        assert r.call(LLMRequest(task="draft", system="s", prompt="x")).provider == "b"
+    assert len(a.attempts) == 8  # every model once on each of the first two calls, then a sits out
+    assert [w for w in waits if w >= 1] == []  # no retry of a round that already asked every model
+    assert "llm: a overloaded (server error (HTTP 503 UNAVAILABLE)); using the next provider" in capsys.readouterr().out
+
+
+def test_a_provider_whose_models_are_mostly_overloaded_stops_wasting_calls_on_the_busy_ones(store):
+    # The busy models answer 503 every time; m4 answers. Each call used to try m1-m3 again first.
+    a = _CycledProvider("a", ["m1", "m2", "m3", "m4"], answers=lambda model, n: model == "m4")
+    b = FakeProvider("b")
+    r = Router(_roomy_settings(), store, providers={"a": a, "b": b}, sleep=lambda s: None)
+    for _ in range(6):
+        assert r.call(LLMRequest(task="draft", system="s", prompt="x")).provider == "a"
+    assert a.attempts == ["m1", "m2", "m3", "m4", "m4", "m4", "m4", "m4", "m4"]
 
 
 def test_an_overloaded_provider_gets_another_go_when_nothing_else_can_answer(store):

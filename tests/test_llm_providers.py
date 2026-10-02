@@ -292,7 +292,7 @@ def test_a_rate_limited_search_call_changes_nothing_for_later_calls():
     assert p.generate(REQ).model == "gemini-3.6-flash"  # drafting still starts with the newest model
 
 
-def test_every_model_busy_raises_a_retryable_error_and_the_next_call_starts_over():
+def test_every_model_busy_hands_the_call_on_and_the_next_call_starts_over():
     busy = {"error": {"code": 503, "status": "UNAVAILABLE", "message": "The model is overloaded."}}
     state = {"calls": 0}
 
@@ -305,9 +305,52 @@ def test_every_model_busy_raises_a_retryable_error_and_the_next_call_starts_over
     p = gemini(fake)
     with pytest.raises(LLMError) as err:
         p.generate(REQ)
-    assert err.value.retryable and err.value.status == 503
+    # Every model was asked, so the router moves on rather than asking them all again straight away.
+    assert not err.value.retryable and err.value.status == 503
     assert fake.generated == ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash", "gemini-2.5-flash"]
-    assert p.generate(REQ).model == "gemini-3.6-flash"  # the router's retry finds the newest model back
+    assert p.generate(REQ).model == "gemini-3.6-flash"  # the next call finds the newest model back
+
+
+def test_models_that_keep_answering_overloaded_go_last_and_then_get_one_try_per_call():
+    busy = {"error": {"code": 503, "status": "UNAVAILABLE", "message": "The model is overloaded."}}
+    models = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash", "gemini-2.5-flash"]
+    fake = FakeGemini({m: (503, busy) for m in models})
+    p = gemini(fake)
+    for _ in range(2):  # the first two calls ask every model
+        with pytest.raises(LLMError):
+            p.generate(REQ)
+    assert fake.generated == models * 2
+    fake.calls.clear()
+    with pytest.raises(LLMError) as err:  # now every model has been busy twice: one try, not four
+        p.generate(REQ)
+    assert fake.generated == ["gemini-3.6-flash"] and err.value.status == 503
+    # One model recovers. The busy ones take turns, one per call, so it's found again within a few calls, and
+    # then it answers first.
+    fake.behaviour["gemini-2.5-flash"] = gemini_reply("{}", "gemini-2.5-flash")
+    fake.calls.clear()
+    answered = []
+    for _ in range(4):
+        try:
+            answered.append(p.generate(REQ).model)
+        except LLMError:
+            continue
+    assert fake.generated == ["gemini-3.5-flash", "gemini-3-flash", "gemini-2.5-flash", "gemini-2.5-flash"]
+    assert answered == ["gemini-2.5-flash", "gemini-2.5-flash"]
+
+
+def test_a_model_busy_once_goes_behind_the_ones_that_answer():
+    busy = {"error": {"code": 503, "status": "UNAVAILABLE", "message": "The model is overloaded."}}
+    state = {"n": 0}
+
+    def newest(body):
+        state["n"] += 1
+        return (503, busy) if state["n"] == 1 else gemini_reply("{}", "gemini-3.6-flash")
+
+    fake = FakeGemini({"gemini-3.6-flash": newest, "gemini-3.5-flash": gemini_reply("{}", "gemini-3.5-flash")})
+    p = gemini(fake)
+    assert p.generate(REQ).model == "gemini-3.5-flash"
+    assert p.generate(REQ).model == "gemini-3.5-flash"  # it answered, so it stays first
+    assert fake.generated == ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash"]
 
 
 def test_a_search_quota_does_not_mark_the_provider_exhausted(store):
