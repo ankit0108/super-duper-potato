@@ -89,13 +89,20 @@ class LLMError(Exception):
         return f"{self.kind} ({detail})" if detail else self.kind
 
 
+# "Overloaded" (5xx) answers in one run after which a model is asked only when no other model is left.
+BUSY_AFTER = 2
+
+
 class ModelCycle:
     """The models one provider can answer with, in order of preference, and what this run learned about them.
 
     A call tries each usable model at most once, starting from the one that last answered and wrapping around.
     A retired model is dropped; with per-model quotas (Gemini, Groq), a model out of its daily quota is skipped
-    for the rest of the run and an overloaded or rate-limited one hands the call to the next. Grounded (search)
-    calls hand over the same way but change nothing for later calls: a search quota says nothing about drafting.
+    for the rest of the run and an overloaded or rate-limited one hands the call to the next. A model that
+    answers "overloaded" goes to the back for later calls, and after BUSY_AFTER such answers it is asked only
+    when no other model is left (then just one busy model per call), so a busy day costs a few slow answers per
+    run instead of a few per call. Grounded (search) calls hand over the same way but change nothing for later
+    calls: a search quota says nothing about drafting.
     """
 
     def __init__(self, provider: str, models: list[str], quota_per_model: bool):
@@ -105,6 +112,7 @@ class ModelCycle:
         self.idx = 0
         self.dead: set[str] = set()
         self.spent: set[str] = set()
+        self.busy: dict[str, int] = {}  # model -> "overloaded" answers this run
 
     @property
     def current(self) -> str | None:
@@ -113,7 +121,13 @@ class ModelCycle:
     def usable(self) -> list[str]:
         n = len(self.models)
         order = [self.models[(self.idx + k) % n] for k in range(n)]
-        return [m for m in order if m not in self.dead and m not in self.spent]
+        ok = [m for m in order if m not in self.dead and m not in self.spent]
+        calm = [m for m in ok if self.busy.get(m, 0) < BUSY_AFTER]
+        if not calm:
+            # Every model is busy: one try per call, not one per model, taking turns (the least busy first), so
+            # a model that recovers is found again.
+            return [min(ok, key=lambda m: self.busy.get(m, 0))] if ok else []
+        return sorted(calm, key=lambda m: self.busy.get(m, 0) > 0)  # those that haven't been busy first
 
     def run(self, req: LLMRequest, attempt: Any, rediscover: Any = None) -> LLMResponse:
         from .. import log
@@ -121,6 +135,7 @@ class ModelCycle:
         tried: set[str] = set()
         transient: LLMError | None = None
         last: LLMError | None = None
+        busy_tried = False
         while True:
             pending = [m for m in self.usable() if m not in tried]
             if not pending and self.dead and rediscover is not None:
@@ -129,6 +144,10 @@ class ModelCycle:
             if not pending:
                 break
             model = pending[0]
+            if self.busy.get(model, 0) >= BUSY_AFTER and not req.grounding:
+                if busy_tried:
+                    break  # one busy model per call
+                busy_tried = True
             tried.add(model)
             try:
                 resp = attempt(model)
@@ -142,14 +161,20 @@ class ModelCycle:
                     self.spent.add(model)
                 elif exc.quota or exc.rate_limited or (exc.status or 0) >= 500:
                     transient = exc
+                    if (exc.status or 0) >= 500 and not req.grounding:
+                        self.busy[model] = self.busy.get(model, 0) + 1
                 else:
                     raise
                 log.info(f"llm: {self.provider} {model}: {exc.public()}; trying the next model")
                 continue
             if not req.grounding:
                 self.idx = self.models.index(model)
+                self.busy.pop(model, None)
             return resp
         if transient is not None:
+            if (transient.status or 0) >= 500 and len(tried) > 1:
+                # Every model was asked and was busy: retrying now would ask them all again. The router moves on.
+                transient.retryable = False
             raise transient
         if last is not None:
             raise last
