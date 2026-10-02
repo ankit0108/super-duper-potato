@@ -1,0 +1,191 @@
+{
+ "ai_tells": [
+  {
+   "name": "contrast, same sentence",
+   "text": "It's not about speed, it's about trust. Teams need both.",
+   "kinds": [
+    "contrast"
+   ]
+  },
+  {
+   "name": "contrast, two sentences",
+   "text": "It's not about speed. It's about trust.",
+   "kinds": [
+    "contrast"
+   ]
+  },
+  {
+   "name": "contrast with a dash",
+   "text": "This isn't a model problem — it's a data problem.",
+   "kinds": [
+    "contrast"
+   ]
+  },
+  {
+   "name": "not just X but Y",
+   "text": "Agents are not just faster but cheaper to run.",
+   "kinds": [
+    "contrast"
+   ]
+  },
+  {
+   "name": "plain negation is fine",
+   "text": "It's not clear whether the benchmark reflects production. The authors say more work is needed.",
+   "kinds": []
+  },
+  {
+   "name": "labelled reveal question",
+   "text": "The result? Fewer exceptions and happier auditors.",
+   "kinds": [
+    "reveal"
+   ]
+  },
+  {
+   "name": "here's why",
+   "text": "Here's why that matters for operations teams.",
+   "kinds": [
+    "reveal"
+   ]
+  },
+  {
+   "name": "let's dive",
+   "text": "Let's dive into what changed this week.",
+   "kinds": [
+    "reveal"
+   ]
+  },
+  {
+   "name": "hot take label",
+   "text": "Hot take: most pilots fail on exceptions.",
+   "kinds": [
+    "reveal"
+   ]
+  },
+  {
+   "name": "stock opener",
+   "text": "In today's fast-moving market, agents matter.",
+   "kinds": [
+    "opener"
+   ]
+  },
+  {
+   "name": "imagine opener",
+   "text": "Imagine closing the books in a day. The new benchmark says not yet.",
+   "kinds": [
+    "opener"
+   ]
+  },
+  {
+   "name": "summary closer",
+   "text": "Agents finished 41% of tasks.\n\nIn short, test before you trust.",
+   "kinds": [
+    "closer"
+   ]
+  },
+  {
+   "name": "bottom line closer",
+   "text": "Most failures came from exceptions. The bottom line: test your own cases.",
+   "kinds": [
+    "closer"
+   ]
+  },
+  {
+   "name": "two em dashes",
+   "text": "Speed matters — but trust matters more — and cost matters most.",
+   "kinds": [
+    "dashes"
+   ]
+  },
+  {
+   "name": "one em dash is fine",
+   "text": "Speed matters — trust matters more.",
+   "kinds": []
+  },
+  {
+   "name": "emoji bullets",
+   "text": "What changed:\n✅ Faster close\n✅ Fewer errors\n✅ Happier auditors",
+   "kinds": [
+    "emoji_bullets"
+   ]
+  },
+  {
+   "name": "one emoji is fine",
+   "text": "Shipped the new close process today 🚀",
+   "kinds": []
+  },
+  {
+   "name": "staccato negations",
+   "text": "Not hype. Not magic. Just better process design.",
+   "kinds": [
+    "staccato"
+   ]
+  },
+  {
+   "name": "stacked questions",
+   "text": "Why does this keep happening? Who owns the fix? Nobody, it turns out.",
+   "kinds": [
+    "questions"
+   ]
+  },
+  {
+   "name": "one question is fine",
+   "text": "Who owns the exceptions in your process? In most teams, nobody does.",
+   "kinds": []
+  },
+  {
+   "name": "filler",
+   "text": "It's worth noting that exceptions drive cost.",
+   "kinds": [
+    "filler"
+   ]
+  },
+  {
+   "name": "filler: plays a crucial role",
+   "text": "Data quality plays a crucial role in agent accuracy.",
+   "kinds": [
+    "filler"
+   ]
+  },
+  {
+   "name": "filler: when it comes to",
+   "text": "When it comes to invoices, the long tail is where agents fail.",
+   "kinds": [
+    "filler"
+   ]
+  },
+  {
+   "name": "same-length sentences",
+   "text": "The model reads every invoice line by line today. The team checks every flagged item by hand. The audit trail records each decision made here. The process runs on every single business day. The results land in one shared report daily.",
+   "kinds": [
+    "rhythm"
+   ]
+  },
+  {
+   "name": "varied sentences are fine",
+   "text": "Agents finished 41% of real back-office tasks in the new benchmark, which tested invoices, claims and onboarding end to end. Most failed on exceptions. Why? Exceptions are where the rules run out and judgement starts. Test yours first. Then decide.",
+   "kinds": []
+  },
+  {
+   "name": "curly apostrophes count",
+   "text": "It’s not about speed, it’s about trust.",
+   "kinds": [
+    "contrast"
+   ]
+  },
+  {
+   "name": "several at once",
+   "text": "In today's world of agents, here's the thing. It's not about speed, it's about trust.\n\nUltimately, trust wins.",
+   "kinds": [
+    "closer",
+    "contrast",
+    "opener",
+    "reveal"
+   ]
+  },
+  {
+   "name": "a clean post",
+   "text": "Agents finished 41% of real back-office tasks in AgentBench-Enterprise. The failures cluster around exceptions: a missing PO, a duplicate vendor, a currency mismatch. If you're piloting agents in finance ops, collect fifty of your own exceptions before you look at any vendor demo.",
+   "kinds": []
+  }
+ ]
+}

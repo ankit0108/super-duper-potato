@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
+import pytest
+
 from pbs import guardrails as G
 
 
@@ -56,3 +61,18 @@ def test_length_flags(settings):
     assert flags and "Thread has 2 posts" in flags[0]
     li = G.length_flags("linkedin", "li_text", {"text": ("word " * 60).strip() + ".\n\nMore."}, settings)
     assert any("fold" in f for f in li)
+
+
+AI_TELL_VECTORS = json.loads((Path(__file__).parent / "vectors" / "ai_tells.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("case", AI_TELL_VECTORS["ai_tells"], ids=lambda c: c["name"])
+def test_ai_tells_shared_vectors(case):
+    assert sorted({t["kind"] for t in G.ai_tells(case["text"])}) == case["kinds"]
+
+
+def test_ai_tells_say_where_each_one_is_in_reading_order():
+    tells = G.ai_tells("In today's world, agents matter. It's not about speed, it's about trust.\n\n"
+                                "Ultimately, trust wins.")
+    assert [t["kind"] for t in tells] == ["opener", "contrast", "closer"]
+    assert tells[1]["text"] == "It's not about speed, it's about trust."

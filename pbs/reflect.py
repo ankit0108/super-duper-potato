@@ -97,8 +97,10 @@ def _week_input(ctx: Ctx, start: dt.datetime, end: dt.datetime) -> dict[str, Any
     s, e = timeutil.iso(start), timeutil.iso(end)
     posts = []
     for p in ctx.store.select("posts", "posted_at >= ? AND posted_at < ?", (s, e), order="posted_at"):
+        in_draft, in_post = learn.post_tells(ctx, p)
         posts.append({"id": p["id"], "platform": p["platform"], "pillar": p["pillar"], "format": p["format"],
                       "hook": (p.get("hook_used") or {}).get("type"), "edit_ratio": p.get("edit_ratio"),
+                      "ai_tells_in_draft": in_draft, "ai_tells_posted": in_post,
                       "written_from": (p.get("features") or {}).get("draft_basis"),
                       "visual": (p.get("features") or {}).get("visual"),
                       "reward": p.get("reward"), "rank": (p.get("features") or {}).get("rank"),
@@ -115,7 +117,12 @@ def _week_input(ctx: Ctx, start: dt.datetime, end: dt.datetime) -> dict[str, Any
         m = mix.setdefault(key, {"delivered": 0, "picked": 0})
         m["delivered"] += 1
         m["picked"] += 1 if c["status"] in ("posted", "editing") else 0
-    return {"posts": posts, "skipped": skipped[:25], "rewrite_notes": notes[:20], "mix": mix,
+    edits = [(c.get("llm") or {}).get("edit") or {} for c in cards if c.get("draft")]
+    writing = {"drafts": len(edits), "with_ai_tells": sum(1 for x in edits if x.get("before")),
+               "editor_kept": sum(1 for x in edits if x.get("kept")),
+               "tells_before_editor": sum(int(x.get("before") or 0) for x in edits),
+               "tells_after_editor": sum(int(x.get("after") or 0) for x in edits)}
+    return {"posts": posts, "skipped": skipped[:25], "rewrite_notes": notes[:20], "mix": mix, "writing": writing,
             "post_ids": [p["id"] for p in posts]}
 
 

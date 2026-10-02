@@ -130,6 +130,26 @@
    "title": "AccountStatsEvent",
    "type": "object"
   },
+  "AiTell": {
+   "properties": {
+    "kind": {
+     "description": "contrast, reveal, opener, closer, dashes, emoji_bullets, staccato, questions, filler or rhythm",
+     "title": "Kind",
+     "type": "string"
+    },
+    "text": {
+     "description": "The sentence it's in (or a count, for dashes and rhythm)",
+     "title": "Text",
+     "type": "string"
+    }
+   },
+   "required": [
+    "kind",
+    "text"
+   ],
+   "title": "AiTell",
+   "type": "object"
+  },
   "Answer": {
    "properties": {
     "answer": {
@@ -413,6 +433,7 @@
     "flags": {
      "$ref": "#/$defs/Flags",
      "default": {
+      "ai_tells": [],
       "avoid_phrases": [],
       "bait": [],
       "blocked": [],
@@ -2091,6 +2112,77 @@
    "title": "Draft",
    "type": "object"
   },
+  "EditInfo": {
+   "description": "The editor pass on the draft (editing.polish): it rewrites what reads as AI-written, kept only if better.",
+   "properties": {
+    "after": {
+     "default": 0,
+     "description": "AI tells left (the same as before when the edit wasn't kept)",
+     "title": "After",
+     "type": "integer"
+    },
+    "before": {
+     "default": 0,
+     "description": "AI tells in the draft as the model wrote it",
+     "title": "Before",
+     "type": "integer"
+    },
+    "kept": {
+     "default": false,
+     "title": "Kept",
+     "type": "boolean"
+    },
+    "kinds": {
+     "default": [],
+     "description": "The kinds of tell found (guardrails.AI_TELL_LABELS)",
+     "items": {
+      "type": "string"
+     },
+     "title": "Kinds",
+     "type": "array"
+    },
+    "provider": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Provider"
+    },
+    "reason": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Why the edit wasn't kept",
+     "title": "Reason"
+    },
+    "skipped": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Why no edit was tried: off, degraded run, run limit, budget, or the error",
+     "title": "Skipped"
+    }
+   },
+   "title": "EditInfo",
+   "type": "object"
+  },
   "Experiment": {
    "properties": {
     "created_at": {
@@ -2182,6 +2274,15 @@
   },
   "Flags": {
    "properties": {
+    "ai_tells": {
+     "default": [],
+     "description": "What makes the draft read as AI-written (guardrails.ai_tells)",
+     "items": {
+      "$ref": "#/$defs/AiTell"
+     },
+     "title": "Ai Tells",
+     "type": "array"
+    },
     "avoid_phrases": {
      "default": [],
      "items": {
@@ -2526,6 +2627,17 @@
   },
   "LLMInfo": {
    "properties": {
+    "edit": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/EditInfo"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
     "model": {
      "anyOf": [
       {

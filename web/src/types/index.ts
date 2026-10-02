@@ -13,6 +13,7 @@ export type Draft = NonNullable<Card["draft"]>;
 export type Hook = Item<Card["hooks"]>;
 export type SourceRef = Item<Card["sources"]>;
 export type Flags = NonNullable<Card["flags"]>;
+export type EditInfo = NonNullable<NonNullable<Card["llm"]>["edit"]>;
 export type Visual = NonNullable<Card["visual"]>;
 export type VisualItem = Item<Visual["items"]>;
 export type Question = Item<Card["questions"]>;

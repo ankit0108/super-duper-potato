@@ -1,7 +1,8 @@
 import type { KeyboardEvent, ReactNode } from "react";
-import { Compass, FlaskConical, Loader2, MessageCircleQuestion, OctagonAlert, ShieldAlert, Sigma, UserRound, HeartHandshake, Ruler } from "lucide-react";
+import { Bot, Compass, FlaskConical, Loader2, MessageCircleQuestion, OctagonAlert, ShieldAlert, Sigma, UserRound, HeartHandshake, Ruler } from "lucide-react";
 import type { Card } from "@/types";
 import { FORMAT_LABEL, MENU_SKIP_REASONS, PLATFORM_LABEL, draftText } from "@/lib/format";
+import { tellSummary } from "@/lib/guard";
 import { navigate } from "@/lib/router";
 import { useDesk } from "@/state/store";
 import { useNow, usePillarLabels } from "@/state/hooks";
@@ -55,6 +56,7 @@ export function FlagIcons({ card }: { card: Card }) {
     { show: !!f.sensitive, icon: <HeartHandshake className="size-3.5" />, label: `Handle with care${f.sensitive_reason ? `: ${f.sensitive_reason}` : ""}`, tone: "text-info" },
     { show: !!f.length?.length, icon: <Ruler className="size-3.5" />, label: f.length?.join("; ") ?? "", tone: "text-warn" },
     { show: !!(f.bait?.length || f.avoid_phrases?.length), icon: <OctagonAlert className="size-3.5" />, label: "Contains phrases you avoid", tone: "text-warn" },
+    { show: !!f.ai_tells?.length, icon: <Bot className="size-3.5" />, label: tellSummary(f.ai_tells ?? []), tone: "text-warn" },
   ];
   const shown = items.filter((i) => i.show);
   if (!shown.length) return null;

@@ -324,6 +324,18 @@ export type DraftState = "full" | "brief" | "pending";
 export type ExperimentId = string | null;
 export type ExpiresAt = string | null;
 export type Explore = boolean;
+/**
+ * contrast, reveal, opener, closer, dashes, emoji_bullets, staccato, questions, filler or rhythm
+ */
+export type Kind3 = string;
+/**
+ * The sentence it's in (or a count, for dashes and rhythm)
+ */
+export type Text11 = string;
+/**
+ * What makes the draft read as AI-written (guardrails.ai_tells)
+ */
+export type AiTells = AiTell[];
 export type AvoidPhrases = string[];
 export type Bait = string[];
 export type Blocked = string[];
@@ -339,20 +351,42 @@ export type Format1 = "li_text" | "x_single" | "x_thread" | "x_quote" | "x_reply
 export type FormatNote = string | null;
 export type Hashtags2 = string[];
 export type HookType = string | null;
-export type Text11 = string;
+export type Text12 = string;
 export type Type29 = string;
 export type Hooks1 = Hook[];
 export type Id31 = string;
 export type IssueKey = string | null;
-export type Kind3 = "news" | "evergreen" | "interview" | "request" | "adapt";
-export type Model = string | null;
+export type Kind4 = "news" | "evergreen" | "interview" | "request" | "adapt";
+/**
+ * AI tells left (the same as before when the edit wasn't kept)
+ */
+export type After = number;
+/**
+ * AI tells in the draft as the model wrote it
+ */
+export type Before = number;
+export type Kept = boolean;
+/**
+ * The kinds of tell found (guardrails.AI_TELL_LABELS)
+ */
+export type Kinds = string[];
 export type Provider = string | null;
+/**
+ * Why the edit wasn't kept
+ */
+export type Reason1 = string | null;
+/**
+ * Why no edit was tried: off, degraded run, run limit, budget, or the error
+ */
+export type Skipped = string | null;
+export type Model = string | null;
+export type Provider1 = string | null;
 export type Mode1 = "external" | "interview";
 export type Pillar2 = string;
 export type Platform4 = "linkedin" | "x";
 export type PostId3 = string | null;
 export type Id32 = string;
-export type Kind4 = string | null;
+export type Kind5 = string | null;
 export type Q = string;
 export type Why = string | null;
 export type Questions = Question[];
@@ -363,7 +397,7 @@ export type RewriteCount = number;
 export type Score = number | null;
 export type At29 = string | null;
 export type Note6 = string | null;
-export type Reason1 =
+export type Reason2 =
   "not_interesting" | "off_brand" | "wrong_timing" | "too_risky" | "already_covered" | "other" | "wrong_platform";
 export type Lang1 = string;
 export type OrigTitle = string | null;
@@ -396,7 +430,7 @@ export type Model1 = string | null;
  * File in the data repo, like media/ai/<card id>/<stamp>.jpg
  */
 export type Path = string;
-export type Provider1 = string;
+export type Provider2 = string;
 export type Width = number;
 /**
  * Supporting text; a comparison column has one point per line
@@ -407,7 +441,7 @@ export type Body1 = string;
  */
 export type Title4 = string;
 export type Items1 = VisualItem[];
-export type Kind5 = "carousel" | "flow" | "compare" | "list" | "stat" | "quote" | "image";
+export type Kind6 = "carousel" | "flow" | "compare" | "list" | "stat" | "quote" | "image";
 /**
  * Indexes of the card's sources it draws on
  */
@@ -423,7 +457,7 @@ export type AiBackground1 = boolean | null;
 export type Attempts = number;
 export type Chips1 = string[];
 export type Crosspost = ("both" | "switch") | null;
-export type Kind6 = "draft" | "rewrite" | "questions" | "visual";
+export type Kind7 = "draft" | "rewrite" | "questions" | "visual";
 export type LastError = string | null;
 export type Note7 = string | null;
 export type RequestedAt = string | null;
@@ -440,13 +474,13 @@ export type HookIndex3 = number | null;
  */
 export type Hooks2 = Hook[] | null;
 export type Posts4 = string[] | null;
-export type Text12 = string | null;
+export type Text13 = string | null;
 export type UpdatedAt1 = string | null;
 export type Cards = Card[];
 export type Degraded = string | null;
 export type DeliveredAt1 = string | null;
 export type Id33 = string;
-export type Kind7 = string | null;
+export type Kind8 = string | null;
 export type LocalDate = string;
 export type Notes2 = string[];
 export type Detail = string | null;
@@ -523,7 +557,7 @@ export type Pillar4 = string | null;
 export type Platform7 = ("linkedin" | "x") | null;
 export type Reversal = string | null;
 export type Source3 = "seed" | "reflection" | "user" | "voice";
-export type Text13 = string;
+export type Text14 = string;
 export type Rules = PlaybookRule[];
 export type Source4 = string | null;
 export type Status6 = "active" | "retired";
@@ -557,7 +591,7 @@ export type DecisionNote = string | null;
 export type Detail1 = string | null;
 export type Evidence1 = string[];
 export type Id40 = string;
-export type Kind8 = string;
+export type Kind9 = string;
 export type Source5 = string | null;
 export type Status7 = "pending" | "approved" | "rejected" | "applied";
 export type Title7 = string;
@@ -569,7 +603,7 @@ export type LastError2 = string | null;
 export type LastErrorAt = string | null;
 export type LastOkAt = string | null;
 export type Model2 = string | null;
-export type Provider2 = string;
+export type Provider3 = string;
 export type Requests = number;
 export type TokensIn = number;
 export type TokensOut = number;
@@ -631,7 +665,7 @@ export type LastError3 = string | null;
 export type LastFetchAt = string | null;
 export type LastSuccessAt = string | null;
 export type Id45 = string;
-export type Kind9 = string;
+export type Kind10 = string;
 export type Lang2 = string;
 export type Name2 = string;
 export type PausedReason = string | null;
@@ -649,7 +683,7 @@ export type Issue2 = string;
 export type Keywords1 = string[];
 export type Key1 = string;
 export type Label1 = string;
-export type Text14 = string;
+export type Text15 = string;
 export type Positions1 = Position[];
 export type Sources3 = SourceRef[];
 export type Status10 = "proposed" | "active" | "archived";
@@ -1235,7 +1269,7 @@ export interface Card {
   hooks?: Hooks1;
   id: Id31;
   issue_key?: IssueKey;
-  kind?: Kind3;
+  kind?: Kind4;
   llm?: LLMInfo | null;
   mode?: Mode1;
   pillar: Pillar2;
@@ -1299,6 +1333,7 @@ export interface ReplyTarget {
   search_terms?: SearchTerms;
 }
 export interface Flags {
+  ai_tells?: AiTells;
   avoid_phrases?: AvoidPhrases;
   bait?: Bait;
   blocked?: Blocked;
@@ -1313,10 +1348,18 @@ export interface Flags {
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "AiTell".
+ */
+export interface AiTell {
+  kind: Kind3;
+  text: Text11;
+}
+/**
+ * This interface was referenced by `Contracts`'s JSON-Schema
  * via the `definition` "Hook".
  */
 export interface Hook {
-  text: Text11;
+  text: Text12;
   type?: Type29;
 }
 /**
@@ -1324,8 +1367,24 @@ export interface Hook {
  * via the `definition` "LLMInfo".
  */
 export interface LLMInfo {
+  edit?: EditInfo | null;
   model?: Model;
+  provider?: Provider1;
+}
+/**
+ * The editor pass on the draft (editing.polish): it rewrites what reads as AI-written, kept only if better.
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "EditInfo".
+ */
+export interface EditInfo {
+  after?: After;
+  before?: Before;
+  kept?: Kept;
+  kinds?: Kinds;
   provider?: Provider;
+  reason?: Reason1;
+  skipped?: Skipped;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -1333,7 +1392,7 @@ export interface LLMInfo {
  */
 export interface Question {
   id: Id32;
-  kind?: Kind4;
+  kind?: Kind5;
   q: Q;
   why?: Why;
 }
@@ -1347,7 +1406,7 @@ export interface ScoreParts {
 export interface Skip {
   at?: At29;
   note?: Note6;
-  reason: Reason1;
+  reason: Reason2;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -1379,7 +1438,7 @@ export interface Visual {
   created_at?: CreatedAt2;
   image?: VisualImage | null;
   items?: Items1;
-  kind: Kind5;
+  kind: Kind6;
   sources?: Sources1;
   subtitle?: Subtitle1;
   title?: Title5;
@@ -1398,7 +1457,7 @@ export interface VisualImage {
   height: Height;
   model?: Model1;
   path: Path;
-  provider: Provider1;
+  provider: Provider2;
   width: Width;
 }
 /**
@@ -1418,7 +1477,7 @@ export interface Work {
   attempts?: Attempts;
   chips?: Chips1;
   crosspost?: Crosspost;
-  kind: Kind6;
+  kind: Kind7;
   last_error?: LastError;
   note?: Note7;
   requested_at?: RequestedAt;
@@ -1435,7 +1494,7 @@ export interface Working {
   hook_index?: HookIndex3;
   hooks?: Hooks2;
   posts?: Posts4;
-  text?: Text12;
+  text?: Text13;
   updated_at?: UpdatedAt1;
   /**
    * The visual as he edited it
@@ -1451,7 +1510,7 @@ export interface DeliveryInfo {
   degraded?: Degraded;
   delivered_at?: DeliveredAt1;
   id: Id33;
-  kind?: Kind7;
+  kind?: Kind8;
   local_date: LocalDate;
   notes?: Notes2;
 }
@@ -1579,7 +1638,7 @@ export interface PlaybookRule {
   platform?: Platform7;
   reversal?: Reversal;
   source?: Source3;
-  text: Text13;
+  text: Text14;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -1632,7 +1691,7 @@ export interface Proposal {
   detail?: Detail1;
   evidence?: Evidence1;
   id: Id40;
-  kind: Kind8;
+  kind: Kind9;
   payload?: Payload;
   source?: Source5;
   status?: Status7;
@@ -1653,7 +1712,7 @@ export interface Quota1 {
   last_error_at?: LastErrorAt;
   last_ok_at?: LastOkAt;
   model?: Model2;
-  provider: Provider2;
+  provider: Provider3;
   requests?: Requests;
   tokens_in?: TokensIn;
   tokens_out?: TokensOut;
@@ -1752,7 +1811,7 @@ export interface Source6 {
   best_effort?: BestEffort;
   health?: SourceHealth;
   id: Id45;
-  kind: Kind9;
+  kind: Kind10;
   lang?: Lang2;
   name: Name2;
   paused_reason?: PausedReason;
@@ -1805,7 +1864,7 @@ export interface StanceChoice {
 export interface Position {
   key: Key1;
   label: Label1;
-  text: Text14;
+  text: Text15;
 }
 export interface Stats1 {
   [k: string]: unknown;
@@ -1862,6 +1921,7 @@ export interface DeskWarning {
  * via the `definition` "Flags".
  */
 export interface Flags1 {
+  ai_tells?: AiTells;
   avoid_phrases?: AvoidPhrases;
   bait?: Bait;
   blocked?: Blocked;

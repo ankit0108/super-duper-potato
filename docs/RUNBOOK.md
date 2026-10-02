@@ -11,6 +11,12 @@ why in a line, and any skip can get a reason afterwards (**Add why** on the toas
 reads your reasons; **Insights → Learning** lists the ones in use. Cards you don't touch expire when the next
 morning's set arrives, and that's fine.
 
+**If a sentence sounds like AI.** The card's **Checks** tab lists *Sounds like AI* as you type ("It's not X, it's
+Y", "Here's why:", em dashes, emoji bullets, filler, every sentence the same length), and the tile shows a robot
+icon when the delivered draft still has one. Rewrite it in your own words. Before you see a draft, an editor pass
+has already rewritten what it could; **Details → Editor pass** says what it fixed, or why it kept the draft as
+written. A pattern you take out of three drafts becomes a rule; one you keep adding yourself is left alone.
+
 **A visual (optional).** On a card, **Visual → Create visual** (or pick a kind: carousel, flowchart,
 comparison, numbered list, big number, quote card, or an **AI image**; tick **Add an AI background** for a picture
 behind a carousel cover, big number or quote, once AI images are set up: SETUP, "AI images"). It starts a run straight away; one to three minutes later
@@ -64,6 +70,7 @@ desk is where to look first.
 | A news source keeps failing | The doctor's `Sources` line names each failing source with its reason (HTTP 403 is usually a site refusing GitHub's servers). Swap it for a Google News query for the same outlet (`site:example.com when:2d`) on the Sources page |
 | A change you made "didn't stick" | **System → Rejected changes** lists anything the pipeline couldn't apply, with the reason. *Changes in flight* shows what's still waiting for a run |
 | A card is **Blocked** | It matched your blocklist. Nothing was reworded. Edit the draft by hand or skip it. If the match is a false positive, refine the term in `PBS_BLOCKLIST` |
+| Drafts sound like AI | **Insights → Voice** shows AI tells per draft as the model wrote it and as shown to you, week by week, and which ones come up most. The run log has a line per draft, such as `edit: polished a linkedin draft (tells 2→0)` or `edit: kept the original draft of a linkedin card (added a figure the sources don't have)`: the editor never keeps a version that adds or drops a figure, claims an experience, or rewrites more than half the post. `edit: skipped … (budget)` means the run was short on model calls, and drafts come first. Taking the pattern out when you edit teaches the drafter; **Settings → Writing** turns the editor pass off or caps it |
 | Drafts suddenly need more editing | **Insights → Weekly report** shows edit ratio by prompt and playbook version. Remove the playbook rule that made things worse (**Insights → Playbook**), or **Settings → Learning → Freeze learning** while you review |
 | Want another set today | **Get fresh posts** on the board |
 | The desk looks out of date (a fix "isn't there") | The desk checks for a new version whenever you come back to it and reloads by itself when nothing is unsent; otherwise a banner offers **Reload**. **System** shows the desk version and when it was built |
@@ -84,8 +91,9 @@ saved, so a crash mid-run can't lose your actions.
 ## Costs and limits
 
 Everything runs on free tiers: Actions minutes (unlimited on a public repo), Pages, Gemini and Groq, and free
-news sources. A normal day uses about 15–20 model calls, with a hard cap of 60 in settings; each cross-post is
-one more, as is each visual, and the monthly platform research one. The one upgrade worth paying for, if drafts
+news sources. A normal day uses about 15–25 model calls, with a hard cap of 60 in settings; each cross-post is
+one more, as is each visual, each draft the editor pass rewrites (at most 12 a run, and only when the run has
+calls to spare), and the monthly platform research one. The one upgrade worth paying for, if drafts
 stay generic after a month, is a stronger drafting model: **Settings → Models**.
 
 ## Development

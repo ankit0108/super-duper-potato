@@ -165,6 +165,32 @@ test("a newer deployed desk is noticed and offered as a reload, and System shows
   await expect(page.getByText("The desk was updated. Reload to get the new version (your edits are kept).")).toBeVisible();
 });
 
+test("writing that sounds like AI is flagged as you type, and the editor pass shows what it fixed", async ({ page }) => {
+  // The demo's LinkedIn version of an X card: its draft came back with a "Here's why:", which the editor pass took out.
+  await todaySection(page).getByRole("article", { name: /^LinkedIn card: YC's latest batch/ }).click();
+  await page.getByRole("tab", { name: "Details" }).click();
+  // The side panel is in the page twice (phone and desktop layouts): look at the one on screen.
+  await expect(page.getByText("Fixed 1 of 1 AI tell (groq)").filter({ visible: true })).toBeVisible();
+  const editor = page.getByRole("textbox", { name: "LinkedIn post" });
+  await editor.press("ControlOrMeta+End");
+  await editor.pressSequentially("\n\nIt's not about speed, it's about trust.");
+  await page.getByRole("tab", { name: "Checks" }).click();
+  const live = page.locator("[aria-live=polite]").filter({ hasText: "Live checks", visible: true });
+  await expect(live.getByText("Sounds like AI")).toBeVisible();
+  await expect(live.getByText(/Contrast framing .+: “It's not about speed, it's about trust\.”/)).toBeVisible();
+  // The pipeline's own checks flag none: the editor pass took the draft's one tell out.
+  await expect(page.getByText("Sounds like AI", { exact: true }).filter({ visible: true })).toHaveCount(1);
+});
+
+test("Insights shows AI tells per draft before and after the editor pass", async ({ page }) => {
+  await page.goto("/#/insights?tab=voice");
+  await expect(page.getByText("Sounds like AI, by week")).toBeVisible();
+  await expect(page.getByText("Drafts the editor improved (30 days)")).toBeVisible();
+  await expect(page.getByText("Most common tell (30 days)")).toBeVisible();
+  await expect(page.getByRole("img", { name: "Average AI tells per draft as written and as shown, by week" })).toBeVisible();
+  await noSidewaysScroll(page);
+});
+
 test("edit an opening, write your own, and they go into the draft", async ({ page }) => {
   await todaySection(page).locator("[data-tile]").first().click();
   const editor = page.getByRole("textbox", { name: "LinkedIn post" });

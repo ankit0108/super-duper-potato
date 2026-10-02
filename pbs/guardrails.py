@@ -173,6 +173,107 @@ def phrase_hits(text: str | None, phrases: Iterable[str]) -> list[str]:
     return hits
 
 
+# ---------------------------------------------------------------------------
+# AI tells: patterns that make a post read as machine-written. Mirrored in web/src/lib/guard.ts (aiTells); both
+# are tested against tests/vectors/ai_tells.json, so the desk's live check and the pipeline agree.
+# ---------------------------------------------------------------------------
+
+AI_TELL_LABELS = {
+    "contrast": "contrast framing (\"it's not X, it's Y\")",
+    "reveal": "a labelled reveal (\"Here's why\", \"The result?\")",
+    "opener": "a stock opener (\"In today's…\", \"Imagine…\")",
+    "closer": "a summary closer (\"In short\", \"The bottom line\")",
+    "dashes": "em dashes",
+    "emoji_bullets": "emoji bullets",
+    "staccato": "staccato negations (\"Not X. Not Y.\")",
+    "questions": "stacked rhetorical questions",
+    "filler": "filler phrases",
+    "rhythm": "every sentence about the same length",
+}
+_I = re.IGNORECASE
+_NEG = r"(?:'s\s+not|\s+is\s+not|\s+isn't)"
+_TELL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    ("contrast", re.compile(r"\b(?:it|this|that)" + _NEG + r"\s+(?:just\s+|only\s+|really\s+|simply\s+)?(?:about\s+)?"
+                            r"[^.!?\n]{1,80}?(?:[,;:—–]|\s-\s)\s*(?:it|this|that)(?:'s|\s+is)\b", _I)),
+    ("contrast", re.compile(r"\b(?:it|this|that)" + _NEG + r"\s+[^.!?\n]{1,80}[.!]\s+(?:it|this|that)(?:'s|\s+is)\s", _I)),
+    ("contrast", re.compile(r"\bnot\s+(?:just|only|merely|simply)\s+[^.!?;\n]{1,80}?,?\s+but\s+(?:also\s+)?\w", _I)),
+    ("reveal", re.compile(r"(?:^|[.!?]\s+|\n)(?:the|my|our|your)\s+(?:real\s+|big\s+|hard\s+)?(?:result|answer|catch|kicker|"
+                          r"takeaway|truth|reality|lesson|twist|secret|problem|fix|upshot|verdict|difference|reason)\s*\?", _I)),
+    ("reveal", re.compile(r"\bhere(?:'s|\s+is)\s+(?:the\s+(?:thing|catch|kicker|twist|deal|truth|problem|secret|reality|part)|"
+                          r"why|what|how|where)\b", _I)),
+    ("reveal", re.compile(r"\blet's\s+(?:dive|unpack|break\s+(?:it|this|that)\s+down|explore|talk\s+about)\b", _I)),
+    ("reveal", re.compile(r"\b(?:spoiler(?:\s+alert)?|plot\s+twist|the\s+kicker|hot\s+take|pro\s+tip)\s*[:!]", _I)),
+    ("staccato", re.compile(r"(?:^|[.!?]\s+|\n)not\s+[^.!?\n]{1,40}[.!]\s+not\s+[^.!?\n]{1,40}[.!]", _I)),
+    ("filler", re.compile(r"\b(?:it(?:'s|\s+is)\s+(?:worth\s+noting|important\s+to\s+note|no\s+secret)|"
+                          r"plays?\s+a\s+(?:crucial|pivotal|vital|key)\s+role|in\s+the\s+realm\s+of|when\s+it\s+comes\s+to|"
+                          r"navigat(?:e|es|ing)\s+the\s+(?:complexit\w*|landscape|world|challenges)|a\s+(?:myriad|plethora)\s+of|"
+                          r"in\s+essence|needless\s+to\s+say|it\s+goes\s+without\s+saying|at\s+its\s+core|"
+                          r"first\s+and\s+foremost|ever-evolving|fast-paced\s+world|the\s+(?:ever-changing\s+)?landscape\s+of)\b",
+                          _I)),
+]
+_OPENER = re.compile(r"^\s*(?:in\s+today's\b|in\s+a\s+world\s+(?:where|of|that)\b|imagine\b|picture\s+this\b|"
+                     r"ever\s+wondered\b|have\s+you\s+ever\s+(?:wondered|thought)\b|let's\s+talk\s+about\b|"
+                     r"we\s+all\s+know\b|in\s+the\s+(?:ever-?changing|fast-?paced|rapidly\s+evolving)\b)", _I)
+_CLOSER = re.compile(r"(?:^|\n|[.!?]\s+)(?:in\s+short|in\s+summary|to\s+sum\s+(?:it\s+)?up|the\s+bottom\s+line|"
+                     r"bottom\s+line|ultimately|at\s+the\s+end\s+of\s+the\s+day|in\s+conclusion|the\s+takeaway|tl;?dr)\b", _I)
+_EMOJI_LINE = re.compile("^\\s*[\u2190-\u21FF\u2600-\u27BF\u2B00-\u2BFF\U0001F300-\U0001FAFF]")
+
+
+def _sentence_around(text: str, start: int, end: int) -> str:
+    """The sentence a match sits in (for showing it), cut to 140 characters."""
+    left = max(text.rfind(c, 0, start) for c in ".!?\n")
+    ends = [i for i in (text.find(c, end) for c in ".!?\n") if i != -1]
+    right = min(ends) + 1 if ends else len(text)
+    return textutil.truncate(text[left + 1:right].strip() or text[start:end].strip(), 140)
+
+
+def ai_tells(text: str | None) -> list[dict[str, str]]:
+    """Patterns that make a post read as written by AI, each with where it is: [{kind, text}] in reading order.
+    The editor pass rewrites these sentences; the desk shows them as "Sounds like AI"."""
+    body = (text or "").replace("\u2019", "'").replace("\u2018", "'")
+    if not body.strip():
+        return []
+    found: list[tuple[int, str, str]] = []
+
+    def add(pos: int, kind: str, snippet: str) -> None:
+        if not any(k == kind and t == snippet for _, k, t in found):
+            found.append((pos, kind, snippet))
+
+    for kind, pattern in _TELL_PATTERNS:
+        for m in pattern.finditer(body):
+            add(m.start(), kind, _sentence_around(body, m.start() + (len(m.group(0)) - len(m.group(0).lstrip(".!?\n "))), m.end()))
+    first = body.lstrip()
+    if _OPENER.match(first):
+        add(0, "opener", textutil.truncate(textutil.split_sentences(first.split("\n", 1)[0])[0], 140))
+    last_para = re.split(r"\n\s*\n", body.strip())[-1]
+    if (m := _CLOSER.search(last_para)) is not None:
+        offset = body.rfind(last_para)
+        add(offset + m.start(), "closer", _sentence_around(body, offset + m.start() + 1, offset + m.end()))
+    dashes = body.count("—") + len(re.findall(r"\s–\s", body))
+    if dashes > 1:
+        add(body.find("—") if "—" in body else 0, "dashes", f"{dashes} em dashes")
+    emoji_lines = [ln.strip() for ln in body.split("\n") if _EMOJI_LINE.match(ln)]
+    if len(emoji_lines) >= 2:
+        add(body.find(emoji_lines[0]), "emoji_bullets", textutil.truncate(emoji_lines[0], 140))
+    sentences = textutil.split_sentences(body.replace("\n", " "))
+    for a, b in zip(sentences, sentences[1:], strict=False):
+        if a.endswith("?") and b.endswith("?"):
+            add(body.find(a[:20]) if a[:20] in body else 0, "questions", textutil.truncate(f"{a} {b}", 140))
+            break
+    words = [len(s.split()) for s in sentences if len(s.split()) >= 3]
+    if len(words) >= 5:
+        mean = sum(words) / len(words)
+        spread = (sum((w - mean) ** 2 for w in words) / len(words)) ** 0.5
+        if mean >= 6 and spread / mean < 0.25:
+            add(len(body), "rhythm", f"{len(words)} sentences of about {round(mean)} words each")
+    return [{"kind": k, "text": t} for _, k, t in sorted(found, key=lambda f: f[0])]
+
+
+def tell_kinds(text: str | None) -> list[str]:
+    """The kinds of AI tell in a text, each once, sorted (what posts record and voice learning counts)."""
+    return sorted({t["kind"] for t in ai_tells(text)})
+
+
 def length_flags(platform: str, fmt: str, draft: dict[str, Any], settings: Any) -> list[str]:
     flags: list[str] = []
     if platform == "linkedin":
@@ -241,6 +342,7 @@ def check_card(card: dict[str, Any], *, settings: Any, blocklist: list[str], evi
         "avoid_phrases": phrase_hits(body + "\n" + hooks_text, avoid_phrases),
         "bait": phrase_hits(body, bait_phrases),
         "length": length_flags(card["platform"], card["format"], draft, settings),
+        "ai_tells": ai_tells(body),
         "sensitive": bool(prev.get("sensitive")),
         "sensitive_reason": prev.get("sensitive_reason"),
         "stance_id": prev.get("stance_id"),

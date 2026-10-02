@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import hashtags, log, prompting, textutil, timeutil
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest
+from .style import example_posts
 
 FLUFF = {"really", "very", "just", "truly", "incredibly", "extremely", "crucial", "essential", "landscape",
          "leverage", "leveraging", "robust", "seamless", "seamlessly", "powerful", "exciting", "innovative",
@@ -83,6 +84,7 @@ def compute_stats(ctx: Ctx, days: int = 60) -> dict[str, Any]:
             added.update(sorted(_grams_of(s.get("added"))))
         ratios = [p["edit_ratio"] for p in posts if p.get("edit_ratio") is not None]
         tags = _hashtag_stats(posts)
+        tells = _tell_stats(ctx, posts)
         out[platform] = {
             "posts": len(posts),
             "final_length_median": int(statistics.median(final_chars)) if final_chars else None,
@@ -97,8 +99,46 @@ def compute_stats(ctx: Ctx, days: int = 60) -> dict[str, Any]:
             "cut": [{"phrase": k, "count": v} for k, v in cut.most_common(25) if v >= 2 and added[k] == 0],
             "added": [{"phrase": k, "count": v} for k, v in added.most_common(15) if v >= 2],
             "hashtags": tags,
+            "tells": tells,
         }
     return out
+
+
+# A tell taken out of this many drafts (more often than it was put into posts) becomes a style rule; one put into
+# this many posts (more often than taken out) is part of the voice, so the editor pass leaves it alone.
+TELL_HABIT = 3
+TELL_RULES = {
+    "contrast": "say the point directly, without \"it's not X, it's Y\" framing",
+    "reveal": "make the point without a label like \"Here's why:\" or \"The result?\"",
+    "opener": "open with the concrete fact, not \"In today's…\" or \"Imagine…\"",
+    "closer": "end on the point itself, not \"In short\" or \"The bottom line\"",
+    "dashes": "don't use em dashes: use a comma, a full stop or brackets",
+    "emoji_bullets": "no emoji bullets",
+    "staccato": "no staccato \"Not X. Not Y.\" lines",
+    "questions": "ask at most one question",
+    "filler": "cut filler like \"it's worth noting\" and \"when it comes to\"",
+    "rhythm": "vary the sentence length",
+}
+
+
+def _tell_stats(ctx: Ctx, posts: list[dict[str, Any]]) -> dict[str, Any]:
+    """Which AI tells get taken out of drafts before posting, and which go into posts anyway (once per post)."""
+    from .learn import post_tells
+
+    cut: Counter[str] = Counter()
+    added: Counter[str] = Counter()
+    in_drafts = in_posts = 0
+    for p in posts:
+        before, after = post_tells(ctx, p)
+        in_drafts += len(before)
+        in_posts += len(after)
+        cut.update(sorted(set(before) - set(after)))
+        added.update(sorted(set(after) - set(before)))
+    return {"cut": dict(sorted(cut.items())), "added": dict(sorted(added.items())),
+            "avoid": sorted(k for k, n in cut.items() if n >= TELL_HABIT and n > added[k]),
+            "own": sorted(k for k, n in added.items() if n >= TELL_HABIT and n > cut[k]),
+            "per_draft": round(in_drafts / len(posts), 2) if posts else None,
+            "per_post": round(in_posts / len(posts), 2) if posts else None}
 
 
 def _hashtag_stats(posts: list[dict[str, Any]]) -> dict[str, Any]:
@@ -143,6 +183,10 @@ def deterministic_rules(stats: dict[str, Any]) -> list[str]:
         if s.get("sentence_words_median") and s["sentence_words_median"] <= 12:
             words = int(round(s["sentence_words_median"] / 2) * 2)
             rules.append(f"Keep {label} sentences short (about {words} words).")
+        # AI tells taken out of drafts again and again.
+        for kind in (s.get("tells") or {}).get("avoid") or []:
+            if kind in TELL_RULES:
+                rules.append(f"On {label}, {TELL_RULES[kind]}.")
     return rules
 
 
@@ -204,7 +248,7 @@ def update_voice(ctx: Ctx, weekly: bool = False) -> dict[str, Any] | None:
     if not changed:
         return prev
     version = int(prev["version"]) + 1 if prev else 1
-    examples = {pl: [p["id"] for p in ctx.store.select("posts", "platform = ?", (pl,), order="posted_at DESC", limit=2)]
+    examples = {pl: [p["id"] for p in example_posts(ctx, pl, ctx.settings.voice.examples_per_prompt)]
                 for pl in ("linkedin", "x")}
     row = {"id": f"vp_v{version:03d}", "version": version, "created_at": timeutil.now_iso(), "stats": stats,
            "rules": rules, "avoid": sorted(avoid), "cut_phrases": [c for s in stats.values() for c in s.get("cut", [])],

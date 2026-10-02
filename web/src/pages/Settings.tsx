@@ -183,6 +183,35 @@ function HashtagsSection({ settings }: { settings: S }) {
   );
 }
 
+function WritingSection({ settings }: { settings: S }) {
+  const act = useDesk((s) => s.act);
+  const pending = useDesk((s) => s.pending.settings);
+  const initial = useMemo(
+    () => ({ editor: settings.drafting?.editor_pass ?? true, perRun: settings.drafting?.editor_max_per_run ?? 12 }),
+    [settings],
+  );
+  const [v, setV, dirty] = useDraft(initial);
+  return (
+    <Section
+      id="writing"
+      title="Writing"
+      description="Drafts are written to avoid what gives AI writing away: “it's not X, it's Y”, “Here's why:”, em dashes, emoji bullets, filler, same-length sentences. A draft that still has some gets one more model call that rewrites only those sentences, and the new version is kept only if it has fewer and passes every check. The card's Details say what it fixed."
+      onSave={() => act({ type: "settings.update", patch: { drafting: { editor_pass: v.editor, editor_max_per_run: v.perRun } } }, { toast: "Saved. New drafts use it." })}
+      dirty={dirty}
+      pending={pending}
+    >
+      <div className="space-y-4">
+        <Toggle checked={v.editor} onChange={(b) => setV({ ...v, editor: b })} label="Editor pass for drafts that sound like AI" />
+        {v.editor && (
+          <div className="max-w-xs">
+            <NumberField id="editor-per-run" label="At most per run" value={v.perRun} min={0} max={40} onChange={(n) => setV({ ...v, perRun: n })} />
+          </div>
+        )}
+      </div>
+    </Section>
+  );
+}
+
 function VisualsSection({ settings }: { settings: S }) {
   const act = useDesk((s) => s.act);
   const pending = useDesk((s) => s.pending.settings);
@@ -599,6 +628,7 @@ export function Settings() {
           <ProfileSection settings={settings} />
           <VolumeSection settings={settings} />
           <HashtagsSection settings={settings} />
+          <WritingSection settings={settings} />
           <VisualsSection settings={settings} />
           <ImagesSection settings={settings} />
           <StrategySection settings={settings} />

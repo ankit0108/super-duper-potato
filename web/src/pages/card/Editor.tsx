@@ -5,7 +5,7 @@ import { HOOK_LABEL, pct } from "@/lib/format";
 import { diffWords, editRatio, splitSentences, xWeightedLength } from "@/lib/text";
 import { splitIntoPosts } from "@/lib/thread";
 import { copyText } from "@/lib/compose";
-import type { LiveFlags } from "@/lib/guard";
+import { AI_TELL_LABELS, type LiveFlags } from "@/lib/guard";
 import { useDesk } from "@/state/store";
 import { Badge } from "@/components/ui/Badge";
 import { Button, IconButton, cx } from "@/components/ui/Button";
@@ -229,6 +229,8 @@ export function LiveChecks({ flags, hasGuardTerms }: { flags: LiveFlags; hasGuar
     { tone: "warn", title: "Reads like your own experience", items: flags.firstPerson },
     { tone: "warn", title: "Phrases you avoid", items: flags.avoid },
     { tone: "warn", title: "Engagement bait", items: flags.bait },
+    // Patterns that make a post read as AI-written: rewrite the sentence in your own words.
+    { tone: "warn", title: "Sounds like AI", items: flags.aiTells.map((t) => `${AI_TELL_LABELS[t.kind] ?? t.kind}: “${t.text}”`) },
   ];
   const shown = rows.filter((r) => r.items.length);
   return (

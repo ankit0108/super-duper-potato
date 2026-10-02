@@ -3,6 +3,7 @@ import { Check, CircleDashed, ExternalLink, Plus, Search, Trash2, X } from "luci
 import type { DeskState, FormatName, Platform, PlaybookRule, Proposal } from "@/types";
 import { safeUrl } from "@/lib/compose";
 import { FORMAT_LABEL, SKIP_REASONS, num, pct } from "@/lib/format";
+import { tellName } from "@/lib/guard";
 import { formatDate, localDateKey } from "@/lib/time";
 import { Link, useRoute, navigate } from "@/lib/router";
 import { useDesk } from "@/state/store";
@@ -527,6 +528,67 @@ function ReportTab({ view }: { view: DeskState }) {
   );
 }
 
+type WritingWeek = { week: string; drafts: number; tells_before: number | null; tells_shown: number | null; posts: number; tells_posted: number | null; edit_ratio_median: number | null };
+type Writing = { weekly?: WritingWeek[]; kinds?: Array<{ kind: string; count: number }>; edits?: { polished?: number; kept_as_written?: number; skipped?: number } };
+type TellHabits = { cut?: Record<string, number>; avoid?: string[]; own?: string[] };
+const TELL_SERIES = [
+  { key: "tells_before", label: "Written", color: "var(--series-3)" },
+  { key: "tells_shown", label: "Shown", color: "var(--series-4)" },
+] as const;
+const tells = (v: number | null | undefined) => (v == null ? "–" : v.toFixed(1));
+
+/** AI tells (contrast framing, "Here's why", em dashes…) per draft and per post, week by week. */
+function WritingPanel({ view }: { view: DeskState }) {
+  const w = ((view.stats ?? {}) as { writing?: Writing }).writing;
+  const weekly = w?.weekly ?? [];
+  if (!weekly.some((r) => r.drafts || r.posts)) return null;
+  const labels = weekly.map((r) => wk(r.week));
+  const latest = [...weekly].reverse().find((r) => r.drafts);
+  const edits = w?.edits ?? {};
+  const kinds = w?.kinds ?? [];
+  const habits = (["linkedin", "x"] as const).flatMap((p) => {
+    const t = ((view.voice?.stats as Record<string, { tells?: TellHabits }> | undefined)?.[p]?.tells ?? {}) as TellHabits;
+    return [
+      ...(t.avoid ?? []).map((k) => `${NAMES[p]}: you take out ${tellName(k).toLowerCase()} (now a rule)`),
+      ...(t.own ?? []).map((k) => `${NAMES[p]}: you add ${tellName(k).toLowerCase()} yourself, so the editor leaves them`),
+    ];
+  });
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatTile label="AI tells per draft" value={tells(latest?.tells_shown)} hint={latest ? `As the model wrote them: ${tells(latest.tells_before)} (week ${wk(latest.week)})` : undefined} />
+        <StatTile label="Drafts the editor improved (30 days)" value={num(edits.polished ?? 0)} hint={`${num(edits.kept_as_written ?? 0)} kept as written · ${num(edits.skipped ?? 0)} skipped`} />
+        <StatTile label="Most common tell (30 days)" value={kinds[0] ? tellName(kinds[0].kind) : "None"} hint={kinds.slice(1, 3).map((k) => `${tellName(k.kind)} ${k.count}`).join(" · ") || undefined} />
+      </div>
+      <ChartCard
+        title="Sounds like AI, by week"
+        subtitle="Average AI tells per draft (contrast framing, “Here's why”, em dashes and the like): as the model wrote it, and as shown to you after the editor pass. Lower is better. The table adds what you posted."
+        legend={<LegendKey items={TELL_SERIES.map((s) => ({ label: s.label, color: s.color, kind: "line" as const }))} />}
+        table={
+          <DataTable
+            columns={["Week", "Drafts", "Tells as written", "Tells as shown", "Posts", "Tells posted", "Edit ratio"]}
+            rows={weekly.map((r) => [r.week, num(r.drafts), tells(r.tells_before), tells(r.tells_shown), num(r.posts), tells(r.tells_posted), pct(r.edit_ratio_median)])}
+          />
+        }
+      >
+        <LineChart
+          labels={labels}
+          series={TELL_SERIES.map((s) => ({ key: s.key, label: s.label, color: s.color, values: weekly.map((r) => r[s.key] ?? null) }))}
+          format={(v) => v.toFixed(1)}
+          ariaLabel="Average AI tells per draft as written and as shown, by week"
+        />
+      </ChartCard>
+      {habits.length > 0 && (
+        <ul className="list-disc space-y-1 pl-5 text-[13px] text-muted">
+          {habits.map((h) => (
+            <li key={h}>{h}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function VoiceTab({ view }: { view: DeskState }) {
   const act = useDesk((s) => s.act);
   const [phrase, setPhrase] = useState("");
@@ -552,6 +614,7 @@ function VoiceTab({ view }: { view: DeskState }) {
           <p className="text-[13px] text-muted">No rules yet. They appear after a few posts.</p>
         )}
       </Panel>
+      <WritingPanel view={view} />
       <div className="grid gap-4 xl:grid-cols-2">
         <Panel title="Phrases you cut" description="Cut from two or more drafts: these join the avoid list automatically.">
           {(v?.cut_phrases ?? []).length ? (

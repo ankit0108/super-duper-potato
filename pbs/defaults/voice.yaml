@@ -1,5 +1,7 @@
 # Phrases the drafter must avoid from day one. The learner adds phrases Ankit repeatedly cuts.
-examples_per_prompt: 2
+# Published posts shown to the drafter as the voice to match: the ones with the fewest AI tells and the most
+# words written by hand, of the last 20.
+examples_per_prompt: 3
 avoid_phrases:
   - delve
   - game-changer

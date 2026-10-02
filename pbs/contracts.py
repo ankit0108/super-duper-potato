@@ -73,6 +73,12 @@ class Draft(_Out):
     first_comment: str | None = Field(None, description="Posted right after (LinkedIn comment / X reply): the link")
 
 
+class AiTell(_Out):
+    kind: str = Field(description="contrast, reveal, opener, closer, dashes, emoji_bullets, staccato, questions, "
+                                  "filler or rhythm")
+    text: str = Field(description="The sentence it's in (or a count, for dashes and rhythm)")
+
+
 class Flags(_Out):
     blocked: list[str] = []
     unsourced: list[str] = []
@@ -83,6 +89,7 @@ class Flags(_Out):
     avoid_phrases: list[str] = []
     bait: list[str] = []
     length: list[str] = []
+    ai_tells: list[AiTell] = Field([], description="What makes the draft read as AI-written (guardrails.ai_tells)")
     stance_id: str | None = None
     notes: list[str] = []
 
@@ -167,9 +174,22 @@ class Versions(_Out):
     voice: str | None = None
 
 
+class EditInfo(_Out):
+    """The editor pass on the draft (editing.polish): it rewrites what reads as AI-written, kept only if better."""
+    before: int = Field(0, description="AI tells in the draft as the model wrote it")
+    after: int = Field(0, description="AI tells left (the same as before when the edit wasn't kept)")
+    kept: bool = False
+    kinds: list[str] = Field([], description="The kinds of tell found (guardrails.AI_TELL_LABELS)")
+    skipped: str | None = Field(None, description="Why no edit was tried: off, degraded run, run limit, budget, "
+                                "or the error")
+    reason: str | None = Field(None, description="Why the edit wasn't kept")
+    provider: str | None = None
+
+
 class LLMInfo(_Out):
     provider: str | None = None
     model: str | None = None
+    edit: EditInfo | None = None
 
 
 class Card(_Out):
