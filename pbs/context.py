@@ -119,6 +119,8 @@ class Ctx:
     # "Get fresh posts" options from the desk: {"platforms": [...] | None, "per_platform": n | None,
     # "find_sources": bool}. None: the morning set as configured.
     fresh: dict[str, Any] | None = None
+    # Editor passes made this run (editing.polish; capped by drafting.editor_max_per_run).
+    edits: int = 0
 
     @classmethod
     def create(cls, data_root: str | Path, task: str = "tick", trigger: str = "manual", hints: set[str] | None = None,

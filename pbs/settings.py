@@ -186,6 +186,12 @@ class Drafting(_Strict):
     interview_draft_now: bool = True
     questions_per_card: int = Field(2, ge=1, le=3)
     source_search_days: int = Field(30, ge=3, le=90)
+    # The editor pass (editing.py): one more call per draft that reads as AI-written, rewriting just those parts.
+    editor_pass: bool = True
+    editor_max_per_run: int = Field(12, ge=0, le=40)
+    # Model calls kept for drafts: at or below this many left, the pass is skipped, so it never costs a run's later
+    # drafts their calls (12 is more than the most drafts one run makes).
+    editor_reserve: int = Field(12, ge=0, le=50)
 
 
 class Expiry(_Strict):
@@ -247,7 +253,7 @@ class Notify(_Strict):
 
 
 class Voice(_Strict):
-    examples_per_prompt: int = Field(2, ge=0, le=5)
+    examples_per_prompt: int = Field(3, ge=0, le=5)
     avoid_phrases: list[str] = []
     bait_phrases: list[str] = []
 

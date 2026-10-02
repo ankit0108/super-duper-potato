@@ -7,6 +7,7 @@ experience for Ankit. Interview drafts are built from the answers given.
 from __future__ import annotations
 
 import re
+import zlib
 from typing import Any
 
 from .. import textutil
@@ -516,6 +517,23 @@ LI_TAGS = [("agent", "#AIAgents"), ("benchmark", "#AIResearch"), ("paper", "#AIR
            ("mcp", "#MCP"), ("small model", "#SmallModels"), ("regulat", "#AIRegulation"), ("security", "#AISecurity")]
 
 
+def _with_tells(handler: Any) -> Any:
+    """About a third of the LinkedIn drafts come back with a tell a model likes to add ("Here's why:"), so the
+    demo shows the editor pass at work."""
+
+    def run(req: LLMRequest, data: Any) -> Any:
+        out = handler(req, data)
+        if not isinstance(out, dict) or not isinstance(data, dict) or data.get("platform") != "linkedin":
+            return out
+        paras = (out.get("text") or "").split("\n\n")
+        if len(paras) >= 3 and not zlib.crc32((data.get("topic") or "").encode()) % 3:
+            paras[1] = f"Here's why: {paras[1]}"
+            out["text"] = "\n\n".join(paras)
+        return out
+
+    return run
+
+
 def _with_post_extras(handler: Any) -> Any:
     """Every draft also returns hashtags and the first comment with the source link, as the prompts ask."""
 
@@ -625,7 +643,7 @@ def demo_handlers() -> dict[str, Any]:
         changes = [{**c, "evidence": posts[i * 2:i * 2 + 3]} for i, c in enumerate(out["changes"])]
         return {**out, "changes": changes}
 
-    draft = _with_post_extras(_draft)
+    draft = _with_post_extras(_with_tells(_draft))
     return {"triage": _triage, "translate": _translate, "draft": draft, "draft_personal": draft,
             "questions": _questions, "reflect": reflect, "voice": _voice, "evergreen": evergreen,
             "research": _research, "visual": _visual}

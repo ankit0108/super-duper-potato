@@ -169,6 +169,8 @@ def record_post(ctx: Ctx, card: dict[str, Any], *, text: str | None, posts: list
             "draft_chars": len(base), "final_chars": len(body),
             "removed": [p for p in changes["removed"] if len(p) < 200][:30],
             "added": [p for p in changes["added"] if len(p) < 200][:30],
+            # What read as AI-written in the draft as shown, and in what went out (voice learning, stats).
+            "tells_draft": guardrails.tell_kinds(base), "tells_final": guardrails.tell_kinds(body),
         },
         "hook_used": hook_used,
         "features": features,
@@ -198,6 +200,17 @@ def record_post(ctx: Ctx, card: dict[str, Any], *, text: str | None, posts: list
     return post
 
 
+def post_tells(ctx: Ctx, post: dict[str, Any]) -> tuple[list[str], list[str]]:
+    """The tell kinds in the draft as shown and in the posted text: recorded when posted, and worked out
+    from the card for posts recorded before tells were."""
+    s = post.get("edit_stats") or {}
+    if "tells_draft" in s:
+        return list(s.get("tells_draft") or []), list(s.get("tells_final") or [])
+    card = ctx.store.get("cards", post["card_id"]) if post.get("card_id") else None
+    body, _ = posted_body(post.get("format") or "", post.get("final_text") or "", post.get("final_posts") or [])
+    return guardrails.tell_kinds(_draft_text((card or {}).get("draft"))), guardrails.tell_kinds(body)
+
+
 def update_post(ctx: Ctx, post_id: str, *, text: str | None = None, posts: list[str] | None = None,
                 post_url: str | None = None, posted_at: str | None = None) -> None:
     post = ctx.store.get("posts", post_id)
@@ -220,7 +233,8 @@ def update_post(ctx: Ctx, post_id: str, *, text: str | None = None, posts: list[
         changes = textutil.edit_changes(base, body) if base else {"removed": [], "added": []}
         stats = dict(post.get("edit_stats") or {})
         stats.update(final_words=textutil.word_count(body), final_chars=len(body),
-                     removed=changes["removed"][:30], added=changes["added"][:30])
+                     removed=changes["removed"][:30], added=changes["added"][:30],
+                     tells_draft=guardrails.tell_kinds(base), tells_final=guardrails.tell_kinds(body))
         patch["edit_stats"] = stats
         if card:
             patch["hook_used"] = detect_hook(card, final_text, None)

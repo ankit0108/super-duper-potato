@@ -10,7 +10,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
-from . import hashtags, textutil
+from . import guardrails, hashtags, textutil
 from .context import Ctx
 
 
@@ -26,6 +26,7 @@ class Style:
     hashtags_dropped: list[str] = field(default_factory=list)  # suggested tags he removes
     hashtags_added: list[str] = field(default_factory=list)  # tags he adds himself
     hashtags_off: bool = False  # he removes nearly all suggested tags on this platform: suggest none
+    own_tells: list[str] = field(default_factory=list)  # AI-tell kinds that are part of the voice (voice stats)
     playbook_version: str | None = None
     voice_version: str | None = None
     experiment: dict[str, Any] | None = None
@@ -72,6 +73,7 @@ def style_for(ctx: Ctx, platform: str, pillar: str, fmt: str) -> Style:
         st.hashtags_dropped = list(tags.get("dropped") or [])[:6]
         st.hashtags_added = list(tags.get("added") or [])[:6]
         st.hashtags_off = hashtags.mostly_removed(tags)
+        st.own_tells = list((((voice.get("stats") or {}).get(platform) or {}).get("tells") or {}).get("own") or [])
         lengths = ((voice.get("stats") or {}).get(platform) or {}).get("final_length_median")
         if lengths and fmt in ("li_text", "x_single"):
             unit = "characters"
@@ -97,16 +99,34 @@ def hook_preferences(ctx: Ctx, platform: str) -> list[str]:
     return ordered + [t for t in ctx.settings.hooks.types if t not in ordered]
 
 
-def recent_examples(ctx: Ctx, platform: str, n: int) -> list[str]:
+def _post_text(post: dict[str, Any]) -> str:
+    return post.get("final_text") or "\n".join(post.get("final_posts") or [])
+
+
+def _own_share(post: dict[str, Any]) -> float:
+    """Roughly how much of a post was written by hand: words added to the draft over words posted (1.0 when
+    there was no draft to compare with)."""
+    if post.get("edit_ratio") is None:
+        return 1.0
+    stats = post.get("edit_stats") or {}
+    final = stats.get("final_words") or 0
+    added = sum(len(p.split()) for p in stats.get("added") or [])
+    return min(1.0, added / final) if final else 0.0
+
+
+def example_posts(ctx: Ctx, platform: str, n: int) -> list[dict[str, Any]]:
+    """The posts that show the voice best: of the last 20, those with the fewest AI tells and the most words
+    written by hand rather than kept from a draft (the most recent first among equals)."""
     if n <= 0:
         return []
-    rows = ctx.store.select("posts", "platform = ?", (platform,), order="posted_at DESC", limit=n)
-    out = []
-    for post in rows:
-        text = post.get("final_text") or "\n".join(post.get("final_posts") or [])
-        if text.strip():
-            out.append(textutil.truncate(text, 1200))
-    return out
+    rows = ctx.store.select("posts", "platform = ?", (platform,), order="posted_at DESC", limit=20)
+    ranked = [(len(guardrails.ai_tells(_post_text(p))), -round(_own_share(p), 1), i, p)
+              for i, p in enumerate(rows) if _post_text(p).strip()]
+    return [p for *_, p in sorted(ranked, key=lambda r: r[:3])][:n]
+
+
+def recent_examples(ctx: Ctx, platform: str, n: int) -> list[str]:
+    return [textutil.truncate(_post_text(p), 1200) for p in example_posts(ctx, platform, n)]
 
 
 def render_rules(rules: list[str]) -> str:

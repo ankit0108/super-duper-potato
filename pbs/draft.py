@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from . import guardrails, hashtags, ids, log, prompting, textutil, timeutil
+from . import editing, guardrails, hashtags, ids, log, prompting, textutil, timeutil
 from .bandit import arm_id
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest, LLMResponse, json_rows, why_unavailable
@@ -446,13 +446,18 @@ def _common_vars(ctx: Ctx, card: dict[str, Any], style: Style) -> dict[str, Any]
 
 
 def _apply(ctx: Ctx, card: dict[str, Any], norm: dict[str, Any], resp: LLMResponse, style: Style,
-           prompt_version: str, stance: dict[str, Any] | None, keep_status: bool = False) -> dict[str, Any]:
+           prompt_version: str, stance: dict[str, Any] | None, keep_status: bool = False,
+           personal: bool = False) -> dict[str, Any]:
     now = timeutil.now_iso()
+    # The editor pass: rewrite only what reads as AI-written, and keep it only if it's better.
+    norm = editing.polish(ctx, card, norm, style, evidence=evidence_text(card, stance_text(stance)),
+                          personal=personal)
+    edit = norm.pop("edit", None)
     card.update(norm)
     if card.get("draft_original") is None:
         card["draft_original"] = norm["draft"]
     card["versions"] = {"playbook": style.playbook_version, "prompt": prompt_version, "voice": style.voice_version}
-    card["llm"] = {"provider": resp.provider, "model": resp.model}
+    card["llm"] = {"provider": resp.provider, "model": resp.model, **({"edit": edit} if edit else {})}
     card["draft_state"] = "full"
     card["working"] = None
     check = guardrails.check_card(card, settings=ctx.settings, blocklist=ctx.blocklist,
@@ -661,7 +666,7 @@ def draft_from_answers(ctx: Ctx, card: dict[str, Any]) -> dict[str, Any]:
     out, resp = ctx.llm.call_json(req, DraftOut)
     norm = normalize_output(ctx, card, out, card.get("sources") or [], style)
     card["draft_basis"] = "answers"
-    card = _apply(ctx, card, norm, resp, style, version, stance)
+    card = _apply(ctx, card, norm, resp, style, version, stance, personal=True)
     log_interaction(ctx, "drafted_from_answers", card, sources=len(card.get("sources") or []))
     return card
 
@@ -715,7 +720,7 @@ def rewrite(ctx: Ctx, card: dict[str, Any], work: dict[str, Any]) -> dict[str, A
     out, resp = ctx.llm.call_json(req, DraftOut)
     norm = normalize_output(ctx, card, out, card.get("sources") or [], style)
     card["rewrite_count"] = int(card.get("rewrite_count") or 0) + 1
-    card = _apply(ctx, card, norm, resp, style, version, stance, keep_status=True)
+    card = _apply(ctx, card, norm, resp, style, version, stance, keep_status=True, personal=personal)
     log_interaction(ctx, "rewritten", card, note=work.get("note"), chips=chips)
     return card
 

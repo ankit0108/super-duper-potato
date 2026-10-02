@@ -239,6 +239,11 @@ drafting:
   # and answering redrafts the post from his answers plus the sources.
   interview_draft_now: true
   questions_per_card: 2
+  # The editor pass: a draft that reads as AI-written ("It's not X, it's Y", "Here's why", em dashes, emoji
+  # bullets, filler...) gets one more call that rewrites only those parts, and is kept only if it's better.
+  editor_pass: true
+  editor_max_per_run: 12
+  editor_reserve: 12  # skipped when this few model calls are left, so drafts always come first
   # How far back a search for sources may reach when a card has none (interview-bank and Saturday cards).
   source_search_days: 30
 
@@ -308,6 +313,7 @@ llm:
     triage: [gemini_lite, gemini, groq, openrouter]
     draft: [gemini, groq, gemini_lite, openrouter]
     draft_personal: [groq, gemini, gemini_lite, openrouter]
+    edit: [groq, gemini, gemini_lite]
     questions: [gemini_lite, gemini, groq, openrouter]
     reflect: [gemini, groq, gemini_lite]
     voice: [groq, gemini, gemini_lite]
@@ -324,6 +330,7 @@ llm:
     triage: 0.2
     draft: 0.8
     draft_personal: 0.7
+    edit: 0.4
     questions: 0.6
     reflect: 0.3
     voice: 0.3

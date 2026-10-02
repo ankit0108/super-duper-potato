@@ -69,6 +69,10 @@
   /* Chart series (validated: CVD ΔE 24.7, normal 33.6, ≥3:1 on #ffffff) — LinkedIn = 1, X = 2 everywhere */
   --series-1: #2a78d6;
   --series-2: #eb6834;
+  /* Slots 3–4, for series that aren't platforms (validated as a pair: CVD ΔE 9.1, normal 22.9; below 3:1 on
+     #ffffff, so their charts carry end labels and a table view) */
+  --series-3: #1baf7a;
+  --series-4: #eda100;
   --grid: #ecebe5;
   --axis: #cfccc2;
 }
@@ -104,6 +108,9 @@
   /* Dark steps of the same hues (validated on #1b1b19: CVD ΔE 26.8, normal 31.8, ≥3:1) */
   --series-1: #3987e5;
   --series-2: #d95926;
+  /* (validated on #1b1b19: CVD ΔE 8.4, normal 19.8, ≥3:1) */
+  --series-3: #199e70;
+  --series-4: #c98500;
   --grid: #2a2a27;
   --axis: #45433d;
 }

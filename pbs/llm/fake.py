@@ -308,6 +308,28 @@ def _visual(req: LLMRequest, data: Any) -> Any:
             "sources": [0] if sources else [], **picture}
 
 
+_EDIT_FIXES = [
+    (re.compile(r"\s*—\s*"), ", "),
+    (re.compile(r"(?i)\bhere's (?:why|what|how|the thing)[^.:!?]*[.:!]\s*"), ""),
+    (re.compile(r"(?i)\b(?:in short|ultimately|the bottom line|at the end of the day)[,:]?\s*"), ""),
+    (re.compile(r"(?i)\b(it|this|that)(?:'s| is) not (?:about )?([^,.;]+)[,;] (?:it|this|that)(?:'s| is) (?:about )?"),
+     r"\2 matters less than "),
+    (re.compile(r"(?i)\b(?:it's worth noting that|when it comes to)\s*"), ""),
+]
+
+
+def _edit(req: LLMRequest, data: Any) -> Any:
+    """The editor pass: removes the tells it was told about, keeping every fact (a deterministic stand-in)."""
+    data = data if isinstance(data, dict) else {}
+
+    def fix(text: str) -> str:
+        for pattern, repl in _EDIT_FIXES:
+            text = pattern.sub(repl, text)
+        return re.sub(r"(^|[.!?]\s+)([a-z])", lambda m: m.group(1) + m.group(2).upper(), text).strip()
+
+    return {"text": fix(data.get("text") or ""), "posts": [fix(p) for p in data.get("posts") or []]}
+
+
 def _default(req: LLMRequest, data: Any) -> Any:
     return {"ok": True}
 
@@ -328,5 +350,6 @@ DEFAULT_HANDLERS: dict[str, Handler] = {
     "search_rerank": _search_rerank,
     "research": _research,
     "visual": _visual,
+    "edit": _edit,
     "default": _default,
 }

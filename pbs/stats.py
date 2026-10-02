@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import datetime as dt
 import statistics
-from collections import defaultdict
+from collections import Counter, defaultdict
 from typing import Any
 
-from . import feedback, timeutil
+from . import feedback, guardrails, timeutil
 from .context import Ctx
 
 PICKED = ("posted", "editing")
@@ -116,7 +116,8 @@ def compute(ctx: Ctx) -> dict[str, Any]:
             # What the ranking learns from tomorrow (Insights shows it, so he can see his reasons being used).
             "feedback": feedback.recent_feedback(ctx, days=30, limit=15),
             "crossposts": _crossposts(ctx),
-            "visuals": _visuals(ctx)}
+            "visuals": _visuals(ctx),
+            "writing": _writing(ctx, cards, posts, list(weeks), lday)}
 
 
 def _crossposts(ctx: Ctx) -> dict[str, Any]:
@@ -154,6 +155,50 @@ def _visuals(ctx: Ctx) -> dict[str, Any]:
     made = ctx.store.count("interactions", "type = 'visual_created' AND at >= ?", (since,))
     out["made"] = made
     return out
+
+
+def _mean(values: list[int]) -> float | None:
+    return round(sum(values) / len(values), 2) if values else None
+
+
+def _writing(ctx: Ctx, cards: list[dict[str, Any]], posts: list[dict[str, Any]], week_keys: list[str],
+             lday: Any) -> dict[str, Any]:
+    """Whether drafts read as AI-written, week by week: tells per draft as the model wrote it and as shown after
+    the editor pass, tells per post in what went out, and the median edit ratio. Plus the kinds that come up
+    most and what the editor pass did (last 30 days)."""
+    from .learn import post_tells
+
+    since30 = timeutil.iso(timeutil.now() - dt.timedelta(days=30))
+    rows: dict[str, dict[str, list[Any]]] = {wk: defaultdict(list) for wk in week_keys}
+    kinds: Counter[str] = Counter()
+    edits = {"polished": 0, "kept_as_written": 0, "skipped": 0}
+    for c in cards:
+        text = guardrails.draft_text(c.get("draft"))
+        wk = timeutil.iso_week(lday(c["delivered_at"])) if c.get("delivered_at") else None
+        if not text.strip() or wk not in rows:
+            continue
+        edit = (c.get("llm") or {}).get("edit") or {}
+        shown = guardrails.tell_kinds(text)
+        rows[wk]["before"].append(int(edit["before"]) if edit else len(guardrails.ai_tells(text)))
+        rows[wk]["shown"].append(len(guardrails.ai_tells(text)))
+        if (c.get("delivered_at") or "") >= since30:
+            kinds.update(edit.get("kinds") or shown if edit else shown)
+            if edit.get("kept"):
+                edits["polished"] += 1
+            elif edit.get("reason"):
+                edits["kept_as_written"] += 1
+            elif edit.get("skipped") and edit["skipped"] != "off":
+                edits["skipped"] += 1
+    for p in posts:
+        wk = timeutil.iso_week(lday(p["posted_at"]))
+        if wk not in rows:
+            continue
+        rows[wk]["posted"].append(len(post_tells(ctx, p)[1]))
+        rows[wk]["edit_ratio"].append(p.get("edit_ratio"))
+    weekly = [{"week": wk, "drafts": len(r["shown"]), "tells_before": _mean(r["before"]),
+               "tells_shown": _mean(r["shown"]), "posts": len(r["posted"]), "tells_posted": _mean(r["posted"]),
+               "edit_ratio_median": _median(r["edit_ratio"])} for wk, r in rows.items()]
+    return {"weekly": weekly, "kinds": [{"kind": k, "count": n} for k, n in kinds.most_common(6)], "edits": edits}
 
 
 def _streak(daily: list[dict[str, Any]]) -> dict[str, int]:

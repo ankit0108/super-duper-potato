@@ -20,7 +20,9 @@ Current playbook rules:
 Active experiments:
 {{experiments}}
 
-This week (posts with edit ratio and reward, skips with reasons, rewrite notes, pillar mix):
+Drafts that read as AI-written cost {{display_name}} editing time. "ai_tells_in_draft" lists the kinds of AI tell in the draft as shown and "ai_tells_posted" those left in what went out (contrast framing, labelled reveals, stock openers and closers, em dashes, emoji bullets, staccato lines, stacked questions, filler, same-length sentences); "writing" counts them across the week's drafts, before and after the editor pass. A kind that keeps being taken out before posting deserves a rule.
+
+This week (posts with edit ratio and reward, skips with reasons, rewrite notes, pillar mix, writing):
 <input>
 {{input_json}}
 </input>

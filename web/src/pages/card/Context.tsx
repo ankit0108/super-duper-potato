@@ -2,6 +2,7 @@ import { ExternalLink, HeartHandshake, Search } from "lucide-react";
 import type { Card } from "@/types";
 import { AFFAIRS_LABEL, FORMAT_LABEL, pct } from "@/lib/format";
 import { safeUrl, xProfileUrl, xSearchUrl } from "@/lib/compose";
+import { editSummary, tellName } from "@/lib/guard";
 import { formatDateTime } from "@/lib/time";
 import { useTz } from "@/state/hooks";
 import { Badge } from "@/components/ui/Badge";
@@ -147,6 +148,7 @@ export function PipelineFlags({ card }: { card: Card }) {
     { tone: "warn", title: "Phrases you avoid", items: f.avoid_phrases ?? [] },
     { tone: "warn", title: "Engagement bait", items: f.bait ?? [] },
     { tone: "warn", title: "Length", items: f.length ?? [] },
+    { tone: "warn", title: "Sounds like AI", items: (f.ai_tells ?? []).map((t) => `${tellName(t.kind)}: “${t.text}”`) },
     { tone: "info", title: "Notes", items: f.notes ?? [] },
   ].filter((r) => r.items.length) as Array<{ tone: "bad" | "warn" | "info"; title: string; items: string[] }>;
   if (!rows.length) return <p className="text-[13px] text-ok">The pipeline's checks found nothing to flag.</p>;
@@ -180,6 +182,7 @@ export function Details({ card }: { card: Card }) {
     ["Angle potential", parts.angle_potential != null ? `${parts.angle_potential}/5` : "–"],
     ["Rewrites", card.rewrite_count ?? 0],
     ["Written by", card.llm ? `${card.llm.model} (${card.llm.provider})` : "–"],
+    ["Editor pass", editSummary(card.llm?.edit) ?? "–"],
     ["Versions", [card.versions?.playbook && `playbook ${card.versions.playbook}`, card.versions?.voice && `voice ${card.versions.voice}`, card.versions?.prompt && `prompt ${card.versions.prompt}`].filter(Boolean).join(" · ") || "–"],
     ["Delivered", formatDateTime(card.delivered_at ?? card.created_at, tz)],
     ["Expires", card.expires_at ? formatDateTime(card.expires_at, tz) : "–"],

@@ -1,4 +1,5 @@
-import { findTerms, firstPersonClaims, parseTerms, phraseHits, unsourcedNumbers } from "./guard";
+import { aiTells, editSummary, findTerms, firstPersonClaims, parseTerms, phraseHits, tellSummary, unsourcedNumbers } from "./guard";
+import tellVectors from "../../../tests/vectors/ai_tells.json";
 
 describe("guard terms", () => {
   it("parses one term per line, commas or semicolons, longest first, without duplicates", () => {
@@ -32,5 +33,35 @@ describe("fabrication signals", () => {
     expect(firstPersonClaims("I built a bot that failed. The industry is changing.")).toHaveLength(1);
     expect(firstPersonClaims("In my experience, exceptions dominate.")).toHaveLength(1);
     expect(firstPersonClaims("Agents need scoped tools. Audit logs matter.")).toEqual([]);
+  });
+});
+
+describe("aiTells: the same cases as guardrails.ai_tells (tests/vectors/ai_tells.json)", () => {
+  for (const c of tellVectors.ai_tells) {
+    it(c.name, () => {
+      expect([...new Set(aiTells(c.text).map((t) => t.kind))].sort()).toEqual(c.kinds);
+    });
+  }
+
+  it("says where each one is, in reading order", () => {
+    const tells = aiTells("In today's world, agents matter. It's not about speed, it's about trust.\n\nUltimately, trust wins.");
+    expect(tells.map((t) => t.kind)).toEqual(["opener", "contrast", "closer"]);
+    expect(tells[1].text).toBe("It's not about speed, it's about trust.");
+  });
+
+  it("sums them up for a card's flag, each kind once", () => {
+    const tells = [{ kind: "contrast" }, { kind: "dashes" }, { kind: "contrast" }, { kind: "something_new" }];
+    expect(tellSummary(tells)).toBe("Sounds like AI: contrast framing, em dashes, something_new");
+    expect(tellSummary([{ kind: "closer" }, { kind: "reveal" }])).toBe("Sounds like AI: summary closer, labelled reveal");
+  });
+
+  it("says in a line what the editor pass did", () => {
+    expect(editSummary(null)).toBeNull();
+    expect(editSummary({ before: 3, after: 1, kept: true, provider: "groq" })).toBe("Fixed 2 of 3 AI tells (groq)");
+    expect(editSummary({ before: 1, after: 1, kept: false, reason: "added a figure the sources don't have" })).toBe(
+      "Found 1 AI tell; kept as written: the edit added a figure the sources don't have",
+    );
+    expect(editSummary({ before: 2, after: 2, kept: false, skipped: "budget" })).toBe("Found 2 AI tells; not edited: the run was short on model calls");
+    expect(editSummary({ before: 2, after: 2, kept: false, skipped: "ProviderError" })).toBe("Found 2 AI tells; not edited: the model call failed");
   });
 });
