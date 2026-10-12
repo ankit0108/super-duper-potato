@@ -52,6 +52,7 @@ export const AFFAIRS_LABEL: Record<string, string> = {
   tracker: "Development tracker",
   outlook: "Future outlook",
   opinion: "Opinion (from your stance)",
+  story: "Story, history to now",
 };
 
 export const HOOK_LABEL: Record<string, string> = {

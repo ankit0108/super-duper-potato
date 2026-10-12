@@ -187,6 +187,28 @@ def build_world(ref: dt.datetime | None = None) -> dict[str, tuple[int, str, str
     return world
 
 
+def story_world() -> dict[str, tuple[int, str, str]]:
+    """Wikipedia answering a story pool's batch (sources.pool_titles), whichever titles were asked for."""
+    pages = [
+        {"pageid": 1, "title": "Vikramashila", "fullurl": "https://en.wikipedia.org/wiki/Vikramashila",
+         "description": "Buddhist monastery and centre of learning in Bihar",
+         "extract": "Vikramashila was one of the most important Buddhist monasteries in Pala-era India, founded by "
+                    "King Dharmapala in the late 8th or early 9th century near present-day Bhagalpur in Bihar. It "
+                    "flourished for about four centuries alongside Nalanda, had more than 100 teachers and about "
+                    "1,000 students, and sent scholars such as Atisha to Tibet. The site was excavated from the 1960s "
+                    "and is now protected by the Archaeological Survey of India."},
+        {"pageid": 2, "title": "Champaran Satyagraha", "fullurl": "https://en.wikipedia.org/wiki/Champaran_Satyagraha",
+         "description": "1917 movement in Bihar led by Mahatma Gandhi",
+         "extract": "The Champaran Satyagraha of 1917 was the first satyagraha movement led by Mahatma Gandhi in "
+                    "India. Peasants in the Champaran district of Bihar were forced to grow indigo under the "
+                    "tinkathia system, on 3 parts in 20 of their land. Gandhi's inquiry recorded the statements of "
+                    "about 8,000 farmers, and the Champaran Agrarian Act of 1918 abolished the system."},
+        {"pageid": 3, "title": "Missing article", "missing": True},
+    ]
+    body = json.dumps({"batchcomplete": True, "query": {"pages": pages}})
+    return {"en.wikipedia.org/w/api.php": (200, "application/json", body)}
+
+
 class MockWeb:
     """httpx transport serving `build_world()`. Unknown URLs get an empty feed (or empty JSON for APIs).
 

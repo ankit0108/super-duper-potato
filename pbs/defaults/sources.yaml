@@ -100,6 +100,8 @@ affairs:
   - {id: toi-patna, name: Times of India (Patna), kind: rss, url: "https://timesofindia.indiatimes.com/rssfeeds/-2128817995.cms", tier: bihar, best_effort: true}
   - {id: livehindustan-bihar, name: Live Hindustan (Bihar), kind: rss, url: "https://api.livehindustan.com/feeds/rss/bihar/rssfeed.xml", tier: bihar, lang: hi, best_effort: true}
   - {id: wikipedia-otd, name: Wikipedia — on this day, kind: wikipedia_otd, tier: world}
+  # Bihar beyond this week's news: a few articles a day from ancient Magadha to today's Bihar (story_pools.yaml).
+  - {id: wikipedia-bihar-stories, name: "Wikipedia: Bihar, history to now", kind: wikipedia_pool, query: bihar, tier: bihar, max_items: 3}
 
 startups:
   - {id: techcrunch-startups, name: TechCrunch Startups, kind: rss, url: "https://techcrunch.com/category/startups/feed/", pillar_hints: [startups, industry]}

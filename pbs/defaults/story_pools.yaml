@@ -1,0 +1,159 @@
+# Story pools: English Wikipedia articles a `wikipedia_pool` source draws from, a few a day, so posts can be about
+# anything in a place's story, from ancient history to today, not only this week's news.
+#
+# Each day's batch takes one article from each theme in turn, so a day mixes eras and subjects, and the whole pool
+# comes round again after (articles / batch size) days. An article that doesn't exist (renamed, misspelt) is skipped;
+# Wikipedia follows redirects. Add titles exactly as they appear in the article's address.
+
+bihar:
+  ancient:
+    - Magadha
+    - Haryanka dynasty
+    - Bimbisara
+    - Ajatashatru
+    - Shishunaga dynasty
+    - Nanda Empire
+    - Maurya Empire
+    - Chandragupta Maurya
+    - Chanakya
+    - Arthashastra
+    - Bindusara
+    - Ashoka
+    - Pataliputra
+    - Kumhrar
+    - Agam Kuan
+    - Megasthenes
+    - Gupta Empire
+    - Samudragupta
+    - Faxian
+    - Pala Empire
+    - Mahajanapadas
+    - Vajji
+  learning_and_faith:
+    - Nalanda
+    - Vikramashila
+    - Odantapuri
+    - Aryabhata
+    - Xuanzang
+    - Gautama Buddha
+    - Bodh Gaya
+    - Mahabodhi Temple
+    - Mahavira
+    - Pawapuri
+    - First Buddhist council
+    - Second Buddhist council
+    - Third Buddhist council
+    - Rajgir
+    - Vaishali (ancient city)
+    - Barabar Caves
+    - Kesaria Stupa
+    - Lauriya Nandangarh
+    - Vishnupad Temple
+    - Takht Sri Patna Sahib
+    - Guru Gobind Singh
+  medieval_and_early_modern:
+    - Karnat dynasty
+    - Vidyapati
+    - Bakhtiyar Khalji
+    - Sher Shah Suri
+    - Sur Empire
+    - Sher Shah Suri Tomb
+    - Grand Trunk Road
+    - Rohtasgarh
+    - Bihar Subah
+    - Battle of Buxar
+    - Raj Darbhanga
+    - Bettiah Raj
+    - Dumraon Raj
+    - Patna Kalam
+  colonial_and_freedom:
+    - Permanent Settlement
+    - Golghar
+    - Kunwar Singh
+    - Indian Rebellion of 1857
+    - Bengal Presidency
+    - Bihar and Orissa Province
+    - Champaran Satyagraha
+    - Patna University
+    - Patna College
+    - Khuda Bakhsh Oriental Library
+    - Patna Museum
+    - 1934 Nepal–India earthquake
+    - Sahajanand Saraswati
+    - All India Kisan Sabha
+    - Quit India Movement
+    - Rajendra Prasad
+    - Anugrah Narayan Sinha
+    - Shri Krishna Sinha
+    - Mazharul Haque
+    - Sachchidananda Sinha
+    - Bihar Vidyapeeth
+  since_1947:
+    - Bihar Province
+    - Jagjivan Ram
+    - Jayaprakash Narayan
+    - JP Movement
+    - The Emergency (India)
+    - Karpoori Thakur
+    - Bihar famine of 1966–67
+    - Kosi Barrage
+    - 2008 Bihar flood
+    - Mahatma Gandhi Setu
+    - Vikramshila Setu
+    - Jharkhand movement
+    - Bihar Legislative Assembly
+    - Bihar Regiment
+    - Dashrath Manjhi
+    - Vashishtha Narayan Singh
+  today:
+    - Bihar
+    - Economy of Bihar
+    - Patna
+    - Patna Metro
+    - Nalanda University
+    - Indian Institute of Technology Patna
+    - All India Institute of Medical Sciences, Patna
+    - Bihar Museum
+    - Buddha Smriti Park
+    - Dr. Rajendra Prasad Central Agricultural University
+    - Barauni Refinery
+    - Darbhanga Airport
+    - Jay Prakash Narayan International Airport
+    - Bihar Diwas
+    - Bihar School of Yoga
+  culture_and_people:
+    - Chhath
+    - Madhubani art
+    - Sonepur Cattle Fair
+    - Litti chokha
+    - Euryale ferox
+    - Tussar silk
+    - Bhojpuri language
+    - Maithili language
+    - Magahi language
+    - Angika
+    - Bhojpuri cinema
+    - Bhikhari Thakur
+    - Ramdhari Singh Dinkar
+    - Phanishwar Nath Renu
+    - Nagarjun
+    - Bismillah Khan
+    - Sharda Sinha
+  land_and_rivers:
+    - Ganges
+    - Kosi River
+    - Gandaki River
+    - Son River
+    - Kaimur Range
+    - Mithila (region)
+    - Bhojpur region
+    - Champaran
+    - Valmiki National Park
+    - Vikramshila Gangetic Dolphin Sanctuary
+    - Ganges river dolphin
+    - Gaya, India
+    - Bhagalpur
+    - Darbhanga
+    - Muzaffarpur
+    - Sasaram
+    - Bihar Sharif

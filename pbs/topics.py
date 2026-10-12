@@ -193,7 +193,12 @@ def why_now(items: list[dict[str, Any]], publishers: list[str]) -> dict[str, Any
     also = sorted({p for it in items for p in (it.get("signals") or {}).get("also_seen_in", [])} - set(publishers))
     outlets = len(set(publishers) | set(also))
     parts: list[str] = []
-    if outlets >= 2:
+    # An evergreen story (a story pool's article) unless news about the same subject came with it.
+    if not all((it.get("signals") or {}).get("evergreen") for it in items):
+        signals.pop("evergreen", None)
+    if signals.get("evergreen"):
+        parts.append("A story from history to now, not today's news")
+    elif outlets >= 2:
         span = timeutil.hours_between(oldest, newest) if oldest and newest else None
         within = f" within {int(span) + 1}h" if span is not None and span < 48 else ""
         parts.append(f"Covered by {outlets} outlets{within}; latest {_ago(timeutil.hours_between(newest, now))}")

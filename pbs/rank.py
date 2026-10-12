@@ -288,10 +288,16 @@ def build_candidates(ctx: Ctx, topics: list[dict[str, Any]], memory: Memory,
             issue_key = t.get("issue_key") if isinstance(t.get("issue_key"), str) else None
             mode = spec.mode
             kind = "news"
+            signals = (topic.get("why_now") or {}).get("signals", {})
+            # A story (a story pool's article, or on this day) has no announcement to reply to or post to quote.
+            if (signals.get("evergreen") or signals.get("otd_year")) and fmt in ("x_reply", "x_quote"):
+                fmt = "x_thread" if "x_thread" in spec.formats else spec.formats[0]
+            if signals.get("evergreen"):
+                kind = "evergreen"  # it keeps for days
             if pillar == "affairs":
                 affairs_type = p.get("affairs_type") if p.get("affairs_type") in ctx.settings.affairs.types else "tracker"
-                if (topic.get("why_now") or {}).get("signals", {}).get("otd_year"):
-                    affairs_type = "history"
+                if signals.get("otd_year") or signals.get("evergreen"):
+                    affairs_type = "story" if "story" in ctx.settings.affairs.types else "history"
                 if affairs_type == "opinion" and not _stance_ready(ctx, issue_key):
                     # Questions first, draft second — or a non-opinion type if the interview cap is used.
                     mode, kind = "interview", "interview"
@@ -432,7 +438,7 @@ def allocate(ctx: Ctx, platform: str, cands: list[Candidate], arms: dict[str, Ar
         if reply_slots and (followers is None or followers < pconf.reply_until_followers):
             max_replies = reply_slots + 1
             pool = [c for c in cands if c.kind == "news" and not c.sensitive and c.mode == "external"
-                    and "x_reply" in (ctx.settings.pillar("x", c.pillar).formats if ctx.settings.pillar("x", c.pillar) else [])]
+                    and c.affairs_type != "story" and "x_reply" in (ctx.settings.pillar("x", c.pillar).formats if ctx.settings.pillar("x", c.pillar) else [])]
             pool.sort(key=lambda c: -(c.base * (0.6 + 0.4 * c.parts.get("momentum", 0))))
             for c in pool:
                 if len([x for x in chosen if x.fmt == "x_reply"]) >= reply_slots:
@@ -442,6 +448,17 @@ def allocate(ctx: Ctx, platform: str, cands: list[Candidate], arms: dict[str, Ar
                 reply = Candidate(**{**c.__dict__, "fmt": "x_reply"})
                 reply.score = reply.base * arms.get(reply.arm, _neutral(reply)).mean
                 take(reply)
+
+    # The day's evergreen story (Bihar, history to now), when a full set has room for one.
+    stories = ctx.settings.affairs.stories_per_day if platform == "x" and n >= 4 else 0
+    for c in sorted((c for c in cands if c.kind == "evergreen" and c.mode == "external"), key=lambda c: -c.base):
+        if stories <= 0 or len(chosen) >= n:
+            break
+        if c.topic_key in used_topics:
+            continue
+        c.score = round(c.base * (arms[c.arm].mean if c.arm in arms else 0.5), 4)
+        take(c)
+        stories -= 1
 
     while len(chosen) < n:
         replies = sum(1 for c in chosen if c.fmt == "x_reply")

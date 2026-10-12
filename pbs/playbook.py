@@ -11,8 +11,7 @@ SEED_RULES: list[dict[str, Any]] = [
     {"text": "Lead with the most specific detail available (a named thing, a figure from the sources, a sharp "
              "contrast), not a general statement.", "platform": None},
     {"text": "One idea per post; cut anything that doesn't serve it.", "platform": None},
-    {"text": "Say what changes in practice for people automating real work, not just what was announced.",
-     "platform": "linkedin"},
+    {"text": "Say what changes in practice, and for whom, not just what was announced.", "platform": "linkedin"},
     {"text": "Short sentences and plain words; translate any jargon.", "platform": None},
     {"text": "End on a specific takeaway or a genuine question tied to the post, never generic engagement bait.",
      "platform": "linkedin"},
@@ -24,15 +23,37 @@ SEED_RULES: list[dict[str, Any]] = [
 ]
 
 
+# Starting rules reworded since they were seeded: old text -> new. A playbook that still has the old wording from
+# the seed gets the new one (a rule the reflection or Ankit rewrote is left alone).
+UPDATED_SEED_RULES = {
+    "Say what changes in practice for people automating real work, not just what was announced.":
+        "Say what changes in practice, and for whom, not just what was announced.",
+}
+
+
 def active(ctx: Ctx) -> dict[str, Any] | None:
     rows = ctx.store.select("playbook_versions", "status = 'active'", order="version DESC", limit=1)
     return rows[0] if rows else None
 
 
+def _update_seed_rules(ctx: Ctx, current: dict[str, Any]) -> dict[str, Any]:
+    rules = [dict(r) for r in current.get("rules") or []]
+    changes = []
+    for r in rules:
+        new = UPDATED_SEED_RULES.get(r.get("text") or "")
+        if new and r.get("source") == "seed":
+            r["text"] = new
+            changes.append({"op": "modify", "rule_id": r["id"], "text": new})
+    if not changes:
+        return current
+    return new_version(ctx, rules, changes, source="seed",
+                       summary="Starting guidance updated: takes fit each story, not always automation.")
+
+
 def ensure_seed(ctx: Ctx) -> dict[str, Any]:
     current = active(ctx)
     if current:
-        return current
+        return _update_seed_rules(ctx, current)
     rules = [{"id": f"r{i}", "text": r["text"], "platform": r.get("platform"), "pillar": r.get("pillar"),
               "confidence": "medium", "evidence": [], "reversal": None, "source": "seed", "added_in": "v1"}
              for i, r in enumerate(SEED_RULES, 1)]

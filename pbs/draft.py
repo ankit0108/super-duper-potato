@@ -29,6 +29,10 @@ AFFAIRS_INSTRUCTIONS = {
                "scenarios, never as predictions stated as fact.",
     "opinion": "Affairs post type: opinion. Use ONLY his recorded stance in the material. Don't go beyond it or add "
                "arguments he hasn't made.",
+    "story": "Affairs post type: a story from history to now, not today's news. Tell it for today's reader: what "
+             "happened or what it is, the detail that makes it worth knowing, and why it still matters. Link it to the "
+             "present only where the material does. Every name, date and figure must come from the material; don't "
+             "call anything recent or say 'today' unless the material dates it.",
 }
 MODE_EXTERNAL = ("Mode: external. Write analysis from the material. Don't claim experiences for him. An analytical "
                  "angle is fine: he sees it as a proposal and adopts it only by posting.")
@@ -39,8 +43,8 @@ SENSITIVE = ("Handle with care: this involves a tragedy, violence or a communal 
              "tone. No provocative hook, no opinion, no engagement question.")
 
 ANGLE_FALLBACK = {
-    "research": "What this result means for teams automating real work",
-    "industry": "What this move signals for enterprise automation buyers",
+    "research": "What this result changes, and for whom",
+    "industry": "What this move changes, and who it matters to",
     "receipts": "Where this meets what production automation actually teaches",
     "learning": "What building with this would teach",
     "tech": "The detail most coverage will miss",
@@ -87,8 +91,8 @@ def hashtag_rule(ctx: Ctx, platform: str, fmt: str, style: Style) -> str:
         return f"[] (he removes the suggested ones on {PLATFORM_LABEL[platform]}, so suggest none)"
     count = f"{r.min} to {r.max}" if r.min else f"at most {r.max}"
     if platform == "linkedin":
-        rule = (f"{count} hashtags: one or two broad ones people follow (like #AI) and the rest specific to this post "
-                "(like #ProcessAutomation)")
+        rule = (f"{count} hashtags: one or two broad ones people follow (like #AI) and the rest specific to this post's "
+                "own subject (like #AIChips for a chip story)")
     else:
         rule = f"{count} hashtags, only for a topic people actually follow on X ([] is fine)"
     rule += ". CamelCase, no spaces, never inside the text"
@@ -344,7 +348,9 @@ def select_sources(ctx: Ctx, topic: dict[str, Any], limit: int = 6) -> list[dict
             "lang": it.get("lang") or "en",
             "published_at": it.get("published_at"),
             "orig_title": it["title"] if hindi else None,
-            "summary": textutil.truncate(it.get("summary_en") or it.get("summary") or "", 420),
+            # An evergreen story's article is the whole material, so more of it comes along.
+            "summary": textutil.truncate(it.get("summary_en") or it.get("summary") or "",
+                                         1200 if (it.get("signals") or {}).get("evergreen") else 420),
         })
         if len(out) >= limit:
             break

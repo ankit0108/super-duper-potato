@@ -33,6 +33,8 @@ def parse(source: dict[str, Any], content: bytes, local_date: str | None = None)
         return _parse_hn(source, content)
     if kind == "wikipedia_otd":
         return _parse_otd(content, local_date)
+    if kind == "wikipedia_pool":
+        return _parse_pool(content)
     return []
 
 
@@ -168,3 +170,37 @@ def _parse_otd(content: bytes, local_date: str | None) -> list[RawItem]:
     order = {"bihar": 0, "india": 1, "world": 2}
     picked.sort(key=lambda it: order[it["signals"]["otd_tier"]])
     return picked[:8]
+
+
+def _parse_pool(content: bytes) -> list[RawItem]:
+    """A story pool's batch (sources.pool_titles): each article's lead section, as an evergreen item. It has no
+    publication date: it isn't news, and the drafter mustn't present it as today's."""
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError:
+        return []
+    pages = (data.get("query") or {}).get("pages") if isinstance(data, dict) else None
+    if isinstance(pages, dict):  # formatversion=1 keys pages by id
+        pages = list(pages.values())
+    items: list[RawItem] = []
+    for page in pages or []:
+        if not isinstance(page, dict) or page.get("missing") or page.get("invalid"):
+            continue
+        title = textutil.normalize_ws(page.get("title"))
+        extract = textutil.normalize_ws(page.get("extract"))
+        if not title or len(extract) < 120:
+            continue
+        url = page.get("fullurl") or f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}"
+        desc = textutil.normalize_ws(page.get("description"))
+        if desc and not desc.casefold().startswith(("wikimedia", "topics referred to")):
+            title = f"{title}: {desc}"
+        items.append({
+            "url": url,
+            "title": textutil.truncate(title, 220),
+            "summary": textutil.truncate(extract, 1500),
+            "published_at": None,
+            "lang": "en",
+            "publisher": "Wikipedia",
+            "signals": {"evergreen": 1},
+        })
+    return items

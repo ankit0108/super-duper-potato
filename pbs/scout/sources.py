@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 from functools import cache
 from importlib import resources
 from typing import Any
@@ -96,7 +97,36 @@ def fetch_url(source: dict[str, Any], local_date: str | None = None) -> str:
     if kind == "wikipedia_otd":
         day = local_date or timeutil.now().strftime("%Y-%m-%d")
         return f"https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/{day[5:7]}/{day[8:10]}"
+    if kind == "wikipedia_pool":
+        titles = pool_titles(source.get("query") or "", local_date, int(source.get("max_items") or 3))
+        if not titles:
+            return ""
+        params = {"action": "query", "format": "json", "formatversion": "2", "redirects": "1",
+                  "prop": "extracts|info|description", "inprop": "url", "exintro": "1", "explaintext": "1",
+                  "exlimit": "20", "titles": "|".join(titles)}
+        return f"https://en.wikipedia.org/w/api.php?{urlencode(params)}"
     return source.get("url") or ""
+
+
+@cache
+def story_pool(name: str) -> list[str]:
+    """A story pool's articles in batch order: one from each theme in turn (pbs/defaults/story_pools.yaml)."""
+    data = yaml.safe_load(resources.files("pbs.defaults").joinpath("story_pools.yaml").read_text(encoding="utf-8"))
+    themes = [list(t or []) for t in ((data or {}).get(name) or {}).values()]
+    out: list[str] = []
+    for i in range(max((len(t) for t in themes), default=0)):
+        out.extend(t[i] for t in themes if i < len(t) and t[i] not in out)
+    return out
+
+
+def pool_titles(name: str, local_date: str | None, n: int) -> list[str]:
+    """The day's batch from a story pool: the next `n` articles, so the whole pool comes round in turn."""
+    pool = story_pool(name)
+    if not pool or n <= 0:
+        return []
+    day = dt.date.fromisoformat(local_date) if local_date else timeutil.now().date()
+    start = (day.toordinal() * n) % len(pool)
+    return [pool[(start + k) % len(pool)] for k in range(min(n, len(pool)))]
 
 
 def gnews_search_url(query: str, lang: str = "en", region: str = "IN") -> str:

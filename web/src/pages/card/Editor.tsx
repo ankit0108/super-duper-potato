@@ -269,6 +269,20 @@ export function LiveChecks({ flags, hasGuardTerms }: { flags: LiveFlags; hasGuar
 // Editors
 // ---------------------------------------------------------------------------
 
+/** Copies just the draft as it stands in the editor: no hashtags, first comment or thread numbering. */
+function CopyDraft({ text }: { text: string }) {
+  const toast = useDesk((s) => s.toast);
+  const copy = async () => {
+    const ok = await copyText(text);
+    toast(ok ? "ok" : "bad", ok ? "Draft copied" : "Couldn't copy. Select the text and copy it manually.");
+  };
+  return (
+    <Button size="sm" variant="ghost" icon={<Copy className="size-4" />} onClick={() => void copy()} disabled={!text.trim()}>
+      Copy draft
+    </Button>
+  );
+}
+
 export function LinkedInEditor({ value, onChange, limit, fold, suffix }: { value: string; onChange: (v: string) => void; limit: number; fold: number; suffix?: string }) {
   const counted = suffix ? `${value.trimEnd()}\n\n${suffix}` : value;
   return (
@@ -281,7 +295,8 @@ export function LinkedInEditor({ value, onChange, limit, fold, suffix }: { value
           minRows={10}
           className="border-0 bg-transparent text-[15px] shadow-none focus:ring-0"
         />
-        <div className="flex items-center justify-end border-t border-border px-3 py-1.5">
+        <div className="flex items-center justify-between gap-2 border-t border-border px-2 py-1">
+          <CopyDraft text={value} />
           <LinkedInCounter text={counted} limit={limit} />
         </div>
       </div>
@@ -296,8 +311,11 @@ export function XPostEditor({ value, onChange, limit, label, minRows = 4, footer
   return (
     <div className={cx("rounded-2xl border bg-surface focus-within:ring-2 focus-within:ring-accent/15", used > limit ? "border-bad/50" : "border-border focus-within:border-accent")}>
       <Textarea aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} minRows={minRows} className="border-0 bg-transparent text-[15px] shadow-none focus:ring-0" />
-      <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-1.5">
-        <div className="flex items-center gap-1">{footer}</div>
+      <div className="flex items-center justify-between gap-2 border-t border-border px-2 py-1">
+        <div className="flex items-center gap-1">
+          <CopyDraft text={value} />
+          {footer}
+        </div>
         <XRing used={used} limit={limit} />
       </div>
     </div>
@@ -346,7 +364,8 @@ export function ThreadEditor({ posts, onChange, limit, min, max, firstSuffix }: 
         <span className={cx("text-[13px]", outOfRange ? "text-warn" : "text-muted")}>
           {posts.length} post{posts.length === 1 ? "" : "s"} {outOfRange && `· aim for ${min}–${max}`}
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
+          <CopyDraft text={posts.filter((p) => p.trim()).join("\n\n")} />
           <label className="mr-2 inline-flex items-center gap-1.5 text-[13px] text-muted">
             <input type="checkbox" checked={numbering} onChange={(e) => setNumbering(e.target.checked)} className="accent-[var(--accent)]" />
             Add 1/n when copying
