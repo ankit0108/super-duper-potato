@@ -11,6 +11,18 @@ why in a line, and any skip can get a reason afterwards (**Add why** on the toas
 reads your reasons; **Insights → Learning** lists the ones in use. Cards you don't touch expire when the next
 morning's set arrives, and that's fine.
 
+**Copying and opening the app.** **Copy draft**, under the editor, copies just the draft text. **Copy** in the
+bottom bar copies the whole post, with your hashtags at the end. On a computer, **Open LinkedIn** and **Open X**
+open a new post with the text already in it. On a phone, **Open X** does the same. **Open LinkedIn** opens the
+share sheet instead (the LinkedIn app ignores links that carry text): pick **LinkedIn** and the post arrives in a
+new LinkedIn post. It's copied too, so if LinkedIn ever opens empty, paste it.
+
+**Bihar, history to now.** One X card a day is kept for a story that isn't today's news, marked *Story, history
+to now*: an era, a person, a place, a tradition or a present-day institution in Bihar, from ancient Magadha to
+today's Bihar. It's drafted from the Wikipedia article (about 140 of them, a few a day, in
+`pbs/defaults/story_pools.yaml`), and it stays for about a week. Bihar news still comes as usual.
+`affairs.stories_per_day` in the settings changes the number (0 lets stories compete with the news on their own).
+
 **If a sentence sounds like AI.** The card's **Checks** tab lists *Sounds like AI* as you type ("It's not X, it's
 Y", "Here's why:", em dashes, emoji bullets, filler, every sentence the same length), and the tile shows a robot
 icon when the delivered draft still has one. Rewrite it in your own words. Before you see a draft, an editor pass
@@ -67,6 +79,7 @@ desk is where to look first.
 | "GitHub rejected the token" | The desk token expired or was revoked. Make a new `pbs-desk` token (SETUP step 3) and paste it in **Settings → Connection** |
 | Pipeline run fails at "Check out data" | The error names the problem and quotes GitHub. "can't see (HTTP 404)": the repo name is wrong, or the token isn't allowed to see `pbs-data` (repository access). "can't read" or "can't push": the token needs **Contents: Read and write** on `pbs-data`. "rejected (HTTP 401)": the token expired; create a new one and replace the `PBS_DATA_TOKEN` secret. The same run still checks the models and sources ("Check models and sources anyway") |
 | "Your data repo is public" | Make `pbs-data` private again (its Settings → General → Change visibility). The pipeline works the same with a private repo; it never needs it public |
+| Every LinkedIn take turns into a point about automation | Takes now fit each story: the technology, the business, the market, the people or the policy, with automation only when the story is about it. Check **Settings → Profile**: if your profile still says it "explains research for people automating real work", change that line, since the drafter reads it as a fact about you. **Insights → Playbook** shows the rules drafts follow; remove any that pushes every post toward automation |
 | A news source keeps failing | The doctor's `Sources` line names each failing source with its reason (HTTP 403 is usually a site refusing GitHub's servers). Swap it for a Google News query for the same outlet (`site:example.com when:2d`) on the Sources page |
 | A change you made "didn't stick" | **System → Rejected changes** lists anything the pipeline couldn't apply, with the reason. *Changes in flight* shows what's still waiting for a run |
 | A card is **Blocked** | It matched your blocklist. Nothing was reworded. Edit the draft by hand or skip it. If the match is a false positive, refine the term in `PBS_BLOCKLIST` |

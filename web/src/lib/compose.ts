@@ -15,6 +15,32 @@ export function linkedInComposeUrl(text: string): string {
   return `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`;
 }
 
+/** A phone or tablet (iPadOS reports itself as a Mac with a touch screen). */
+export function isMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  return /Android|iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
+
+/**
+ * On a phone the LinkedIn app catches linkedin.com links and opens its feed, dropping the text the link carries.
+ * The share sheet hands the text to the app's own composer instead, so "Open LinkedIn" uses it there.
+ */
+export function linkedInViaShareSheet(): boolean {
+  return isMobileDevice() && typeof navigator !== "undefined" && typeof navigator.share === "function";
+}
+
+export type ShareResult = "shared" | "cancelled" | "failed";
+
+export async function shareText(text: string): Promise<ShareResult> {
+  try {
+    await navigator.share({ text });
+    return "shared";
+  } catch (e) {
+    return e instanceof DOMException && e.name === "AbortError" ? "cancelled" : "failed";
+  }
+}
+
 export function xComposeUrl(text: string, url?: string): string {
   const params = new URLSearchParams({ text });
   if (url) params.set("url", url);

@@ -193,7 +193,8 @@ export type Active = boolean | null;
 export type At21 = string;
 export type Id21 = string;
 export type Kind2 =
-  ("rss" | "gnews" | "arxiv" | "hf_papers" | "hn_front" | "hn_show" | "wikipedia_otd" | "reddit") | null;
+  | ("rss" | "gnews" | "arxiv" | "hf_papers" | "hn_front" | "hn_show" | "wikipedia_otd" | "wikipedia_pool" | "reddit")
+  | null;
 export type Lang = ("en" | "hi") | null;
 export type Name = string | null;
 export type PillarHints = string[] | null;

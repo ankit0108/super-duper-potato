@@ -165,9 +165,16 @@ test("a newer deployed desk is noticed and offered as a reload, and System shows
   await expect(page.getByText("The desk was updated. Reload to get the new version (your edits are kept).")).toBeVisible();
 });
 
+type DemoCard = { title: string; platform: string; status: string; delivery_id?: string | null; llm?: { edit?: { kept?: boolean; before?: number } | null } | null };
+/** The demo's own data (the pipeline's output), to find a card by what happened to it rather than by its title. */
+const demoDesk = () => JSON.parse(readFileSync("public/demo/desk.json", "utf-8")) as { delivery?: { id: string }; cards: DemoCard[] };
+
 test("writing that sounds like AI is flagged as you type, and the editor pass shows what it fixed", async ({ page }) => {
-  // The demo's LinkedIn version of an X card: its draft came back with a "Here's why:", which the editor pass took out.
-  await todaySection(page).getByRole("article", { name: /^LinkedIn card: YC's latest batch/ }).click();
+  // A LinkedIn card in today's set whose draft came back with one tell ("Here's why:"), which the editor pass took out.
+  const desk = demoDesk();
+  const fixed = desk.cards.find((c) => c.platform === "linkedin" && c.status === "suggested" && c.delivery_id === desk.delivery?.id && c.llm?.edit?.kept && c.llm.edit.before === 1);
+  expect(fixed, "the demo has a LinkedIn card the editor improved").toBeTruthy();
+  await todaySection(page).getByRole("article", { name: `LinkedIn card: ${fixed!.title}` }).click();
   await page.getByRole("tab", { name: "Details" }).click();
   // The side panel is in the page twice (phone and desktop layouts): look at the one on screen.
   await expect(page.getByText("Fixed 1 of 1 AI tell (groq)").filter({ visible: true })).toBeVisible();
@@ -180,6 +187,15 @@ test("writing that sounds like AI is flagged as you type, and the editor pass sh
   await expect(live.getByText(/Contrast framing .+: “It's not about speed, it's about trust\.”/)).toBeVisible();
   // The pipeline's own checks flag none: the editor pass took the draft's one tell out.
   await expect(page.getByText("Sounds like AI", { exact: true }).filter({ visible: true })).toHaveCount(1);
+});
+
+test("a Bihar story from history arrives as its own kind of X post, not as news", async ({ page }) => {
+  await todaySection(page).getByRole("article", { name: /^X card: Vikramashila/ }).click();
+  await expect(page.getByText("Story, history to now").filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByText("A story from history to now, not today's news.").filter({ visible: true }).first()).toBeVisible();
+  await page.goto("/#/sources");
+  await page.getByRole("tab", { name: /^Affairs/ }).click();
+  await expect(page.getByText("Wikipedia: Bihar, history to now").filter({ visible: true }).first()).toBeVisible();
 });
 
 test("Insights shows AI tells per draft before and after the editor pass", async ({ page }) => {
@@ -226,6 +242,62 @@ test("hashtags are suggested as chips, and the ones you keep go out at the end o
   expect(lastLine).not.toContain(dropped);
   await dialog.getByRole("button", { name: "Mark posted" }).click();
   await expect(page.getByText("Posted. You changed 0% of the draft.")).toBeVisible();
+});
+
+test.describe("copying and sharing", () => {
+  // Record what the desk copies and shares, instead of reaching the real clipboard or share sheet.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { copied: string[]; shared: string[] };
+      w.copied = [];
+      w.shared = [];
+      Object.defineProperty(navigator, "clipboard", { value: { writeText: async (t: string) => void w.copied.push(t) }, configurable: true });
+      Object.defineProperty(navigator, "share", { value: async (d: ShareData) => void w.shared.push(d.text ?? ""), configurable: true });
+    });
+    await page.reload();
+    await expect(page.getByRole("heading", { name: /Today's picks/ })).toBeVisible();
+  });
+  const recorded = (page: Page, key: "copied" | "shared") => page.evaluate((k) => (window as unknown as Record<string, string[]>)[k], key);
+
+  test("Copy draft copies just the draft, without the hashtags", async ({ page }) => {
+    await todaySection(page).getByRole("article", { name: /^LinkedIn card:/ }).first().click();
+    const editor = page.getByRole("textbox", { name: "LinkedIn post" });
+    const draft = await editor.inputValue();
+    await expect(page.getByRole("group", { name: "Hashtags" }).locator("button[aria-pressed=true]").first()).toBeVisible();
+    await page.getByRole("button", { name: "Copy draft" }).click();
+    await expect(page.getByText("Draft copied")).toBeVisible();
+    expect(await recorded(page, "copied")).toEqual([draft]);
+    // The bar's Copy is the whole post, with the chosen hashtags at the end.
+    await page.getByRole("button", { name: "Copy", exact: true }).click();
+    const post = (await recorded(page, "copied"))[1];
+    expect(post.startsWith(draft.trimEnd())).toBe(true);
+    expect(post.slice(draft.trimEnd().length)).toMatch(/^\n\n#\w+/);
+  });
+
+  test("Copy draft on a thread copies the posts without numbers", async ({ page }) => {
+    await todaySection(page).getByRole("article", { name: /^X card:/ }).filter({ hasText: "Thread" }).first().click();
+    const posts = await page.getByRole("textbox", { name: /^Post \d+ of \d+$/ }).evaluateAll((els) => els.map((e) => (e as HTMLTextAreaElement).value));
+    await page.getByRole("checkbox", { name: "Add 1/n when copying" }).check();
+    await page.getByRole("button", { name: "Copy draft" }).click();
+    expect(await recorded(page, "copied")).toEqual([posts.join("\n\n")]);
+  });
+
+  test("Open LinkedIn hands the post to LinkedIn's composer: the share sheet on a phone, the web composer otherwise", async ({ page }, testInfo) => {
+    await todaySection(page).getByRole("article", { name: /^LinkedIn card:/ }).first().click();
+    const draft = await page.getByRole("textbox", { name: "LinkedIn post" }).inputValue();
+    if (testInfo.project.name === "mobile") {
+      await page.getByRole("button", { name: "Open LinkedIn" }).tap();
+      await expect(page.getByText("Sent to LinkedIn. Post it there, then come back and tap Posted.")).toBeVisible();
+      const [shared] = await recorded(page, "shared");
+      expect(shared.startsWith(draft.trimEnd())).toBe(true);
+      expect(await recorded(page, "copied")).toEqual([shared]); // copied too, in case LinkedIn opens empty
+    } else {
+      const link = page.getByRole("link", { name: "Open LinkedIn" });
+      const href = (await link.getAttribute("href"))!;
+      expect(href.startsWith("https://www.linkedin.com/feed/?shareActive=true&text=")).toBe(true);
+      expect(decodeURIComponent(href.split("&text=")[1]).startsWith(draft.trimEnd())).toBe(true);
+    }
+  });
 });
 
 test("move a card to the other platform from the Skip menu", async ({ page }) => {

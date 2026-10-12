@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowLeftRight, ChevronDown, Copy, ExternalLink, GitCompare, Loader2, MessageCircleQuestion, RotateCcw, Send, Sparkle, Undo2 } from "lucide-react";
 import type { Card, EventInput } from "@/types";
 import { FORMAT_LABEL, PLATFORM_LABEL, SKIP_REASONS, draftText, pct } from "@/lib/format";
-import { copyText, linkedInComposeUrl, safeUrl, xComposeUrl } from "@/lib/compose";
+import { copyText, linkedInComposeUrl, linkedInViaShareSheet, safeUrl, shareText, xComposeUrl } from "@/lib/compose";
 import { liveFlags, parseTerms } from "@/lib/guard";
 import { withHashtags, withoutHashtags } from "@/lib/hashtags";
 import { navigate, Link } from "@/lib/router";
@@ -223,6 +223,18 @@ function CardView({ card }: { card: Card }) {
     card.platform === "linkedin"
       ? linkedInComposeUrl(text)
       : xComposeUrl(card.format === "x_thread" ? (composed.posts[0] ?? "") : text, card.format === "x_quote" ? safeUrl(card.draft?.quote_url) : undefined);
+  const viaShareSheet = card.platform === "linkedin" && linkedInViaShareSheet();
+  const shareToLinkedIn = () => {
+    // Both start inside the tap: the copy is the fallback if LinkedIn opens without the text.
+    const copied = copyText(text);
+    void shareText(text).then(async (result) => {
+      if (result === "cancelled") return;
+      if (result === "shared") return toast("ok", "Sent to LinkedIn. Post it there, then come back and tap Posted.");
+      // The share sheet refused: a fresh tap can still open LinkedIn (a popup outside a tap would be blocked).
+      const open = { label: "Open LinkedIn", onAction: () => void window.open(composeUrl, "_blank", "noopener") };
+      toast("ok", (await copied) ? "Copied. Open LinkedIn and paste it into a new post." : "Couldn't share or copy. Select the text, copy it, then open LinkedIn.", open);
+    });
+  };
 
   const confirmPosted = (p: PostedPayload) => {
     act(
@@ -479,9 +491,15 @@ function CardView({ card }: { card: Card }) {
             <Button icon={<Copy className="size-4" />} onClick={() => void copyAll()} disabled={!text.trim()}>
               Copy
             </Button>
-            <LinkButton href={composeUrl} target="_blank" rel="noreferrer" icon={<ExternalLink className="size-4" />} className={cx(!text.trim() && "pointer-events-none opacity-50")}>
-              Open {card.platform === "x" ? "X" : "LinkedIn"}
-            </LinkButton>
+            {viaShareSheet ? (
+              <Button icon={<ExternalLink className="size-4" />} onClick={shareToLinkedIn} disabled={!text.trim()}>
+                Open LinkedIn
+              </Button>
+            ) : (
+              <LinkButton href={composeUrl} target="_blank" rel="noreferrer" icon={<ExternalLink className="size-4" />} className={cx(!text.trim() && "pointer-events-none opacity-50")}>
+                Open {card.platform === "x" ? "X" : "LinkedIn"}
+              </LinkButton>
+            )}
             <Button variant="ghost" onClick={() => setRewriting(true)} disabled={!!card.work}>
               Rewrite
             </Button>

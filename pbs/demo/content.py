@@ -43,6 +43,9 @@ TRIAGE: dict[str, dict[str, Any]] = {
     "simultaneous elections": {"linkedin": ("none", 1, ""), "x": ("affairs", 3, "x_single", "Where the simultaneous-elections bills stand", "history"), "issue": "one-nation-one-election"},
     "patna metro": {"linkedin": ("none", 1, ""), "x": ("affairs", 3, "x_single", "Patna Metro's priority corridor is almost here", "tracker")},
     "legislative assembly": {"linkedin": ("none", 1, ""), "x": ("affairs", 3, "x_single", "On this day: Bihar's first assembly session", "history")},
+    # Bihar stories, history to now (story_pools.yaml; the demo's Wikipedia answers with these two).
+    "champaran satyagraha": {"linkedin": ("none", 1, ""), "x": ("affairs", 4, "x_thread", "8,000 farmers' statements, and the 1918 law that ended tinkathia", "story")},
+    "vikramashila": {"linkedin": ("none", 1, ""), "x": ("affairs", 4, "x_thread", "The other great university of Pala Bihar", "story")},
     "insurance claims": {"linkedin": ("industry", 3, "Claims automation is where AI startups are finding revenue"),
                          "x": ("startups", 4, "x_single", "4x faster claims is the kind of number buyers ask about")},
     "yc's latest batch": {"linkedin": ("industry", 3, "Two-thirds of a YC batch builds workflow agents"),

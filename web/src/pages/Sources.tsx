@@ -31,6 +31,7 @@ const KIND_LABEL: Record<string, string> = {
   hn_front: "Hacker News",
   hn_show: "Show HN",
   wikipedia_otd: "Wikipedia",
+  wikipedia_pool: "Wikipedia stories",
   reddit: "Reddit",
 };
 

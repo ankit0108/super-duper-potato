@@ -68,7 +68,7 @@ strategy:
       scouts: [tech]
       description: >-
         New papers, benchmarks, model and agent capabilities, and techniques moving from labs into practice,
-        explained for people automating real work.
+        explained plainly: what's new, why it matters and for whom.
       keywords: [paper, arxiv, research, researchers, benchmark, study, dataset, evaluation, evals, reasoning,
         architecture, training, fine-tuning, rlhf, alignment, interpretability, scaling, inference, state of the art,
         technique, method, open-weights, reinforcement learning, tool use, long context, multimodal, distillation,
@@ -82,7 +82,8 @@ strategy:
       description: >-
         The whole AI and automation industry: labs and model releases, AI startups and funding, big-tech moves,
         enterprise adoption, regulation, compute and infrastructure, and automation vendors (Automation Anywhere,
-        UiPath, Power Automate), each with a proposed analytical angle.
+        UiPath, Power Automate). Each gets an analytical take that fits the story itself (the technology, the
+        business, the market, the people using it, or the policy), not always enterprise or process automation.
       keywords: [launch, launches, released, release, announces, raises, funding, valuation, acquisition, acquires,
         partnership, earnings, revenue, layoffs, regulation, policy, ai act, lawsuit, antitrust, compute, gpu, nvidia,
         data center, datacenter, chips, openai, anthropic, google, deepmind, microsoft, meta, amazon, aws, apple, xai,
@@ -115,7 +116,10 @@ strategy:
       mode: external
       formats: [x_single, x_thread, x_quote, x_reply]
       scouts: [affairs]
-      description: History behind the news, development trackers, future outlooks, and opinions from recorded stances.
+      description: >-
+        History behind the news, development trackers, future outlooks, opinions from recorded stances, and stories
+        from Bihar's past and present that aren't tied to this week's news (eras, people, places, achievements,
+        traditions, the economy).
       keywords: [election, government, minister, policy, parliament, court, economy, gdp, inflation, budget,
         infrastructure, railway, highway, airport, bihar, patna, india, china, war, ceasefire, climate, flood, monsoon,
         census, caste, reservation, education, health, migration, history, culture, बिहार, पटना, सरकार]
@@ -144,7 +148,11 @@ affairs:
     tracker: Development tracker
     outlook: Future outlook
     opinion: Opinion
+    story: Story, history to now
   linkedin_allowed_topics: [ai regulation, digital public infrastructure, data protection, indiaai, upi, aadhaar]
+  # X slots a day kept for the best evergreen story (Bihar from ancient Magadha to today: story_pools.yaml), so
+  # Bihar posts aren't only this week's headlines. 0 lets stories compete with the news on their own.
+  stories_per_day: 1
 
 hooks:
   types: [question, contrarian, number, story, how-to, observation]

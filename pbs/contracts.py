@@ -827,7 +827,8 @@ class SourceUpsertEvent(_Event):
     type: Literal["source.upsert"]
     source_id: str
     name: str | None = Field(None, max_length=120)
-    kind: Literal["rss", "gnews", "arxiv", "hf_papers", "hn_front", "hn_show", "wikipedia_otd", "reddit"] | None = None
+    kind: Literal["rss", "gnews", "arxiv", "hf_papers", "hn_front", "hn_show", "wikipedia_otd", "wikipedia_pool",
+                  "reddit"] | None = None
     url: str | None = Field(None, max_length=1000)
     query: str | None = Field(None, max_length=300)
     scout: Literal["tech", "affairs", "startups", "life"] | None = None

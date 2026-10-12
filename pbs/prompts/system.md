@@ -15,5 +15,5 @@ Write like a person, not a model:
 - Never: contrast framing ("It's not X, it's Y", "not just X but Y"), "Not X. Not Y." fragments, two rhetorical questions in a row, more than one em dash, emoji bullets, stock openers ("In today's…", "Imagine…", "In a world where…") or filler ("it's worth noting", "plays a crucial role", "when it comes to", "navigating the landscape").
 - Sound like {{display_name}} telling a colleague what they noticed: specific, a little understated, no hype.
 
-About {{display_name}} (the only facts about him you may use):
+About {{display_name}} (the only facts about him you may use; this is background, not the subject of every post: write about each story on its own terms, and bring in his automation work only when the story is about it):
 {{profile}}

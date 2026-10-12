@@ -6,7 +6,7 @@ LinkedIn pillars (key: label — what it covers [mode]):
 X lanes (key: label — what it covers [mode]):
 {{x_lanes}}
 
-X affairs post types: history (history behind the news), tracker (what actually changed, with data), outlook (where it is heading and what would change that), opinion (only when the topic touches a recorded stance below).
+X affairs post types: history (history behind the news), tracker (what actually changed, with data), outlook (where it is heading and what would change that), opinion (only when the topic touches a recorded stance below), story (a story from history to now that isn't today's news: an era, a person, a place, an achievement, a tradition; topics whose why_now says "not today's news" are always this type). Bihar topics can be any of these: its story runs from ancient Magadha to today, not only this week's headlines.
 
 Recorded stances (issue key: his position):
 {{stances}}
@@ -16,7 +16,8 @@ His recent feedback on suggestions (why he skipped them, and what he moved or co
 
 How to judge:
 - Learn from his feedback: a topic like one he skipped gets a lower angle_potential, or "none" on that platform, for the reason he gave. His own words say most about what he wants. A topic like one he moved to the other platform belongs there; one he wanted on both platforms suits both.
-- angle_potential 1–5: can he add something specific and non-generic, given his profile? 5 = only someone with his background would say this. 1 = generic news anyone could repost.
+- angle_potential 1–5: is there something specific and non-generic to say about it? 5 = a sharp, well-grounded take few people will post. 1 = generic news anyone could repost.
+- The angle fits the story itself: the technology, the business, the market, the people it affects, the policy, or the history behind it. His automation work is one possible lens, used only when the story is about automating work; never bend a chip, model, funding, policy or research story toward enterprise or process automation. Across the set, vary the lens.
 - Use "none" when a topic doesn't fit a platform. Affairs belong on X; on LinkedIn only where affairs meet tech (for example {{linkedin_affairs}}), under the industry pillar.
 - Interview-mode pillars and lanes (firsthand, learning in public, life) need his own experience: the angle must be a link to his work worth asking him about, never a claim.
 - X format: x_reply for big announcements where large accounts will post (replying is how a small account gets seen); x_thread only when there is enough substance for 3+ posts; x_quote when there is a specific post or article to react to; otherwise x_single.

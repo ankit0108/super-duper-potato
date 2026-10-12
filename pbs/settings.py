@@ -101,6 +101,8 @@ class Pillar(_Strict):
 class Affairs(_Strict):
     types: dict[str, str]
     linkedin_allowed_topics: list[str] = []
+    # X slots a day kept for an evergreen story (a story pool's article, e.g. Bihar from ancient Magadha to today).
+    stories_per_day: int = Field(1, ge=0, le=3)
 
 
 class Hooks(_Strict):

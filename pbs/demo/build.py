@@ -36,7 +36,7 @@ from ..settings import load as load_settings
 from ..store import Store
 from . import history
 from .content import demo_handlers
-from .web import MockWeb, build_world, rss
+from .web import MockWeb, build_world, rss, story_world
 
 TZ = "Australia/Melbourne"
 TODAY = dt.date(2026, 9, 28)  # a Monday, before daylight saving starts on 4 October
@@ -643,7 +643,7 @@ class Simulation:
     # -- this morning -----------------------------------------------------------------------------
     def today(self) -> None:
         now = self.at(TODAY, "05:43")
-        world = {**build_world(now), **request_world(now), **platform_world(now)}
+        world = {**build_world(now), **request_world(now), **platform_world(now), **story_world()}
         self.tick(now, "schedule", web=MockWeb(world=world, filler=True))
         cards = self.delivered(TODAY)
         x_top = next((c for c in cards["x"] if c["status"] == "suggested" and c["format"] != "x_thread"), None)

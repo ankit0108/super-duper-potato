@@ -7,5 +7,6 @@
   (Automation Anywhere, UiPath, Power Automate) and LLM agents.
 - Current contract work is discussed only in general terms (skills, industry trends).
 - Learning track: forward-deployed engineering — evals, agents, MCP.
-- LinkedIn voice: practical, specific, grounded in real work; explains research for people automating real work.
+- LinkedIn voice: practical, specific, grounded in real work. Writes about AI and tech broadly (research, products,
+  companies, markets, policy), with automation as one subject among many, not the lens for every post.
 - X voice: open and personal; tech, startups, life, and world, India and Bihar affairs.

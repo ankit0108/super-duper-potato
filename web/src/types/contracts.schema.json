@@ -5183,6 +5183,7 @@
         "hn_front",
         "hn_show",
         "wikipedia_otd",
+        "wikipedia_pool",
         "reddit"
        ],
        "type": "string"
