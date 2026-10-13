@@ -419,7 +419,7 @@ function ModelsSection({ settings }: { settings: S }) {
   const initial = useMemo(
     () => ({
       route: [...((settings.llm?.routes?.draft ?? []) as string[])],
-      cap: settings.llm?.daily_cap ?? 60,
+      cap: settings.llm?.daily_cap ?? 100,
       models: Object.fromEntries(Object.entries(providers).map(([k, p]) => [k, p.model as string])),
     }),
     [settings, providers],

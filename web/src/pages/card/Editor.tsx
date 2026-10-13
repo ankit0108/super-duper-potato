@@ -225,6 +225,8 @@ export function DiffPanel({ before, after }: { before: string; after: string }) 
 export function LiveChecks({ flags, hasGuardTerms }: { flags: LiveFlags; hasGuardTerms: boolean }) {
   const rows: Array<{ tone: "bad" | "warn"; title: string; items: string[] }> = [
     { tone: "bad", title: "Matches your device guard terms", items: flags.blocked },
+    // A quote or excerpt must stay word for word as the source has it.
+    { tone: "bad", title: "Quote changed: not word for word in the source", items: flags.quoteChanged },
     { tone: "warn", title: "Figures not found in the sources", items: flags.unsourced },
     { tone: "warn", title: "Reads like your own experience", items: flags.firstPerson },
     { tone: "warn", title: "Phrases you avoid", items: flags.avoid },

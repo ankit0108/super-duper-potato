@@ -441,6 +441,7 @@
       "length": [],
       "notes": [],
       "opinion": [],
+      "quote_changed": [],
       "sensitive": false,
       "sensitive_reason": null,
       "stance_id": null,
@@ -569,6 +570,19 @@
      ],
      "default": null,
      "title": "Post Id"
+    },
+    "post_type": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A humour or ideas pillar's kind of post: funny_take, observation, quote, excerpt or thought (labels in the pillar's post_types)",
+     "title": "Post Type"
     },
     "questions": {
      "default": [],
@@ -2337,6 +2351,15 @@
       "type": "string"
      },
      "title": "Opinion",
+     "type": "array"
+    },
+    "quote_changed": {
+     "default": [],
+     "description": "Quote and excerpt posts: quoted words the material doesn't have word for word, or that the quote is missing (guardrails.quote_check)",
+     "items": {
+      "type": "string"
+     },
+     "title": "Quote Changed",
      "type": "array"
     },
     "sensitive": {
@@ -5184,6 +5207,7 @@
         "hn_show",
         "wikipedia_otd",
         "wikipedia_pool",
+        "wikiquote_pool",
         "reddit"
        ],
        "type": "string"
@@ -5259,7 +5283,9 @@
         "tech",
         "affairs",
         "startups",
-        "life"
+        "life",
+        "humor",
+        "ideas"
        ],
        "type": "string"
       },

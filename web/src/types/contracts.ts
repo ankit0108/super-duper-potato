@@ -193,13 +193,24 @@ export type Active = boolean | null;
 export type At21 = string;
 export type Id21 = string;
 export type Kind2 =
-  | ("rss" | "gnews" | "arxiv" | "hf_papers" | "hn_front" | "hn_show" | "wikipedia_otd" | "wikipedia_pool" | "reddit")
+  | (
+      | "rss"
+      | "gnews"
+      | "arxiv"
+      | "hf_papers"
+      | "hn_front"
+      | "hn_show"
+      | "wikipedia_otd"
+      | "wikipedia_pool"
+      | "wikiquote_pool"
+      | "reddit"
+    )
   | null;
 export type Lang = ("en" | "hi") | null;
 export type Name = string | null;
 export type PillarHints = string[] | null;
 export type Query1 = string | null;
-export type Scout = ("tech" | "affairs" | "startups" | "life") | null;
+export type Scout = ("tech" | "affairs" | "startups" | "life" | "humor" | "ideas") | null;
 export type SourceId = string;
 export type Tier2 = ("world" | "india" | "bihar" | "other") | null;
 export type Type22 = "source.upsert";
@@ -344,6 +355,10 @@ export type FirstPerson = string[];
 export type Length = string[];
 export type Notes1 = string[];
 export type Opinion = string[];
+/**
+ * Quote and excerpt posts: quoted words the material doesn't have word for word, or that the quote is missing (guardrails.quote_check)
+ */
+export type QuoteChanged = string[];
 export type Sensitive = boolean;
 export type SensitiveReason = string | null;
 export type StanceId3 = string | null;
@@ -386,6 +401,10 @@ export type Mode1 = "external" | "interview";
 export type Pillar2 = string;
 export type Platform4 = "linkedin" | "x";
 export type PostId3 = string | null;
+/**
+ * A humour or ideas pillar's kind of post: funny_take, observation, quote, excerpt or thought (labels in the pillar's post_types)
+ */
+export type PostType = string | null;
 export type Id32 = string;
 export type Kind5 = string | null;
 export type Q = string;
@@ -1276,6 +1295,7 @@ export interface Card {
   pillar: Pillar2;
   platform: Platform4;
   post_id?: PostId3;
+  post_type?: PostType;
   questions?: Questions;
   rank?: Rank;
   request_id?: RequestId2;
@@ -1342,6 +1362,7 @@ export interface Flags {
   length?: Length;
   notes?: Notes1;
   opinion?: Opinion;
+  quote_changed?: QuoteChanged;
   sensitive?: Sensitive;
   sensitive_reason?: SensitiveReason;
   stance_id?: StanceId3;
@@ -1930,6 +1951,7 @@ export interface Flags1 {
   length?: Length;
   notes?: Notes1;
   opinion?: Opinion;
+  quote_changed?: QuoteChanged;
   sensitive?: Sensitive;
   sensitive_reason?: SensitiveReason;
   stance_id?: StanceId3;

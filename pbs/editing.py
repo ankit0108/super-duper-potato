@@ -19,7 +19,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from . import guardrails, hashtags, log, prompting, textutil
+from . import guardrails, hashtags, log, posttypes, prompting, textutil
 from .context import Ctx
 from .guardrails import AI_TELL_LABELS, draft_text
 from .llm.base import LLMRequest
@@ -110,7 +110,7 @@ def polish(ctx: Ctx, card: dict[str, Any], norm: dict[str, Any], style: Style, *
 
     before = norm["draft"]
     tells = tells_in(draft_text(before), style)
-    if not tells:
+    if not tells or card.get("post_type") in posttypes.VERBATIM:  # someone else's words: never reworded
         norm["edit"] = None
         return norm
     record: dict[str, Any] = {"before": len(tells), "after": len(tells), "kept": False,

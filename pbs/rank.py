@@ -18,7 +18,7 @@ from typing import Any
 
 import yaml
 
-from . import feedback, guardrails, log, prompting, textutil, timeutil
+from . import feedback, guardrails, log, pools, posttypes, prompting, textutil, timeutil
 from .bandit import ArmState, arm_id
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest, json_rows
@@ -39,6 +39,7 @@ class Candidate:
     kind: str = "news"
     angle: str | None = None
     affairs_type: str | None = None
+    post_type: str | None = None
     issue_key: str | None = None
     sensitive: bool = False
     sensitive_reason: str | None = None
@@ -114,9 +115,25 @@ def _max_overlap(toks: frozenset[str], pool: list[frozenset[str]]) -> float:
 # ---------------------------------------------------------------------------
 
 
+def novelty(toks: frozenset[str], platform: str, memory: Memory) -> float:
+    """1.0 for something new; less when it's like what he posted, or skipped as covered, off brand or dull."""
+    value = 1.0 - _max_overlap(toks, memory.posted)
+    if _max_overlap(toks, memory.covered) >= 0.4:
+        value *= 0.1
+    if _max_overlap(toks, memory.off_brand.get(platform, [])) >= 0.35:
+        value *= 0.6
+    if _max_overlap(toks, memory.dull) >= 0.4:
+        value *= 0.6
+    if _max_overlap(toks, memory.other) >= 0.4:
+        value *= 0.8
+    return value
+
+
 def prescore(ctx: Ctx, topic: dict[str, Any], platform: str, memory: Memory) -> tuple[str, dict[str, float], float] | None:
     fits: dict[str, float] = (topic.get("fit") or {}).get(platform) or {}
     if not fits:
+        return None
+    if platform == "linkedin" and (topic.get("why_now") or {}).get("signals", {}).get("x_only"):
         return None
     interview_keys = {k for k, p in ctx.settings.pillars(platform).items() if p.mode == "interview"}
     external = {k: v for k, v in fits.items() if k not in interview_keys}
@@ -135,22 +152,18 @@ def prescore(ctx: Ctx, topic: dict[str, Any], platform: str, memory: Memory) -> 
     outlets = int(why.get("n_outlets") or topic.get("n_sources") or 1)
     momentum = max(1 - math.exp(-(outlets - 1) / 2.5), min(1.0, (sig.get("hn_points") or 0) / 400),
                    min(1.0, (sig.get("hf_upvotes") or 0) / 120))
-    toks = frozenset(textutil.sim_tokens(topic_text(topic)))
-    novelty = 1.0 - _max_overlap(toks, memory.posted)
-    if _max_overlap(toks, memory.covered) >= 0.4:
-        novelty *= 0.1
-    if _max_overlap(toks, memory.off_brand.get(platform, [])) >= 0.35:
-        novelty *= 0.6
-    if _max_overlap(toks, memory.dull) >= 0.4:
-        novelty *= 0.6
-    if _max_overlap(toks, memory.other) >= 0.4:
-        novelty *= 0.8
-    w = rk.weights
+    new = novelty(frozenset(textutil.sim_tokens(topic_text(topic))), platform, memory)
+    parts, pre = _combine(ctx, fit, timeliness, momentum, new)
+    return pillar, parts, pre
+
+
+def _combine(ctx: Ctx, fit: float, timeliness: float, momentum: float, new: float) -> tuple[dict[str, float], float]:
+    w = ctx.settings.ranking.weights
     pre = ((fit ** w.get("fit", 1.0)) * ((0.35 + 0.65 * timeliness) ** w.get("timeliness", 1.0))
-           * ((0.55 + 0.45 * momentum) ** w.get("momentum", 0.8)) * (max(0.0, novelty) ** w.get("novelty", 1.0)))
+           * ((0.55 + 0.45 * momentum) ** w.get("momentum", 0.8)) * (max(0.0, new) ** w.get("novelty", 1.0)))
     parts = {"fit": round(fit, 3), "timeliness": round(timeliness, 3), "momentum": round(momentum, 3),
-             "novelty": round(novelty, 3)}
-    return pillar, parts, round(pre, 4)
+             "novelty": round(new, 3)}
+    return parts, round(pre, 4)
 
 
 # ---------------------------------------------------------------------------
@@ -172,11 +185,30 @@ def _stance_lines(ctx: Ctx) -> str:
     return "\n".join(f"- {s['id']}: {stance_text(s)}" for s in rows)
 
 
+TRIAGE_BATCH = 18  # topics per call: small enough for every provider's input limit
+TRIAGE_MAX = 54
+
+
 def triage(ctx: Ctx, topics: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    """LLM triage of the shortlist. Returns {topic_id: triage}. Empty dict if the model is unavailable."""
-    if not topics:
-        return {}
-    ref = {f"T{i}": t for i, t in enumerate(topics[:24], 1)}
+    """LLM triage of the shortlist, in batches. Returns {topic_id: triage}; topics a batch couldn't triage are
+    left out (they get the deterministic triage). Empty dict if the model is unavailable."""
+    out: dict[str, dict[str, Any]] = {}
+    batches = [topics[i:i + TRIAGE_BATCH] for i in range(0, min(len(topics), TRIAGE_MAX), TRIAGE_BATCH)]
+    for n, batch in enumerate(batches):
+        try:
+            out.update(_triage_batch(ctx, batch))
+        except (BudgetExhausted, ValueError) as exc:
+            log.info(f"rank: triage batch {n + 1}/{len(batches)} unavailable ({type(exc).__name__}); "
+                     "using deterministic triage for it")
+            if isinstance(exc, BudgetExhausted):
+                break
+    if batches and not out:
+        ctx.run.note("Triage used the deterministic fallback (model unavailable)")
+    return out
+
+
+def _triage_batch(ctx: Ctx, topics: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    ref = {f"T{i}": t for i, t in enumerate(topics, 1)}
     payload = [{"id": k, "title": t.get("title_en") or t.get("title"), "summary": textutil.truncate(t.get("summary"), 300),
                 "scout": t.get("scout"), "tier": t.get("tier"), "why_now": (t.get("why_now") or {}).get("note"),
                 "outlets": t.get("n_sources"), "publishers": (t.get("publishers") or [])[:3]}
@@ -193,12 +225,7 @@ def triage(ctx: Ctx, topics: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
 
     req = LLMRequest(task="triage", system=_system(ctx), prompt=prompt, max_output_tokens=6000,
                      prompt_version=prompting.version("triage"))
-    try:
-        data, _ = ctx.llm.call_json(req)
-    except (BudgetExhausted, ValueError) as exc:
-        log.info(f"rank: triage unavailable ({type(exc).__name__}); using deterministic triage")
-        ctx.run.note("Triage used the deterministic fallback (model unavailable)")
-        return {}
+    data, _ = ctx.llm.call_json(req)
     out: dict[str, dict[str, Any]] = {}
     for row in json_rows(data, "topics"):
         t = ref.get(str(row.get("id")))
@@ -239,12 +266,15 @@ def _stance_ready(ctx: Ctx, issue_key: str | None) -> bool:
 
 def build_candidates(ctx: Ctx, topics: list[dict[str, Any]], memory: Memory,
                      use_llm: bool = True) -> dict[str, list[Candidate]]:
+    # Quotes (a quote pool's, checked on Wikiquote) aren't news: they skip triage and go to the quote lane.
+    quotes = [t for t in topics if _signals(t).get("quote")]
+    news = [t for t in topics if not _signals(t).get("quote")]
     pre: dict[str, dict[str, tuple[str, dict[str, float], float]]] = {"linkedin": {}, "x": {}}
     for platform in ("linkedin", "x"):
         if not ctx.settings.platform_enabled(platform):
             continue
         scored = []
-        for t in topics:
+        for t in news:
             if t["id"] in memory.recent_topics.get(platform, set()):
                 continue
             res = prescore(ctx, t, platform, memory)
@@ -254,72 +284,149 @@ def build_candidates(ctx: Ctx, topics: list[dict[str, Any]], memory: Memory,
         for t, res in scored[: ctx.settings.scouting.shortlist_per_platform]:
             pre[platform][t["id"]] = res
     shortlist_ids = list(dict.fromkeys([*pre["linkedin"], *pre["x"]]))
-    by_id = {t["id"]: t for t in topics}
+    by_id = {t["id"]: t for t in news}
     tri = triage(ctx, [by_id[i] for i in shortlist_ids]) if use_llm else {}
 
     out: dict[str, list[Candidate]] = {"linkedin": [], "x": []}
     for platform in ("linkedin", "x"):
+        if not ctx.settings.platform_enabled(platform):
+            continue
         for tid, (det_pillar, parts, base) in pre[platform].items():
-            topic = by_id[tid]
-            t = tri.get(tid) or {}
-            p = t.get(platform) or {}
-            key = "pillar" if platform == "linkedin" else "lane"
-            if tri and tid in tri:
-                pillar = _valid_pillar(ctx, platform, p.get(key) or p.get("pillar") or p.get("lane"))
-                if pillar is None:
-                    continue
-            else:
-                pillar = det_pillar
-            spec = ctx.settings.pillar(platform, pillar)
-            if spec is None:
-                continue
-            ap = _angle_potential(p.get("angle_potential"))
-            det_sensitive, det_reason = guardrails.sensitive_check(topic.get("title_en") or topic.get("title"),
-                                                                   topic.get("summary"))
-            sensitive = bool(t.get("sensitive")) or det_sensitive
-            if not sensitive and _max_overlap(frozenset(textutil.sim_tokens(topic_text(topic))), memory.risky) >= 0.4:
-                sensitive, det_reason = True, "similar to a topic you skipped as too risky"
-            if platform == "linkedin":
-                fmt = "li_text"
-            else:
-                fmt = p.get("format") if p.get("format") in spec.formats else _default_x_format(
-                    ctx, pillar, parts.get("momentum", 0), int(topic.get("n_sources") or 1))
-            affairs_type = None
-            issue_key = t.get("issue_key") if isinstance(t.get("issue_key"), str) else None
-            mode = spec.mode
-            kind = "news"
-            signals = (topic.get("why_now") or {}).get("signals", {})
-            # A story (a story pool's article, or on this day) has no announcement to reply to or post to quote.
-            if (signals.get("evergreen") or signals.get("otd_year")) and fmt in ("x_reply", "x_quote"):
-                fmt = "x_thread" if "x_thread" in spec.formats else spec.formats[0]
-            if signals.get("evergreen"):
-                kind = "evergreen"  # it keeps for days
-            if pillar == "affairs":
-                affairs_type = p.get("affairs_type") if p.get("affairs_type") in ctx.settings.affairs.types else "tracker"
-                if signals.get("otd_year") or signals.get("evergreen"):
-                    affairs_type = "story" if "story" in ctx.settings.affairs.types else "history"
-                if affairs_type == "opinion" and not _stance_ready(ctx, issue_key):
-                    # Questions first, draft second — or a non-opinion type if the interview cap is used.
-                    mode, kind = "interview", "interview"
-            if sensitive:
-                if affairs_type == "opinion":
-                    affairs_type, mode, kind = "tracker", "external", "news"
-                if fmt in ("x_reply", "x_quote"):
-                    fmt = "x_single" if "x_single" in spec.formats else fmt
-                if mode == "interview" and spec.mode != "interview":
-                    mode, kind = "external", "news"
-            if mode == "interview":
-                kind = "interview"
-            factor = 0.55 + 0.15 * ap
-            cand = Candidate(
-                topic=topic, platform=platform, pillar=pillar, fmt=fmt, mode=mode,
-                base=round(base * factor, 4), parts={**parts, "angle_potential": ap}, kind=kind,
-                angle=(p.get("angle") or None), affairs_type=affairs_type, issue_key=issue_key,
-                sensitive=sensitive, sensitive_reason=t.get("sensitive_reason") or det_reason,
-                format_note=p.get("format_note") or None,
-            )
-            out[platform].append(cand)
+            cand = _news_candidate(ctx, platform, by_id[tid], tri.get(tid), bool(tri), det_pillar, parts, base,
+                                   memory)
+            if cand is not None:
+                out[platform].append(cand)
+        out[platform].extend(quote_candidates(ctx, platform, quotes, memory))
+        out[platform].extend(pool_candidates(ctx, platform, memory))
         out[platform].extend(bank_candidates(ctx, platform))
+    return out
+
+
+def _signals(topic: dict[str, Any]) -> dict[str, Any]:
+    return (topic.get("why_now") or {}).get("signals") or {}
+
+
+def _news_candidate(ctx: Ctx, platform: str, topic: dict[str, Any], t: dict[str, Any] | None, triaged: bool,
+                    det_pillar: str, parts: dict[str, float], base: float, memory: Memory) -> Candidate | None:
+    t = t or {}
+    p = t.get(platform) or {}
+    key = "pillar" if platform == "linkedin" else "lane"
+    if triaged and t:
+        pillar = _valid_pillar(ctx, platform, p.get(key) or p.get("pillar") or p.get("lane"))
+        if pillar is None:
+            return None
+    else:
+        pillar = det_pillar
+    if ctx.settings.pillar(platform, pillar) is None:
+        return None
+    ap = _angle_potential(p.get("angle_potential"))
+    det_sensitive, det_reason = guardrails.sensitive_check(topic.get("title_en") or topic.get("title"),
+                                                           topic.get("summary"))
+    sensitive = bool(t.get("sensitive")) or det_sensitive
+    if not sensitive and _max_overlap(frozenset(textutil.sim_tokens(topic_text(topic))), memory.risky) >= 0.4:
+        sensitive, det_reason = True, "similar to a topic you skipped as too risky"
+    spec = ctx.settings.pillar(platform, pillar)
+    post_type = posttypes.for_news(spec.post_types, p.get("post_type"))  # type: ignore[union-attr]
+    if sensitive and post_type in posttypes.HUMOROUS:
+        # Never a joke about a tragedy, violence or a communal incident: the topic's best serious pillar instead.
+        fits = (topic.get("fit") or {}).get(platform) or {}
+        serious = {k: v for k, v in fits.items() if v >= 0.3 and (ps := ctx.settings.pillar(platform, k))
+                   and ps.mode == "external" and not set(ps.post_types) & posttypes.HUMOROUS}
+        if not serious:
+            return None
+        pillar = max(serious, key=lambda k: serious[k])
+        spec = ctx.settings.pillar(platform, pillar)
+        post_type = posttypes.for_news(spec.post_types, None)  # type: ignore[union-attr]
+    assert spec is not None
+    if platform == "linkedin":
+        fmt = "li_text"
+    elif p.get("format") in spec.formats and post_type != "thought":
+        fmt = p["format"]
+    else:
+        fmt = _default_x_format(ctx, pillar, parts.get("momentum", 0), int(topic.get("n_sources") or 1))
+        if post_type == "thought" and "x_single" in spec.formats:
+            fmt = "x_single"
+    affairs_type = None
+    issue_key = t.get("issue_key") if isinstance(t.get("issue_key"), str) else None
+    mode = spec.mode
+    kind = "news"
+    signals = _signals(topic)
+    # A story (a story pool's article, or on this day) has no announcement to reply to or post to quote.
+    if (signals.get("evergreen") or signals.get("otd_year")) and fmt in ("x_reply", "x_quote"):
+        fmt = "x_thread" if "x_thread" in spec.formats else spec.formats[0]
+    if signals.get("evergreen"):
+        kind = "evergreen"  # it keeps for days
+    if pillar == "affairs":
+        affairs_type = p.get("affairs_type") if p.get("affairs_type") in ctx.settings.affairs.types else "tracker"
+        if signals.get("otd_year") or signals.get("evergreen"):
+            affairs_type = "story" if "story" in ctx.settings.affairs.types else "history"
+        if affairs_type == "opinion" and not _stance_ready(ctx, issue_key):
+            # Questions first, draft second — or a non-opinion type if the interview cap is used.
+            mode, kind = "interview", "interview"
+    if sensitive:
+        if affairs_type == "opinion":
+            affairs_type, mode, kind = "tracker", "external", "news"
+        if fmt in ("x_reply", "x_quote"):
+            fmt = "x_single" if "x_single" in spec.formats else fmt
+        if mode == "interview" and spec.mode != "interview":
+            mode, kind = "external", "news"
+    if mode == "interview":
+        kind = "interview"
+    factor = 0.55 + 0.15 * ap
+    return Candidate(
+        topic=topic, platform=platform, pillar=pillar, fmt=fmt, mode=mode,
+        base=round(base * factor, 4), parts={**parts, "angle_potential": ap}, kind=kind,
+        angle=(p.get("angle") or None), affairs_type=affairs_type, post_type=post_type, issue_key=issue_key,
+        sensitive=sensitive, sensitive_reason=t.get("sensitive_reason") or det_reason,
+        format_note=p.get("format_note") or None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Material that isn't news: quotes, funny premises and themes for a thought (pools.py)
+# ---------------------------------------------------------------------------
+
+POOL_FIT = 0.7  # what a pool entry starts from, next to a news topic's fit; the learner moves its lane from there
+
+
+def _pool_candidate(ctx: Ctx, platform: str, topic: dict[str, Any], post_type: str, memory: Memory) -> Candidate | None:
+    pillar = posttypes.pillar_for(ctx.settings, platform, post_type)
+    spec = ctx.settings.pillar(platform, pillar or "")
+    if spec is None or spec.mode != "external" or topic["id"] in memory.recent_topics.get(platform, set()):
+        return None
+    new = novelty(frozenset(textutil.sim_tokens(topic_text(topic))), platform, memory)
+    parts, base = _combine(ctx, POOL_FIT, 1.0, 0.0, new)
+    fmt = "li_text" if platform == "linkedin" else ("x_single" if "x_single" in spec.formats else spec.formats[0])
+    # Kind "news": it goes when the next morning's set comes, which brings new ones (the pool comes round again).
+    return Candidate(topic=topic, platform=platform, pillar=pillar or "", fmt=fmt, mode="external", base=base,
+                     parts={**parts, "pool": 1.0}, kind="news", angle=posttypes.POOL_ANGLE.get(post_type),
+                     post_type=post_type)
+
+
+def quote_candidates(ctx: Ctx, platform: str, topics: list[dict[str, Any]], memory: Memory) -> list[Candidate]:
+    """The day's verified quotes (topics from a wikiquote_pool source), for the lane that makes quote posts."""
+    if platform == "linkedin":
+        return []
+    return [c for t in topics if (c := _pool_candidate(ctx, platform, t, "quote", memory)) is not None]
+
+
+def pool_candidates(ctx: Ctx, platform: str, memory: Memory) -> list[Candidate]:
+    """Today's funny premises and themes for a thought, each as a candidate in the lane that makes that kind of
+    post. A premise or theme carded in the last month is passed over for the next one."""
+    since = timeutil.iso(timeutil.now() - dt.timedelta(days=30))
+    used = {r[0] for r in ctx.store.conn.execute(
+        "SELECT topic_id FROM cards WHERE topic_id LIKE 'pool:%' AND created_at >= ?", (since,)) if r[0]}
+    day = ctx.local_date_str()
+    out: list[Candidate] = []
+    for entries, n, post_type, note in (
+            (pools.humor(), ctx.settings.pools.humor, "observation", "A premise for a funny post; not news."),
+            (pools.thoughts(), ctx.settings.pools.thoughts, "thought", "A theme for a thought of your own; not news.")):
+        here = [e for e in entries if platform in e["platforms"]]
+        for e in pools.todays(here, day, n, skip=used):
+            topic = {"id": e["id"], "title": e["text"], "summary": "", "item_ids": [], "why_now": {"note": note}}
+            cand = _pool_candidate(ctx, platform, topic, post_type, memory)
+            if cand is not None:
+                out.append(cand)
     return out
 
 
@@ -413,6 +520,7 @@ def allocate(ctx: Ctx, platform: str, cands: list[Candidate], arms: dict[str, Ar
     used_topics: set[str] = set()
     arm_counts: Counter[str] = Counter()
     pillar_counts: Counter[str] = Counter()
+    type_counts: Counter[str] = Counter()  # post types (posttypes.py): a set mixes a quote and a thought
     interviews = 0
     experiments = active_experiments(ctx, platform)
 
@@ -422,6 +530,8 @@ def allocate(ctx: Ctx, platform: str, cands: list[Candidate], arms: dict[str, Ar
         used_topics.add(c.topic_key)
         arm_counts[c.arm] += 1
         pillar_counts[c.pillar] += 1
+        if c.post_type:
+            type_counts[c.post_type] += 1
         if c.mode == "interview":
             interviews += 1
 
@@ -449,16 +559,26 @@ def allocate(ctx: Ctx, platform: str, cands: list[Candidate], arms: dict[str, Ar
                 reply.score = reply.base * arms.get(reply.arm, _neutral(reply)).mean
                 take(reply)
 
+    def reserve(pool: list[Candidate], count: int) -> None:
+        """Take the best `count` of a pool before the open slots are filled."""
+        for c in sorted(pool, key=lambda c: (-c.base * (arms[c.arm].mean if c.arm in arms else 0.5), c.topic_key)):
+            if count <= 0 or len(chosen) >= n:
+                break
+            if c.topic_key in used_topics or (c.mode == "interview" and interviews >= cap_interview):
+                continue
+            c.score = round(c.base * (arms[c.arm].mean if c.arm in arms else 0.5), 4)
+            take(c)
+            count -= 1
+
     # The day's evergreen story (Bihar, history to now), when a full set has room for one.
-    stories = ctx.settings.affairs.stories_per_day if platform == "x" and n >= 4 else 0
-    for c in sorted((c for c in cands if c.kind == "evergreen" and c.mode == "external"), key=lambda c: -c.base):
-        if stories <= 0 or len(chosen) >= n:
-            break
-        if c.topic_key in used_topics:
-            continue
-        c.score = round(c.base * (arms[c.arm].mean if c.arm in arms else 0.5), 4)
-        take(c)
-        stories -= 1
+    if platform == "x" and n >= 4:
+        reserve([c for c in cands if c.affairs_type == "story" and c.mode == "external"],
+                ctx.settings.affairs.stories_per_day)
+    # Slots a pillar keeps every morning (LinkedIn's tech humour: one funny post a day).
+    if slots is None and n >= 3:
+        for key, spec in ctx.settings.pillars(platform).items():
+            if spec.min_per_day > pillar_counts[key]:
+                reserve([c for c in cands if c.pillar == key], spec.min_per_day - pillar_counts[key])
 
     while len(chosen) < n:
         replies = sum(1 for c in chosen if c.fmt == "x_reply")
@@ -486,7 +606,8 @@ def allocate(ctx: Ctx, platform: str, cands: list[Candidate], arms: dict[str, Ar
                 pick = Candidate(**{**pick.__dict__, "explore": True})
         if pick is None:
             thetas = {a: (arms[a].sample(rng) if a in arms else rng.betavariate(2, 2)) for a in sorted({c.arm for c in pool})}
-            pick = max(pool, key=lambda c: c.base * thetas[c.arm] * (penalty ** arm_counts[c.arm]) * mix(c))
+            pick = max(pool, key=lambda c: c.base * thetas[c.arm] * (penalty ** arm_counts[c.arm]) * mix(c)
+                       * (penalty ** type_counts[c.post_type] if c.post_type else 1.0))
         pick.score = round(pick.base * (arms[pick.arm].mean if pick.arm in arms else 0.5), 4)
         take(pick)
 

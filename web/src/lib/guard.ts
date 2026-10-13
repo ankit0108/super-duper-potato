@@ -160,9 +160,39 @@ function sentenceAround(text: string, start: number, end: number): string {
   return truncate(text.slice(left + 1, right).trim() || text.slice(start, end).trim(), 140);
 }
 
-/** Patterns that make a post read as written by AI, each with the sentence it's in, in reading order. */
+// A quoted passage of three words or more: someone else's words, so not counted as an AI tell.
+const QUOTED = /"[^"\n]*"|\u201c[^\u201d]*\u201d/g;
+
+/** The text with each quoted passage of three words or more replaced by "…" (guardrails.outside_quotes). */
+export function outsideQuotes(text: string): string {
+  return text.replace(QUOTED, (m) => (m.split(/\s+/).filter(Boolean).length < 3 ? m : '"…"'));
+}
+
+/** The passages of three words or more in double quotes. */
+export function quotedPassages(text: string | null | undefined): string[] {
+  return [...(text ?? "").matchAll(QUOTED)].map((m) => m[0]).filter((m) => m.split(/\s+/).filter(Boolean).length >= 3).map((m) => m.slice(1, -1).trim());
+}
+
+/** Lower-case words only, so punctuation, dashes, quote marks and line breaks don't matter (pools.words). */
+export function wordsOnly(text: string): string {
+  const t = text.normalize("NFKC").toLowerCase().replace(/[\u2018\u2019]/g, "'");
+  return (t.match(/[\p{L}\p{N}\p{M}_]+/gu) ?? []).join(" ");
+}
+
+/** Quote and excerpt posts: quoted passages the sources don't have word for word, or that the quote is missing
+ * (guardrails.quote_check). Other posts: nothing. */
+export function quoteCheck(text: string, evidence: string, postType: string | null | undefined): string[] {
+  if (postType !== "quote" && postType !== "excerpt") return [];
+  const passages = quotedPassages(text);
+  if (!passages.length) return [`the ${postType} isn't in quotation marks`];
+  const ev = ` ${wordsOnly(evidence)} `;
+  return passages.filter((q) => !ev.includes(` ${wordsOnly(q)} `)).map((q) => truncate(q, 140));
+}
+
+/** Patterns that make a post read as written by AI, each with the sentence it's in, in reading order. Quoted
+ * passages are someone else's words and don't count. */
 export function aiTells(text: string | null | undefined): AiTell[] {
-  const body = (text ?? "").replace(/[\u2018\u2019]/g, "'");
+  const body = outsideQuotes((text ?? "").replace(/[\u2018\u2019]/g, "'"));
   if (!body.trim()) return [];
   const found: Array<{ pos: number; kind: string; text: string }> = [];
   const add = (pos: number, kind: string, snippet: string) => {
@@ -213,6 +243,7 @@ export type LiveFlags = {
   firstPerson: string[];
   platform: string[];
   aiTells: AiTell[];
+  quoteChanged: string[];
 };
 
 const LINK = /\bhttps?:\/\/\S+|\bwww\.\S+\.\S+/i;
@@ -242,6 +273,7 @@ export function liveFlags(opts: {
   bait: string[];
   external: boolean;
   platform?: { platform: string; format: string; hashtags: number; fold: number };
+  postType?: string | null;
 }): LiveFlags {
   return {
     blocked: findTerms(opts.text, opts.guardTerms),
@@ -251,5 +283,6 @@ export function liveFlags(opts: {
     firstPerson: opts.external ? firstPersonClaims(opts.text) : [],
     platform: opts.platform ? platformTips(opts.text, opts.platform) : [],
     aiTells: aiTells(opts.text),
+    quoteChanged: quoteCheck(opts.text, opts.evidence, opts.postType),
   };
 }

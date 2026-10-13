@@ -196,7 +196,9 @@ def why_now(items: list[dict[str, Any]], publishers: list[str]) -> dict[str, Any
     # An evergreen story (a story pool's article) unless news about the same subject came with it.
     if not all((it.get("signals") or {}).get("evergreen") for it in items):
         signals.pop("evergreen", None)
-    if signals.get("evergreen"):
+    if signals.get("evergreen") and signals.get("quote"):
+        parts.append("A quote, found word for word on Wikiquote; not news")
+    elif signals.get("evergreen"):
         parts.append("A story from history to now, not today's news")
     elif outlets >= 2:
         span = timeutil.hours_between(oldest, newest) if oldest and newest else None
@@ -296,7 +298,10 @@ def build_topics(ctx: Ctx, items: list[dict[str, Any]] | None = None, origin: st
     if not items:
         return []
     translate_items(ctx, items)
-    groups = cluster(items, ctx.settings.scouting.cluster_threshold)
+    # A quote is a topic of its own: it never joins news that shares its words.
+    solo = [it for it in items if (it.get("signals") or {}).get("solo")]
+    groups = cluster([it for it in items if not (it.get("signals") or {}).get("solo")],
+                     ctx.settings.scouting.cluster_threshold) + [[it["id"]] for it in solo]
     by_id = {it["id"]: it for it in items}
     sources = {s["id"]: s for s in store.select("sources")}
     touched: list[str] = []

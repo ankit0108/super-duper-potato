@@ -647,7 +647,7 @@ class Simulation:
         self.tick(now, "schedule", web=MockWeb(world=world, filler=True))
         cards = self.delivered(TODAY)
         x_top = next((c for c in cards["x"] if c["status"] == "suggested" and c["format"] != "x_thread"), None)
-        skip = next((c for c in reversed(cards["linkedin"]) if c["status"] == "suggested"), None)
+        skip = next((c for c in reversed(cards["linkedin"]) if c["status"] == "suggested" and not c.get("post_type")), None)
         li_top = next((c for c in cards["linkedin"] if c["status"] == "suggested" and c is not skip), None)
         li_next = next((c for c in cards["linkedin"] if c["status"] == "suggested" and c is not skip
                         and c is not li_top), None)

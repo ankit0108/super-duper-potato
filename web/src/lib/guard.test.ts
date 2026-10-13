@@ -1,4 +1,5 @@
-import { aiTells, editSummary, findTerms, firstPersonClaims, parseTerms, phraseHits, tellSummary, unsourcedNumbers } from "./guard";
+import { aiTells, editSummary, findTerms, firstPersonClaims, liveFlags, parseTerms, phraseHits, quoteCheck, tellSummary, unsourcedNumbers } from "./guard";
+import { POST_TYPE_LABEL, postTypeLabel } from "./format";
 import tellVectors from "../../../tests/vectors/ai_tells.json";
 
 describe("guard terms", () => {
@@ -63,5 +64,34 @@ describe("aiTells: the same cases as guardrails.ai_tells (tests/vectors/ai_tells
     );
     expect(editSummary({ before: 2, after: 2, kept: false, skipped: "budget" })).toBe("Found 2 AI tells; not edited: the run was short on model calls");
     expect(editSummary({ before: 2, after: 2, kept: false, skipped: "ProviderError" })).toBe("Found 2 AI tells; not edited: the model call failed");
+  });
+});
+
+describe("quotes and excerpts stay word for word (guardrails.quote_check)", () => {
+  const evidence = "Linus Torvalds: \u201cTalk is cheap. Show me the code.\u201d (word for word on Wikiquote's page for Linus Torvalds).";
+
+  it("passes a quote the source has, whatever the punctuation and quote marks", () => {
+    expect(quoteCheck("\u201cTalk is cheap. Show me the code.\u201d\n\u2014 Linus Torvalds\n\nShip the demo.", evidence, "quote")).toEqual([]);
+    expect(quoteCheck('"talk is cheap - show me the code" says it all.', evidence, "quote")).toEqual([]);
+  });
+
+  it("flags a changed or missing quote, and checks only quote and excerpt posts", () => {
+    expect(quoteCheck("\u201cTalk is cheap, show us the code.\u201d \u2014 Linus", evidence, "quote")).toEqual(["Talk is cheap, show us the code."]);
+    expect(quoteCheck("Talk is cheap, he said.", evidence, "quote")).toEqual(["the quote isn't in quotation marks"]);
+    expect(quoteCheck("\u201cTalk is cheap, show us the code.\u201d", evidence, "funny_take")).toEqual([]);
+  });
+
+  it("is part of the live checks while editing", () => {
+    const base = { evidence, guardTerms: [], avoid: [], bait: [], external: true, postType: "quote" };
+    expect(liveFlags({ ...base, text: "\u201cTalk is cheap. Show me the code.\u201d \u2014 Linus Torvalds" }).quoteChanged).toEqual([]);
+    expect(liveFlags({ ...base, text: "\u201cTalk is cheap. Show me code.\u201d \u2014 Linus Torvalds" }).quoteChanged).toHaveLength(1);
+  });
+});
+
+describe("post types", () => {
+  it("names each kind of post the humour and ideas lanes make", () => {
+    expect(Object.keys(POST_TYPE_LABEL).sort()).toEqual(["excerpt", "funny_take", "observation", "quote", "thought"]);
+    expect(postTypeLabel("funny_take")).toBe("Funny take");
+    expect(postTypeLabel("something_new")).toBe("Something new");
   });
 });

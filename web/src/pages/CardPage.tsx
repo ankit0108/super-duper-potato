@@ -113,6 +113,7 @@ function CardView({ card }: { card: Card }) {
         bait,
         external,
         platform: { platform: card.platform, format: card.format, hashtags: chosenTags.length, fold },
+        postType: card.post_type,
       }),
     [body, card, guardTerms, avoid, bait, external, chosenTags.length, fold],
   );

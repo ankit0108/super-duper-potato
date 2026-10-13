@@ -20,7 +20,7 @@ def _run(tmp_path, web, **kw):
 def test_tick_delivers_once_and_exports_a_valid_desk(tmp_path, web, monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "x")
     first = _run(tmp_path, web, trigger="schedule", hints={"morning"})
-    assert first["status"] == "ok" and first["delivery"]["counts"] == {"linkedin": 3, "x": 6}
+    assert first["status"] == "ok" and first["delivery"]["counts"] == {"linkedin": 5, "x": 10}
     desk = json.loads((tmp_path / "data" / "desk" / "desk.json").read_text())
     DeskState.model_validate(desk)
     assert desk["meta"]["schema_version"] == 1 and desk["delivery"]["id"] == first["delivery"]["id"]
@@ -30,7 +30,7 @@ def test_tick_delivers_once_and_exports_a_valid_desk(tmp_path, web, monkeypatch)
     second = _run(tmp_path, web, trigger="schedule")
     assert "delivery" not in second  # already delivered today
     desk2 = json.loads((tmp_path / "data" / "desk" / "desk.json").read_text())
-    assert len([c for c in desk2["cards"] if c.get("delivery_id") == first["delivery"]["id"]]) == 9
+    assert len([c for c in desk2["cards"] if c.get("delivery_id") == first["delivery"]["id"]]) == 15
 
 
 def test_desk_events_round_trip_through_a_tick(tmp_path, web, monkeypatch):
@@ -60,7 +60,7 @@ def test_a_failing_step_does_not_stop_the_tick(tmp_path, web, monkeypatch):
 
     monkeypatch.setattr(req_mod, "handle_requests", boom)
     out = _run(tmp_path, web, trigger="schedule")
-    assert out["status"] == "partial" and out["delivery"]["counts"]["linkedin"] == 3
+    assert out["status"] == "partial" and out["delivery"]["counts"]["linkedin"] == 5
     desk = json.loads((tmp_path / "data" / "desk" / "desk.json").read_text())
     run = desk["runs"][0]
     assert run["status"] == "partial" and run["errors"][0]["where"] == "requests"
@@ -165,7 +165,7 @@ def test_a_run_where_no_model_answers_is_partial_says_why_and_still_delivers_bri
     out = tick.run(tmp_path / "data", transport=web.transport(), llm_providers=dead, sleep=lambda s: None,
                    send_notifications=False, trigger="schedule")
     assert out["status"] == "partial" and out["llm_calls"] == 0 and out["llm_failures"] == len(PROVIDERS)
-    assert out["delivery"]["counts"] == {"linkedin": 3, "x": 6}  # the full set, as briefs
+    assert out["delivery"]["counts"] == {"linkedin": 5, "x": 10}  # the full set, as briefs
     assert sum(len(p.calls) for p in dead.values()) == len(PROVIDERS)  # each tried once, then switched off
     desk = json.loads((tmp_path / "data" / "desk" / "desk.json").read_text())
     DeskState.model_validate(desk)

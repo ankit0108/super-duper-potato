@@ -90,6 +90,8 @@ class Flags(_Out):
     bait: list[str] = []
     length: list[str] = []
     ai_tells: list[AiTell] = Field([], description="What makes the draft read as AI-written (guardrails.ai_tells)")
+    quote_changed: list[str] = Field([], description="Quote and excerpt posts: quoted words the material doesn't "
+                                     "have word for word, or that the quote is missing (guardrails.quote_check)")
     stance_id: str | None = None
     notes: list[str] = []
 
@@ -203,6 +205,8 @@ class Card(_Out):
     pillar: str
     format: FormatName
     affairs_type: str | None = None
+    post_type: str | None = Field(None, description="A humour or ideas pillar's kind of post: funny_take, "
+                                  "observation, quote, excerpt or thought (labels in the pillar's post_types)")
     issue_key: str | None = None
     title: str
     why_now: str | None = None
@@ -828,10 +832,10 @@ class SourceUpsertEvent(_Event):
     source_id: str
     name: str | None = Field(None, max_length=120)
     kind: Literal["rss", "gnews", "arxiv", "hf_papers", "hn_front", "hn_show", "wikipedia_otd", "wikipedia_pool",
-                  "reddit"] | None = None
+                  "wikiquote_pool", "reddit"] | None = None
     url: str | None = Field(None, max_length=1000)
     query: str | None = Field(None, max_length=300)
-    scout: Literal["tech", "affairs", "startups", "life"] | None = None
+    scout: Literal["tech", "affairs", "startups", "life", "humor", "ideas"] | None = None
     tier: Tier | None = None
     lang: Literal["en", "hi"] | None = None
     active: bool | None = None

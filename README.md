@@ -1,6 +1,6 @@
 # Personal Brand System (PBS)
 
-A $0, self-learning system that scouts topics every day and has **2–3 LinkedIn and 4–6 X drafts** waiting for
+A $0, self-learning system that scouts topics every day and has **5 LinkedIn and 10 X drafts** waiting for
 Ankit by about 6am Melbourne time. He picks, edits and posts them himself; the system learns from what he
 picks, what he changes and how the posts perform.
 
@@ -8,6 +8,9 @@ picks, what he changes and how the posts perform.
 - **Never makes things up.** Every figure is checked against the sources; your experiences come only from your answers (cards with questions arrive drafted from recent sources, and answering is optional); opinions on public issues only from stances you recorded.
 - **Sounds like you, not a model.** Drafts are written against the patterns that give AI writing away ("It's not X, it's Y", "Here's why:", em dashes, emoji bullets, filler, same-length sentences). A draft that still has some gets one more pass that rewrites only those sentences, and the new version is kept only if it has fewer and passes every check. The desk flags them as you type, Insights shows the trend, and a pattern you keep taking out becomes a rule.
 - **Takes that fit the story.** An industry or research post's angle comes from the story itself (the technology, the business, the market, the people, the policy), not from bending everything toward automation. Bihar posts cover its whole story, from ancient Magadha to today, not only this week's news.
+- **Funny, quotable and thoughtful too.** At least one funny post a day for LinkedIn, about the craft of building
+  tech. On X, funny posts about anything, quotes (each found word for word on the author's Wikiquote page before you
+  see it), excerpts and one-line thoughts, mixed with the news as the ranking learns what you pick.
 - **Writes for each platform.** Drafts follow a guide to what works on LinkedIn and on X now, researched monthly and changed only with your approval. Each comes with hashtags to keep or drop and a first comment with the source link, and any card can be cross-posted or moved to the other platform.
 - **Draws visuals, with AI pictures if you like.** A carousel, flowchart, comparison, numbered list, big number or quote card, written from the post and its sources and drawn by the desk in your style: PNG images, or a PDF to post on LinkedIn as a document. Every word can be edited, and figures the sources don't have are flagged. With a free Cloudflare key, an AI illustration for the post or an AI picture behind a cover, big number or quote (FLUX; Gemini and Grok as paid options). The picture never contains words: the desk draws them.
 - **Keeps work private.** A blocklist (your employer, clients, colleagues, internal systems) blocks drafts before you see them and is redacted from every model call.

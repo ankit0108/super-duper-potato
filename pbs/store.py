@@ -61,7 +61,7 @@ TABLES: dict[str, Table] = {
            json_cols="item_ids source_ids publishers why_now fit scores triage", shard="first_seen_at",
            indexes="status request_id"),
         _t("cards",
-           "topic_id request_id delivery_id kind platform mode pillar format affairs_type issue_key title "
+           "topic_id request_id delivery_id kind platform mode pillar format affairs_type post_type issue_key title "
            "why_now angle format_note draft draft_original hooks hook_type hashtags sources claims flags questions "
            "answers status rank score score_parts explore experiment_id arm versions llm work working skip "
            "rewrite_count delivered_at expires_at status_changed_at post_id draft_state draft_basis crosspost_of "

@@ -40,14 +40,18 @@ def test_upsert_updates_only_given_columns(store):
 
 
 def test_settings_defaults_are_valid(settings):
-    assert settings.slots("linkedin") == 3 and settings.slots("x") == 6
+    assert settings.slots("linkedin") == 5 and settings.slots("x") == 10
+    assert settings.platforms.linkedin.min_slots == 3 and settings.platforms.x.min_slots == 6
+    assert settings.pillar("linkedin", "humor").min_per_day == 1
+    assert {"humor", "ideas"} <= set(settings.pillars("x"))
+    assert not any(p.min_per_day for p in settings.pillars("x").values())
     assert abs(sum(settings.normalized_weights("x").values()) - 1) < 1e-9
     assert settings.pillar("linkedin", "receipts").mode == "interview"
 
 
 def test_bad_override_is_dropped_not_fatal():
     s, warnings = S.load({"platforms": {"x": {"slots": 99}}, "display_name": "A"})
-    assert s.slots("x") == 6 and s.display_name == "A"
+    assert s.slots("x") == 10 and s.display_name == "A"
     assert warnings and "platforms.x.slots" in warnings[0]
 
 
@@ -55,6 +59,7 @@ def test_validate_patch_is_strict():
     assert S.validate_patch({}, {"platforms": {"x": {"slotz": 3}}})[1].startswith("unknown setting")
     new, err = S.validate_patch({}, {"platforms": {"x": {"slots": 5}}})
     assert err is None and new == {"platforms": {"x": {"slots": 5}}}
+    assert S.load(new)[0].platforms.x.min_slots == 5  # the minimum follows a smaller set
     assert "unknown providers" in S.validate_patch({}, {"llm": {"routes": {"draft": ["nope"]}}})[1]
     # Open maps may grow (new pillar), but the pillar must be valid.
     new, err = S.validate_patch({}, {"strategy": {"x": {"sport": {"label": "Sport", "weight": 0.1,
@@ -69,4 +74,4 @@ def test_none_in_patch_resets_to_default():
     new, err = S.validate_patch({"platforms": {"x": {"slots": 5}}}, {"platforms": {"x": {"slots": None}}})
     assert err is None
     s, _ = S.load(new)
-    assert s.slots("x") == 6
+    assert s.slots("x") == 10

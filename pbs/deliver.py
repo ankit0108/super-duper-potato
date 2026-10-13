@@ -56,6 +56,7 @@ def card_from_candidate(ctx: Ctx, cand: Candidate, dlv_id: str | None, rank: int
         "pillar": cand.pillar,
         "format": cand.fmt,
         "affairs_type": cand.affairs_type,
+        "post_type": cand.post_type,
         "issue_key": cand.issue_key,
         "title": topic.get("title_en") or topic.get("title"),
         "why_now": (topic.get("why_now") or {}).get("note"),
@@ -156,7 +157,7 @@ def deliver_plan(ctx: Ctx, plan: dict[str, list[Candidate]], dlv_id: str) -> dic
             card = fill_card(ctx, card, cand)
             card_ids.append(card["id"])
             counts[platform] = counts.get(platform, 0) + 1
-            if cand.topic.get("id") and not str(cand.topic["id"]).startswith("bank:"):
+            if cand.topic.get("id") and not str(cand.topic["id"]).startswith(("bank:", "pool:")):
                 ctx.store.update("topics", cand.topic["id"], status="carded")
             draft.log_interaction(ctx, "delivered", card, rank=rank, explore=cand.explore)
     needs_input = ctx.store.count("cards", "delivery_id = ? AND status = 'needs_input'", (dlv_id,))

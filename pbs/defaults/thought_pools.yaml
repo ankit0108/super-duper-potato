@@ -1,0 +1,97 @@
+# Themes for one sharp thought on X (pbs/pools.py, the "Quotes, excerpts and thoughts" lane): a couple a day come
+# up for ranking. The drafter writes one concrete idea from the theme: no figures, no made-up experiences, no
+# slogans. Add a theme as one line; a theme you post doesn't come back.
+
+craft:
+  - The difference between code that works and code someone else can change.
+  - Why the simplest version of a system is usually the hardest one to design.
+  - Deleting code as a sign of progress.
+  - Naming things well as a form of respect for the next reader.
+  - The value of boring technology in systems that must not fail.
+  - Why most bugs live at the boundaries between teams, not inside them.
+  - Writing the README before writing the code.
+  - The best tools disappear while you use them.
+  - Shipping small and often versus shipping big and rarely.
+  - Why an honest error message is a feature.
+  - Automation that saves time versus automation that moves the work somewhere else.
+  - The gap between a demo and a product people rely on.
+
+learning:
+  - The gap between reading about a tool and using it on a real problem.
+  - Learning in public as a way to learn faster.
+  - Why teaching something is the quickest test of whether you understand it.
+  - Being a beginner again in your thirties.
+  - Asking the obvious question in a room full of experts.
+  - Reading the original paper instead of the thread about it.
+  - Notes you write for your future self.
+  - Why curiosity compounds the way interest does.
+  - Learning from the projects that failed rather than the ones that worked.
+  - The skill of knowing what you don't need to learn yet.
+  - Reading widely outside your field.
+
+work:
+  - Clear writing as the most underrated engineering skill.
+  - Meetings as a cost that never shows up on a budget.
+  - Trust as what lets a team move fast.
+  - The difference between being busy and making progress.
+  - Saying no as a way of keeping promises.
+  - Why the person closest to the problem usually knows the fix.
+  - Feedback that is specific versus feedback that is kind, and why you need both.
+  - The quiet work that keeps systems running and never gets a launch post.
+  - Owning a mistake quickly.
+  - Good managers make problems smaller; great ones make them visible early.
+  - What changes when your work is used by people you'll never meet.
+
+ai:
+  - What it means to check a model's answer when you can't check every answer.
+  - Using AI to think faster versus letting it think for you.
+  - Why the hard part of AI at work is the process around it, not the model.
+  - Taste and judgement as the skills that matter more when generating gets cheap.
+  - 'Treating a model like a new colleague: useful, confident, and sometimes wrong.'
+  - The jobs AI changes are rarely the jobs people predicted.
+  - Evaluations as the unglamorous core of building with AI.
+  - When a smaller, cheaper model is the better product choice.
+  - Writing a prompt is mostly figuring out what you actually want.
+
+decisions:
+  - Reversible decisions deserve speed; irreversible ones deserve time.
+  - Choosing what not to do as the real strategy.
+  - The cost of waiting for perfect information.
+  - Why the second opinion should come before the decision, not after.
+  - Changing your mind in public.
+  - Measuring what matters versus measuring what's easy.
+
+time_and_attention:
+  - Attention as the scarcest thing a team has.
+  - Deep work in a day built for interruptions.
+  - Doing one thing well before adding the next.
+  - The compounding effect of small daily habits.
+  - Rest as part of the work, not a break from it.
+  - Why the first hour of the day is worth protecting.
+
+building_in_india:
+  - What UPI taught the world about building public infrastructure.
+  - Building products for a billion people in twenty languages.
+  - Why India's next wave of builders may come from smaller cities.
+  - Jugaad versus systems that scale.
+  - What India's digital public infrastructure shows about technology as a public good.
+  - Talent that leaves home, and what it carries back.
+
+bihar:
+  - Bihar's history as a place where ideas spread to the world, from Nalanda to Bodh Gaya.
+  - The ambition of students in Patna's coaching lanes.
+  - What it means to carry your home state's story when you live abroad.
+  - Bihar's migrants and the economies they quietly build elsewhere.
+  - Pride in where you come from without pretending it has no problems.
+  - The gap between how Bihar is talked about and how it is lived.
+
+life:
+  - Moving countries and learning which habits travel with you.
+  - Calling home as a weekly ritual.
+  - Festivals as the calendar that keeps families together across distance.
+  - What cricket teaches about patience.
+  - The small kindness of strangers in a new city.
+  - Learning to cook the food you grew up with, far from home.
+  - Gratitude for the teachers who saw something before you did.
+  - Walking as the best thinking tool there is.
+  - Reading books slowly in a world that rewards skimming.

@@ -71,7 +71,7 @@ def ingest_items(store: Store, source: dict[str, Any], raw_items: list[dict[str,
         url = raw.get("url") or ""
         if not title or not url:
             continue
-        canonical = textutil.canonical_url(url)
+        canonical = raw.get("canonical") or textutil.canonical_url(url)
         key = textutil.title_key(title)
         existing_id = index.find(canonical, key, title)
         if existing_id:

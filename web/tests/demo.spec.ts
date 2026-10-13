@@ -42,7 +42,7 @@ test.afterEach(async ({ page }) => {
 
 test("the board shows today's set in rank order, this week's cards and what's done", async ({ page }) => {
   await expect(page.getByText(/Delivered \d{1,2}:\d{2}/)).toBeVisible();
-  await expect(todaySection(page).locator("[data-tile]")).toHaveCount(9);
+  await expect(todaySection(page).locator("[data-tile]")).toHaveCount(15);
   await expect(page.getByRole("heading", { name: /This week/ })).toBeVisible();
   await expect(doneSection(page).getByText("Already covered")).toBeVisible();
   await noSidewaysScroll(page);
@@ -63,7 +63,7 @@ test("edit a draft, swap the opening and mark it posted", async ({ page }) => {
 
   await page.goto("/#/");
   await expect(doneSection(page).getByText("Posted", { exact: true })).toBeVisible();
-  await expect(todaySection(page).locator("[data-tile]")).toHaveCount(8);
+  await expect(todaySection(page).locator("[data-tile]")).toHaveCount(14);
   await page.goto("/#/metrics");
   await expect(page.getByRole("button", { name: "Add numbers" }).first()).toBeVisible();
 });
@@ -165,7 +165,7 @@ test("a newer deployed desk is noticed and offered as a reload, and System shows
   await expect(page.getByText("The desk was updated. Reload to get the new version (your edits are kept).")).toBeVisible();
 });
 
-type DemoCard = { title: string; platform: string; status: string; delivery_id?: string | null; llm?: { edit?: { kept?: boolean; before?: number } | null } | null };
+type DemoCard = { title: string; platform: string; status: string; delivery_id?: string | null; post_type?: string | null; llm?: { edit?: { kept?: boolean; before?: number } | null } | null };
 /** The demo's own data (the pipeline's output), to find a card by what happened to it rather than by its title. */
 const demoDesk = () => JSON.parse(readFileSync("public/demo/desk.json", "utf-8")) as { delivery?: { id: string }; cards: DemoCard[] };
 
@@ -196,6 +196,41 @@ test("a Bihar story from history arrives as its own kind of X post, not as news"
   await page.goto("/#/sources");
   await page.getByRole("tab", { name: /^Affairs/ }).click();
   await expect(page.getByText("Wikipedia: Bihar, history to now").filter({ visible: true }).first()).toBeVisible();
+});
+
+test("funny posts, quotes and thoughts arrive with a badge saying which kind", async ({ page }) => {
+  const desk = demoDesk();
+  const today = desk.cards.filter((c) => c.delivery_id === desk.delivery?.id && c.status === "suggested");
+  const funny = today.find((c) => c.platform === "linkedin" && c.post_type === "observation");
+  const quote = today.find((c) => c.platform === "x" && c.post_type === "quote");
+  const thought = today.find((c) => c.platform === "x" && c.post_type === "thought");
+  expect(funny && quote && thought, "the demo's morning has a funny LinkedIn post, a quote and a thought").toBeTruthy();
+  const funnyTile = todaySection(page).getByRole("article", { name: `LinkedIn card: ${funny!.title}` });
+  await expect(funnyTile.getByText("Tech humour")).toBeVisible();
+  await expect(funnyTile.getByText("Relatable")).toBeVisible();
+  await expect(todaySection(page).getByRole("article", { name: `X card: ${thought!.title}` }).getByText("Thought", { exact: true })).toBeVisible();
+  const quoteTile = todaySection(page).getByRole("article", { name: `X card: ${quote!.title}` });
+  await expect(quoteTile.getByText("Quote", { exact: true })).toBeVisible();
+  await quoteTile.click();
+  await expect(page.getByText("A quote, found word for word on Wikiquote; not news.").filter({ visible: true }).first()).toBeVisible();
+  await page.goto("/#/sources");
+  await page.getByRole("tab", { name: /^Ideas/ }).click();
+  await expect(page.getByText("Wikiquote: quotes worth sharing").filter({ visible: true }).first()).toBeVisible();
+});
+
+test("a quote that no longer matches its source is flagged as you type", async ({ page }) => {
+  const desk = demoDesk();
+  const quote = desk.cards.find((c) => c.delivery_id === desk.delivery?.id && c.status === "suggested" && c.platform === "x" && c.post_type === "quote");
+  await todaySection(page).getByRole("article", { name: `X card: ${quote!.title}` }).click();
+  const editor = page.getByRole("textbox", { name: "Single post text" });
+  const text = await editor.inputValue();
+  const altered = text.replace(/\u201c(\S+) /, "\u201cA $1 ");
+  expect(altered, "the draft opens with the quote").not.toBe(text);
+  await page.getByRole("tab", { name: "Checks" }).click();
+  const live = page.locator("[aria-live=polite]").filter({ hasText: "Live checks", visible: true });
+  await expect(live.getByText(/Quote changed/)).toHaveCount(0);
+  await editor.fill(altered);
+  await expect(live.getByText("Quote changed: not word for word in the source")).toBeVisible();
 });
 
 test("Insights shows AI tells per draft before and after the editor pass", async ({ page }) => {

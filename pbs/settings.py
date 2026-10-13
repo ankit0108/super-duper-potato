@@ -56,8 +56,8 @@ WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", 
 
 class LinkedInPlatform(_Strict):
     enabled: bool = True
-    slots: int = Field(3, ge=1, le=6)
-    min_slots: int = Field(2, ge=1, le=6)
+    slots: int = Field(5, ge=1, le=6)
+    min_slots: int = Field(3, ge=1, le=6)
     max_interview_per_day: int = Field(1, ge=0, le=3)
     char_limit: int = Field(3000, ge=500, le=3000)
     fold_chars: int = Field(210, ge=80, le=400)
@@ -65,8 +65,8 @@ class LinkedInPlatform(_Strict):
 
 class XPlatform(_Strict):
     enabled: bool = True
-    slots: int = Field(6, ge=1, le=10)
-    min_slots: int = Field(4, ge=1, le=10)
+    slots: int = Field(10, ge=1, le=10)
+    min_slots: int = Field(6, ge=1, le=10)
     max_interview_per_day: int = Field(1, ge=0, le=3)
     premium: bool = False
     char_limit: int = Field(280, ge=100, le=280)
@@ -96,6 +96,10 @@ class Pillar(_Strict):
     scouts: list[str] = []
     description: str = ""
     keywords: list[str] = []
+    # Morning slots kept for this pillar's best card (LinkedIn's tech humour: at least one funny post a day).
+    min_per_day: int = Field(0, ge=0, le=3)
+    # The kinds of post the pillar makes (key: label), such as a funny take or a quote: see draft.POST_TYPES.
+    post_types: dict[str, str] = {}
 
 
 class Affairs(_Strict):
@@ -103,6 +107,13 @@ class Affairs(_Strict):
     linkedin_allowed_topics: list[str] = []
     # X slots a day kept for an evergreen story (a story pool's article, e.g. Bihar from ancient Magadha to today).
     stories_per_day: int = Field(1, ge=0, le=3)
+
+
+class Pools(_Strict):
+    """Entries a day from the pools of material that isn't news (pbs/pools.py), ranked next to the news. The day's
+    quotes are set on their source (Sources page: max items)."""
+    humor: int = Field(4, ge=0, le=12)
+    thoughts: int = Field(2, ge=0, le=12)
 
 
 class Hooks(_Strict):
@@ -231,8 +242,8 @@ class ProviderSpec(_Strict):
 
 
 class LLM(_Strict):
-    daily_cap: int = Field(60, ge=0, le=2000)
-    max_calls_per_run: int = Field(45, ge=1, le=500)
+    daily_cap: int = Field(100, ge=0, le=2000)
+    max_calls_per_run: int = Field(60, ge=1, le=500)
     personal_allow_training_fallback: bool = True
     providers: dict[str, ProviderSpec]
     routes: dict[str, list[str]]
@@ -270,6 +281,7 @@ class Settings(BaseModel):
     formats: dict[str, FormatSpec]
     strategy: dict[str, dict[str, Pillar]]
     affairs: Affairs
+    pools: Pools = Pools()
     hooks: Hooks
     watchlist: dict[str, list[str]] = {}
     scouting: Scouting
@@ -302,10 +314,12 @@ class Settings(BaseModel):
                 bad = [f for f in pillar.formats if f not in self.formats or self.formats[f].platform != platform]
                 if bad:
                     raise ValueError(f"pillar {platform}.{key} has formats not valid on {platform}: {bad}")
-        if self.platforms.linkedin.min_slots > self.platforms.linkedin.slots:
-            raise ValueError("linkedin min_slots cannot exceed slots")
-        if self.platforms.x.min_slots > self.platforms.x.slots:
-            raise ValueError("x min_slots cannot exceed slots")
+            reserved = sum(p.min_per_day for p in self.strategy[platform].values())
+            if reserved > getattr(self.platforms, platform).slots:
+                raise ValueError(f"{platform} pillars keep {reserved} slots a day, more than its morning set has")
+        # Fewer slots than the minimum: the minimum follows (a smaller set is what he asked for).
+        for platform in (self.platforms.linkedin, self.platforms.x):
+            platform.min_slots = min(platform.min_slots, platform.slots)
         if self.platforms.x.thread_min > self.platforms.x.thread_max:
             raise ValueError("x thread_min cannot exceed thread_max")
         return self
@@ -400,6 +414,41 @@ def load(overrides: dict[str, Any] | None = None) -> tuple[Settings, list[str]]:
         except ValidationError as exc:
             warnings.append(f"ignored setting {'.'.join(path)}: {exc.errors()[0].get('msg', 'invalid')}")
     return Settings.model_validate(current), warnings
+
+
+# One-time changes to saved overrides when a default moves. Each one bumps a value only while it still equals
+# the old default: the desk saves whole sections, so an untouched old default reads like a choice. A value set to
+# anything else was his choice and stays.
+MIGRATIONS: dict[str, list[tuple[tuple[str, ...], Any, Any]]] = {
+    # 13 Oct 2026: five LinkedIn and ten X cards a morning, and the model budget to draft them.
+    "2026-10-slots": [
+        (("platforms", "linkedin", "slots"), 3, 5),
+        (("platforms", "linkedin", "min_slots"), 2, 3),
+        (("platforms", "x", "slots"), 6, 10),
+        (("platforms", "x", "min_slots"), 4, 6),
+        (("llm", "daily_cap"), 60, 100),
+        (("llm", "max_calls_per_run"), 45, 60),
+    ],
+}
+
+
+def migrate_overrides(overrides: dict[str, Any], done: list[str]) -> tuple[dict[str, Any], list[str], list[str]]:
+    """Apply the migrations not yet done. Returns (overrides, migrations now done, what changed)."""
+    out = copy.deepcopy(overrides)
+    changed: list[str] = []
+    for key, steps in MIGRATIONS.items():
+        if key in done:
+            continue
+        for path, old, new in steps:
+            parent = out
+            for part in path[:-1]:
+                parent = parent.get(part) if isinstance(parent, dict) else None
+                if parent is None:
+                    break
+            if isinstance(parent, dict) and parent.get(path[-1]) == old:
+                parent[path[-1]] = new
+                changed.append(f"{'.'.join(path)} {old}→{new}")
+    return out, sorted({*done, *MIGRATIONS}), changed
 
 
 def _unknown_keys(patch: dict[str, Any], reference: dict[str, Any], prefix: str = "") -> list[str]:

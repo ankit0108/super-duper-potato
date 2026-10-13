@@ -55,6 +55,19 @@ export const AFFAIRS_LABEL: Record<string, string> = {
   story: "Story, history to now",
 };
 
+// The humour and ideas lanes' kinds of post (pbs/posttypes.py).
+export const POST_TYPE_LABEL: Record<string, string> = {
+  funny_take: "Funny take",
+  observation: "Relatable",
+  quote: "Quote",
+  excerpt: "Excerpt",
+  thought: "Thought",
+};
+
+export function postTypeLabel(postType: string): string {
+  return POST_TYPE_LABEL[postType] ?? postType.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+}
+
 export const HOOK_LABEL: Record<string, string> = {
   question: "Question",
   contrarian: "Contrarian",

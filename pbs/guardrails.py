@@ -227,10 +227,20 @@ def _sentence_around(text: str, start: int, end: int) -> str:
     return textutil.truncate(text[left + 1:right].strip() or text[start:end].strip(), 140)
 
 
+# A quoted passage of three words or more: someone else's words, so not counted as an AI tell.
+_QUOTED = re.compile('"[^"\n]*"|\u201c[^\u201d]*\u201d')
+
+
+def outside_quotes(text: str) -> str:
+    """The text with each quoted passage of three words or more replaced by "…"."""
+    return _QUOTED.sub(lambda m: m.group(0) if len(m.group(0).split()) < 3 else '"…"', text)
+
+
 def ai_tells(text: str | None) -> list[dict[str, str]]:
     """Patterns that make a post read as written by AI, each with where it is: [{kind, text}] in reading order.
-    The editor pass rewrites these sentences; the desk shows them as "Sounds like AI"."""
-    body = (text or "").replace("\u2019", "'").replace("\u2018", "'")
+    The editor pass rewrites these sentences; the desk shows them as "Sounds like AI". Quoted passages are someone
+    else's words and don't count."""
+    body = outside_quotes((text or "").replace("\u2019", "'").replace("\u2018", "'"))
     if not body.strip():
         return []
     found: list[tuple[int, str, str]] = []
@@ -323,6 +333,25 @@ def draft_text(draft: dict[str, Any] | None) -> str:
     return "\n\n".join(p for p in parts if p)
 
 
+def quoted_passages(text: str | None) -> list[str]:
+    """The passages of three words or more in double quotes."""
+    return [m.group(0)[1:-1].strip() for m in _QUOTED.finditer(text or "") if len(m.group(0).split()) >= 3]
+
+
+def quote_check(text: str | None, evidence: str, post_type: str | None) -> list[str]:
+    """Quote and excerpt posts: quoted passages the material doesn't have word for word (punctuation aside), or
+    that the quote is missing. Other posts: nothing to check."""
+    from . import pools, posttypes
+
+    if post_type not in posttypes.VERBATIM:
+        return []
+    passages = quoted_passages(text)
+    if not passages:
+        return [f"the {post_type} isn't in quotation marks"]
+    ev = f" {pools.words(evidence)} "
+    return [textutil.truncate(q, 140) for q in passages if f" {pools.words(q)} " not in ev]
+
+
 def check_card(card: dict[str, Any], *, settings: Any, blocklist: list[str], evidence: str,
                avoid_phrases: Iterable[str], bait_phrases: Iterable[str]) -> CardCheck:
     """Run every deterministic check on a drafted card. `evidence` = sources text (+ answers)."""
@@ -343,6 +372,7 @@ def check_card(card: dict[str, Any], *, settings: Any, blocklist: list[str], evi
         "bait": phrase_hits(body, bait_phrases),
         "length": length_flags(card["platform"], card["format"], draft, settings),
         "ai_tells": ai_tells(body),
+        "quote_changed": quote_check(body, evidence, card.get("post_type")),
         "sensitive": bool(prev.get("sensitive")),
         "sensitive_reason": prev.get("sensitive_reason"),
         "stance_id": prev.get("stance_id"),
