@@ -1,6 +1,6 @@
 import { ExternalLink, HeartHandshake, Search } from "lucide-react";
 import type { Card } from "@/types";
-import { AFFAIRS_LABEL, FORMAT_LABEL, pct } from "@/lib/format";
+import { AFFAIRS_LABEL, FORMAT_LABEL, pct, postTypeLabel } from "@/lib/format";
 import { safeUrl, xProfileUrl, xSearchUrl } from "@/lib/compose";
 import { editSummary, tellName } from "@/lib/guard";
 import { formatDateTime } from "@/lib/time";
@@ -34,6 +34,11 @@ export function WhyAngle({ card }: { card: Card }) {
       {card.affairs_type && (
         <Block title="Affairs post type">
           <Badge tone="info">{AFFAIRS_LABEL[card.affairs_type] ?? card.affairs_type}</Badge>
+        </Block>
+      )}
+      {card.post_type && (
+        <Block title="Post type">
+          <Badge tone="info">{postTypeLabel(card.post_type)}</Badge>
         </Block>
       )}
       {card.format_note && (
@@ -142,6 +147,7 @@ export function PipelineFlags({ card }: { card: Card }) {
   const f = card.flags ?? {};
   const rows: Array<{ tone: "bad" | "warn" | "info"; title: string; items: string[] }> = [
     { tone: "bad", title: "Blocked: matches your blocklist", items: f.blocked ?? [] },
+    { tone: "bad", title: "Quote changed: not word for word in the source", items: f.quote_changed ?? [] },
     { tone: "warn", title: "Figures not found in the sources", items: f.unsourced ?? [] },
     { tone: "warn", title: "First-person claims (you didn't provide these)", items: f.first_person ?? [] },
     { tone: "info", title: "Opinion framing — make sure you agree", items: f.opinion ?? [] },

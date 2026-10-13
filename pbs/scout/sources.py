@@ -105,7 +105,27 @@ def fetch_url(source: dict[str, Any], local_date: str | None = None) -> str:
                   "prop": "extracts|info|description", "inprop": "url", "exintro": "1", "explaintext": "1",
                   "exlimit": "20", "titles": "|".join(titles)}
         return f"https://en.wikipedia.org/w/api.php?{urlencode(params)}"
+    if kind == "wikiquote_pool":
+        pages = quote_pages(local_date, int(source.get("max_items") or 6))
+        if not pages:
+            return ""
+        params = {"action": "query", "format": "json", "formatversion": "2", "redirects": "1",
+                  "prop": "revisions|info", "rvprop": "content", "rvslots": "main", "inprop": "url",
+                  "titles": "|".join(pages)}
+        return f"https://en.wikiquote.org/w/api.php?{urlencode(params)}"
     return source.get("url") or ""
+
+
+def todays_quotes(local_date: str | None, n: int) -> list[dict[str, Any]]:
+    """The day's quotes from the quote pool (pools.quotes), checked against Wikiquote by the parser."""
+    from .. import pools
+
+    return pools.todays(pools.quotes(), local_date, n)
+
+
+def quote_pages(local_date: str | None, n: int) -> list[str]:
+    """The Wikiquote pages the day's quotes are checked against, each once."""
+    return list(dict.fromkeys(q["page"] for q in todays_quotes(local_date, n)))
 
 
 @cache

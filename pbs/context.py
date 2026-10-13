@@ -12,9 +12,21 @@ from typing import Any
 
 from . import __version__, ids, log, timeutil
 from .guardrails import load_blocklist
-from .settings import Settings
+from .settings import Settings, migrate_overrides
 from .settings import load as load_settings
 from .store import Store
+
+
+def migrate_settings(store: Store) -> None:
+    """Bring saved overrides up to new defaults once (settings.MIGRATIONS)."""
+    done = list(store.get_setting("settings_migrations", []) or [])
+    overrides = dict(store.get_setting("overrides", {}) or {})
+    new, now_done, changed = migrate_overrides(overrides, done)
+    if changed:
+        store.set_setting("overrides", new)
+        log.info(f"settings: updated saved defaults ({', '.join(changed)})")
+    if now_done != sorted(done):
+        store.set_setting("settings_migrations", now_done)
 
 
 def settings_from_store(store: Store) -> tuple[Settings, list[str]]:
@@ -127,6 +139,7 @@ class Ctx:
                force: bool = False, transport: Any = None, llm_providers: dict[str, Any] | None = None,
                sleep: Any = None) -> Ctx:
         store = Store.open(data_root)
+        migrate_settings(store)
         settings, warnings = settings_from_store(store)
         ctx = cls(
             store=store,

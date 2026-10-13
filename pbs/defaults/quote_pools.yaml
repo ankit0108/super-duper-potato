@@ -1,0 +1,208 @@
+# Quotes for X (pbs/pools.py, the "Quotes, excerpts and thoughts" lane). A few a day are checked against the
+# author's English Wikiquote page: a quote is used only when its words are on that page, in order, outside the
+# misattributed, disputed, attributed and "quotes about" sections. One that isn't found is skipped and counted in
+# the run log ("quotes: N verified, M not found on Wikiquote"), so a misattributed quote never reaches a card.
+#
+# Each entry: `by` (the author, as the post names them), `text` (at most 180 characters) and, when the Wikiquote
+# page has another title, `page`. Translations are checked like anything else: use the translation the page has.
+
+tech_science:
+  - {by: Alan Kay, text: "The best way to predict the future is to invent it."}
+  - {by: Alan Kay, text: "People who are really serious about software should make their own hardware."}
+  - {by: Grace Hopper, text: "It's easier to ask forgiveness than it is to get permission."}
+  - {by: Grace Hopper, text: "A ship in port is safe; but that's not what ships are built for."}
+  - {by: Grace Hopper, text: "The most dangerous phrase in the language is, \"We've always done it this way.\""}
+  - {by: Edsger W. Dijkstra, text: "Simplicity is prerequisite for reliability."}
+  - {by: Edsger W. Dijkstra, text: "Program testing can be used to show the presence of bugs, but never to show their absence!"}
+  - {by: Edsger W. Dijkstra, text: "The question of whether a computer can think is no more interesting than the question of whether a submarine can swim."}
+  - {by: Donald Knuth, text: "Premature optimization is the root of all evil."}
+  - {by: Donald Knuth, text: "Beware of bugs in the above code; I have only proved it correct, not tried it."}
+  - {by: Fred Brooks, text: "Adding manpower to a late software project makes it later."}
+  - {by: Fred Brooks, text: "Plan to throw one away; you will, anyhow."}
+  - {by: Fred Brooks, text: "The hardest single part of building a software system is deciding precisely what to build."}
+  - {by: Linus Torvalds, text: "Talk is cheap. Show me the code."}
+  - {by: Eric S. Raymond, text: "Given enough eyeballs, all bugs are shallow."}
+  - {by: Ken Thompson, text: "When in doubt, use brute force."}
+  - {by: Brian Kernighan, text: "Everyone knows that debugging is twice as hard as writing a program in the first place."}
+  - {by: Tony Hoare, text: "I call it my billion-dollar mistake."}
+  - {by: Alan Turing, text: "We can only see a short distance ahead, but we can see plenty there that needs to be done."}
+  - {by: Ada Lovelace, text: "The Analytical Engine has no pretensions whatever to originate anything."}
+  - {by: Richard Feynman, text: "The first principle is that you must not fool yourself and you are the easiest person to fool."}
+  - {by: Richard Feynman, text: "What I cannot create, I do not understand."}
+  - {by: Richard Feynman, text: "For a successful technology, reality must take precedence over public relations, for nature cannot be fooled."}
+  - {by: Carl Sagan, text: "Extraordinary claims require extraordinary evidence."}
+  - {by: Carl Sagan, text: "If you wish to make an apple pie from scratch, you must first invent the universe."}
+  - {by: Isaac Asimov, text: "The saddest aspect of life right now is that science gathers knowledge faster than society gathers wisdom."}
+  - {by: Arthur C. Clarke, text: "Any sufficiently advanced technology is indistinguishable from magic."}
+  - {by: Arthur C. Clarke, text: "The only way of discovering the limits of the possible is to venture a little way past them into the impossible."}
+  - {by: Albert Einstein, text: "Imagination is more important than knowledge."}
+  - {by: Albert Einstein, text: "The important thing is not to stop questioning."}
+  - {by: Herbert A. Simon, text: "A wealth of information creates a poverty of attention."}
+  - {by: Marvin Minsky, text: "No computer has ever been designed that is ever aware of what it's doing; but most of the time, we aren't either."}
+  - {by: Andrew Ng, text: "AI is the new electricity."}
+  - {by: Martin Fowler, text: "Any fool can write code that a computer can understand. Good programmers write code that humans can understand."}
+  - {by: Gerald Weinberg, text: "If builders built buildings the way programmers wrote programs, then the first woodpecker that came along would destroy civilization."}
+  - {by: Bjarne Stroustrup, text: "There are only two kinds of languages: the ones people complain about and the ones nobody uses."}
+  - {by: Bjarne Stroustrup, text: "C makes it easy to shoot yourself in the foot; C++ makes it harder, but when you do it blows your whole leg off."}
+  - {by: Alan Perlis, text: "A language that doesn't affect the way you think about programming, is not worth knowing."}
+  - {by: Alan Perlis, text: "Simplicity does not precede complexity, but follows it."}
+  - {by: John Gall, text: "A complex system that works is invariably found to have evolved from a simple system that worked."}
+  - {by: Leslie Lamport, text: "A distributed system is one in which the failure of a computer you didn't even know existed can render your own computer unusable."}
+  - {by: Richard Hamming, text: "The purpose of computing is insight, not numbers."}
+  - {by: John von Neumann, text: "If people do not believe that mathematics is simple, it is only because they do not realize how complicated life is."}
+  - {by: Douglas Hofstadter, text: "It always takes longer than you expect, even when you take into account Hofstadter's Law."}
+  - {by: Douglas Adams, text: "I love deadlines. I like the whooshing sound they make as they fly by."}
+  - {by: William Gibson, text: "The future is already here — it's just not very evenly distributed."}
+  - {by: Stewart Brand, text: "Information wants to be free."}
+  - {by: Marshall McLuhan, text: "The medium is the message."}
+  - {by: Isaac Newton, text: "If I have seen further it is by standing on the shoulders of Giants."}
+  - {by: Louis Pasteur, text: "In the fields of observation chance favors only the prepared mind."}
+  - {by: Charles Darwin, text: "A man who dares to waste one hour of time has not discovered the value of life."}
+  - {by: Thomas Edison, text: "Genius is one per cent inspiration, ninety-nine per cent perspiration."}
+  - {by: Stephen Hawking, text: "Look up at the stars and not down at your feet."}
+  - {by: Jeff Hammerbacher, text: "The best minds of my generation are thinking about how to make people click ads."}
+  - {by: Bill Joy, text: "No matter who you are, most of the smartest people work for someone else."}
+
+founders_business:
+  - {by: Steve Jobs, text: "Stay hungry. Stay foolish."}
+  - {by: Steve Jobs, text: "Design is not just what it looks like and feels like. Design is how it works."}
+  - {by: Steve Jobs, text: "You can't connect the dots looking forward; you can only connect them looking backwards."}
+  - {by: Steve Jobs, text: "Real artists ship."}
+  - {by: Bill Gates, text: "Your most unhappy customers are your greatest source of learning."}
+  - {by: Bill Gates, text: "We always overestimate the change that will occur in the next two years and underestimate the change that will occur in the next ten."}
+  - {by: Jeff Bezos, text: "We are stubborn on vision. We are flexible on details."}
+  - {by: Jeff Bezos, text: "I knew that if I failed I wouldn't regret that, but I knew the one thing I might regret is not trying."}
+  - {by: Reid Hoffman, text: "If you are not embarrassed by the first version of your product, you've launched too late."}
+  - {by: Paul Graham, text: "Make something people want."}
+  - {by: Paul Graham, text: "Do things that don't scale."}
+  - {by: Paul Graham, text: "It's hard to do a really good job on anything you don't think about in the shower."}
+  - {by: Marc Andreessen, text: "Software is eating the world."}
+  - {by: Peter Thiel, text: "We wanted flying cars, instead we got 140 characters."}
+  - {by: Peter Thiel, text: "Competition is for losers."}
+  - {by: Elon Musk, text: "When something is important enough, you do it even if the odds are not in your favor."}
+  - {by: Satya Nadella, text: "Our industry does not respect tradition — it only respects innovation."}
+  - {by: Andrew Grove, text: "Only the paranoid survive."}
+  - {by: Ben Horowitz, text: "There's no silver bullet for this one. You're going to have to use a lot of lead bullets."}
+  - {by: Peter Drucker, text: "There is nothing so useless as doing efficiently that which should not be done at all."}
+  - {by: Peter Drucker, text: "The most important thing in communication is hearing what isn't said."}
+  - {by: W. Edwards Deming, text: "A bad system will beat a good person every time."}
+  - {by: Warren Buffett, text: "Price is what you pay. Value is what you get."}
+  - {by: Warren Buffett, text: "It takes 20 years to build a reputation and five minutes to ruin it."}
+  - {by: Warren Buffett, text: "Risk comes from not knowing what you're doing."}
+  - {by: Charlie Munger, text: "Show me the incentive and I will show you the outcome."}
+  - {by: Indra Nooyi, text: "Just because you are CEO, don't think you have landed."}
+  - {by: Sam Walton, text: "There is only one boss. The customer."}
+  - {by: Howard Schultz, text: "Risk more than others think is safe. Dream more than others think is practical."}
+
+india:
+  - {by: Rabindranath Tagore, text: "Where the mind is without fear and the head is held high"}
+  - {by: Rabindranath Tagore, text: "Faith is the bird that feels the light and sings when the dawn is still dark."}
+  - {by: Rabindranath Tagore, text: "Let my love, like sunlight, surround you and yet give you illumined freedom."}
+  - {by: Rabindranath Tagore, text: "Clouds come floating into my life, no longer to carry rain or usher storm, but to add color to my sunset sky."}
+  - {by: Rabindranath Tagore, text: "The butterfly counts not months but moments, and has time enough."}
+  - {by: Swami Vivekananda, text: "Arise, awake, and stop not till the goal is reached."}
+  - {by: Swami Vivekananda, text: "Take up one idea. Make that one idea your life"}
+  - {by: Swami Vivekananda, text: "We are what our thoughts have made us; so take care about what you think."}
+  - {by: Mahatma Gandhi, page: Mohandas Karamchand Gandhi, text: "The weak can never forgive. Forgiveness is the attribute of the strong."}
+  - {by: Mahatma Gandhi, page: Mohandas Karamchand Gandhi, text: "Truth never damages a cause that is just."}
+  - {by: Jawaharlal Nehru, text: "At the stroke of the midnight hour, when the world sleeps, India will awake to life and freedom."}
+  - {by: Jawaharlal Nehru, text: "Culture is the widening of the mind and of the spirit."}
+  - {by: B. R. Ambedkar, page: Bhimrao Ramji Ambedkar, text: "I measure the progress of a community by the degree of progress which women have achieved."}
+  - {by: B. R. Ambedkar, page: Bhimrao Ramji Ambedkar, text: "Cultivation of mind should be the ultimate aim of human existence."}
+  - {by: B. R. Ambedkar, page: Bhimrao Ramji Ambedkar, text: "Life should be great rather than long."}
+  - {by: Bhagat Singh, text: "They may kill me, but they cannot kill my ideas. They can crush my body, but they will not be able to crush my spirit."}
+  - {by: Sarojini Naidu, text: "A country's greatness lies in its undying ideals of love and sacrifice that inspire the mothers of the race."}
+  - {by: A. P. J. Abdul Kalam, text: "Dream, dream, dream. Dreams transform into thoughts and thoughts result in action."}
+  - {by: A. P. J. Abdul Kalam, text: "If you want to shine like a sun, first burn like a sun."}
+  - {by: A. P. J. Abdul Kalam, text: "Excellence is a continuous process and not an accident."}
+  - {by: Vikram Sarabhai, text: "There are some who question the relevance of space activities in a developing nation."}
+  - {by: C. V. Raman, text: "Ask the right questions, and nature will open the doors to her secrets."}
+  - {by: Srinivasa Ramanujan, text: "An equation for me has no meaning unless it expresses a thought of God."}
+  - {by: Amartya Sen, text: "Development can be seen, it is argued here, as a process of expanding the real freedoms that people enjoy."}
+  - {by: Ratan Tata, text: "I don't believe in taking right decisions. I take decisions and then make them right."}
+  - {by: N. R. Narayana Murthy, page: N. R. Narayana Murthy, text: "Performance leads to recognition. Recognition brings respect. Respect enhances power."}
+  - {by: Dhirubhai Ambani, text: "Think big, think fast, think ahead. Ideas are no one's monopoly."}
+  - {by: Azim Premji, text: "If people are not laughing at your goals, your goals are too small."}
+  - {by: Kabir, text: "I laugh when I hear that the fish in the water is thirsty."}
+  # Bihar: Magadha, Bodh Gaya and the people who made the state's story.
+  - {by: Chanakya, text: "In the happiness of his subjects lies his happiness; in their welfare his welfare"}
+  - {by: Ashoka, text: "All men are my children."}
+  - {by: The Buddha, page: Gautama Buddha, text: "All that we are is the result of what we have thought"}
+  - {by: The Buddha, page: Gautama Buddha, text: "For hatred does not cease by hatred at any time: hatred ceases by love, this is an old rule."}
+  - {by: Ramdhari Singh Dinkar, page: Ramdhari Singh 'Dinkar', text: "Vacate the throne, for the people are coming."}
+  - {by: Jayaprakash Narayan, text: "Total revolution is a combination of seven revolutions"}
+  - {by: Rajendra Prasad, text: "To gain freedom is not the end"}
+
+writers_philosophers:
+  - {by: Socrates, text: "The unexamined life is not worth living."}
+  - {by: Epictetus, text: "Men are disturbed not by the things which happen, but by the opinions about the things."}
+  - {by: Marcus Aurelius, text: "Waste no more time arguing about what a good man should be. Be one."}
+  - {by: Seneca the Younger, text: "It is not that we have a short space of time, but that we waste much of it."}
+  - {by: Laozi, text: "A journey of a thousand miles begins with a single step."}
+  - {by: Mark Twain, text: "Get your facts first, and then you can distort them as much as you please."}
+  - {by: Mark Twain, text: "The report of my death was an exaggeration."}
+  - {by: Mark Twain, text: "Always do right. This will gratify some people and astonish the rest."}
+  - {by: Mark Twain, text: "Whenever you find yourself on the side of the majority, it is time to pause and reflect."}
+  - {by: Oscar Wilde, text: "Experience is the name every one gives to their mistakes."}
+  - {by: Oscar Wilde, text: "I can resist everything except temptation."}
+  - {by: George Bernard Shaw, text: "Progress is impossible without change, and those who cannot change their minds cannot change anything."}
+  - {by: George Bernard Shaw, text: "The reasonable man adapts himself to the world: the unreasonable one persists in trying to adapt the world to himself."}
+  - {by: George Orwell, text: "To see what is in front of one's nose needs a constant struggle."}
+  - {by: George Orwell, text: "If liberty means anything at all, it means the right to tell people what they do not want to hear."}
+  - {by: George Orwell, text: "Good prose is like a windowpane."}
+  - {by: Ernest Hemingway, text: "The best way to find out if you can trust somebody is to trust them."}
+  - {by: Kurt Vonnegut, text: "We have to continually be jumping off cliffs and developing our wings on the way down."}
+  - {by: Maya Angelou, text: "There is no greater agony than bearing an untold story inside you."}
+  - {by: Toni Morrison, text: "If there's a book that you want to read, but it hasn't been written yet, then you must write it."}
+  - {by: Antoine de Saint-Exupéry, text: "Perfection is achieved, not when there is nothing more to add, but when there is nothing left to take away."}
+  - {by: Antoine de Saint-Exupéry, text: "What is essential is invisible to the eye."}
+  - {by: Voltaire, text: "The best is the enemy of the good."}
+  - {by: Blaise Pascal, text: "I have made this longer than usual because I have not had time to make it shorter."}
+  - {by: Henry David Thoreau, text: "Our life is frittered away by detail."}
+  - {by: Ralph Waldo Emerson, text: "A foolish consistency is the hobgoblin of little minds"}
+  - {by: Søren Kierkegaard, text: "Life can only be understood backwards; but it must be lived forwards."}
+  - {by: Friedrich Nietzsche, text: "He who has a why to live for can bear almost any how."}
+  - {by: Friedrich Nietzsche, text: "That which does not kill us makes us stronger."}
+  - {by: Albert Camus, text: "In the midst of winter, I found there was, within me, an invincible summer."}
+  - {by: Leo Tolstoy, text: "Everyone thinks of changing the world, but no one thinks of changing himself."}
+  - {by: Jane Austen, page: Pride and Prejudice, text: "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife."}
+  - {by: "William Shakespeare, Hamlet", page: Hamlet, text: "There is nothing either good or bad, but thinking makes it so."}
+  - {by: Bertrand Russell, text: "The fundamental cause of the trouble is that in the modern world the stupid are cocksure while the intelligent are full of doubt."}
+  - {by: Viktor Frankl, text: "Everything can be taken from a man but one thing: the last of the human freedoms"}
+  - {by: Daniel Kahneman, text: "Nothing in life is as important as you think it is, while you are thinking about it."}
+  - {by: Daniel Kahneman, text: "We can be blind to the obvious, and we are also blind to our blindness."}
+  - {by: Nassim Nicholas Taleb, text: "Wind extinguishes a candle and energizes fire."}
+  - {by: Winston Churchill, text: "Democracy is the worst form of Government except all those other forms that have been tried from time to time"}
+  - {by: Franklin D. Roosevelt, text: "The only thing we have to fear is fear itself"}
+  - {by: Theodore Roosevelt, text: "It is not the critic who counts"}
+  - {by: Nelson Mandela, text: "Education is the most powerful weapon which you can use to change the world."}
+  - {by: Martin Luther King Jr., text: "Injustice anywhere is a threat to justice everywhere."}
+  - {by: Martin Luther King Jr., text: "The time is always right to do what is right."}
+  - {by: Benjamin Franklin, text: "Lost time is never found again."}
+  - {by: Benjamin Franklin, text: "Well done is better than well said."}
+
+more:
+  # Economists
+  - {by: John Maynard Keynes, text: "In the long run we are all dead."}
+  - {by: John Maynard Keynes, text: "The difficulty lies, not in the new ideas, but in escaping from the old ones"}
+  - {by: Adam Smith, text: "It is not from the benevolence of the butcher, the brewer, or the baker, that we expect our dinner, but from their regard to their own interest."}
+  - {by: Milton Friedman, text: "Nothing is so permanent as a temporary government program."}
+  - {by: Friedrich Hayek, text: "The curious task of economics is to demonstrate to men how little they really know about what they imagine they can design."}
+  # Sport
+  - {by: Muhammad Ali, text: "Float like a butterfly, sting like a bee."}
+  - {by: Michael Jordan, text: "I've failed over and over and over again in my life. And that is why I succeed."}
+  - {by: Wayne Gretzky, text: "You miss 100% of the shots you don't take."}
+  - {by: Bruce Lee, text: "Be water, my friend."}
+  - {by: Sachin Tendulkar, text: "People throw stones at you and you convert them into milestones."}
+  - {by: Mahendra Singh Dhoni, text: "The process is more important than the results."}
+  # Art
+  - {by: Vincent van Gogh, text: "Great things are done by a series of small things brought together."}
+  - {by: Chuck Close, text: "Inspiration is for amateurs — the rest of us just show up and get to work."}
+  - {by: Pablo Picasso, text: "Inspiration exists, but it has to find you working."}
+  # Poets
+  - {by: Mary Oliver, text: "Tell me, what is it you plan to do with your one wild and precious life?"}
+  - {by: Robert Frost, text: "The best way out is always through."}
+  - {by: Robert Frost, text: "I took the one less traveled by, And that has made all the difference."}
+  - {by: Walt Whitman, text: "Do I contradict myself? Very well then I contradict myself, (I am large, I contain multitudes.)"}
+  - {by: Rainer Maria Rilke, text: "Be patient toward all that is unsolved in your heart and try to love the questions themselves"}
+  - {by: Kahlil Gibran, text: "Work is love made visible."}

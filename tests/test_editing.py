@@ -218,7 +218,7 @@ def test_tells_taken_out_of_drafts_again_and_again_become_style_rules(make_ctx):
     ctx.settings.drafting.editor_pass = False  # drafts arrive with their tells
     deliver.morning_delivery(ctx)
     cards = ctx.store.select("cards", "platform = 'linkedin' AND status = 'suggested'")
-    assert len(cards) == 3
+    assert len(cards) == 5
     for card in cards:  # the em dashes and the "Here's why:" go; the rest stays
         _post(ctx, card, card["draft"]["text"].replace(" — ", ", ").replace("Here's why: ", ""))
     post = ctx.store.select("posts", "platform = 'linkedin'")[0]
@@ -226,7 +226,7 @@ def test_tells_taken_out_of_drafts_again_and_again_become_style_rules(make_ctx):
     assert "dashes" not in post["edit_stats"]["tells_final"] and "contrast" in post["edit_stats"]["tells_final"]
     profile = voice.update_voice(ctx)
     tells = profile["stats"]["linkedin"]["tells"]
-    assert tells["cut"] == {"dashes": 3, "reveal": 3} and tells["avoid"] == ["dashes", "reveal"]
+    assert tells["cut"] == {"dashes": 5, "reveal": 5} and tells["avoid"] == ["dashes", "reveal"]
     assert tells["per_draft"] > tells["per_post"]
     assert "On LinkedIn, don't use em dashes: use a comma, a full stop or brackets." in profile["rules"]
     assert any(r.startswith("On LinkedIn, make the point without a label") for r in profile["rules"])
@@ -241,7 +241,7 @@ def test_tells_taken_out_of_drafts_again_and_again_become_style_rules(make_ctx):
 def test_a_tell_that_keeps_going_into_posts_by_hand_is_left_alone(make_ctx):
     ctx = make_ctx()
     deliver.morning_delivery(ctx)
-    for card in ctx.store.select("cards", "platform = 'x' AND status = 'suggested'")[:3]:
+    for card in ctx.store.select("cards", "platform = 'x' AND status = 'suggested' AND format = 'x_single'")[:3]:
         _post(ctx, card, "Approval steps first — then the agents — then the back office.")
     voice.update_voice(ctx)
     assert style.style_for(ctx, "x", "tech", "x_single").own_tells == ["dashes"]

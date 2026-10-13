@@ -8,6 +8,7 @@ Pillar: {{pillar_label}} — {{pillar_description}}
 Angle: {{angle}}
 {{format_instructions}}
 {{affairs_instructions}}
+{{post_type_instructions}}
 {{sensitive_instructions}}
 
 Style guide learned from his edits (follow it):

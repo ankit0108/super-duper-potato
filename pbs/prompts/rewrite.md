@@ -4,6 +4,7 @@ His note: "{{note}}"
 {{chips}}
 {{target_instructions}}
 {{format_instructions}}
+{{post_type_instructions}}
 
 Keep every fact tied to the same material and add no new facts. {{mode_rule}}
 Hashtags: start from "current_hashtags" (the ones he chose) and change them only if his note asks or they don't suit {{platform_label}}.

@@ -23,6 +23,24 @@ today's Bihar. It's drafted from the Wikipedia article (about 140 of them, a few
 `pbs/defaults/story_pools.yaml`), and it stays for about a week. Bihar news still comes as usual.
 `affairs.stories_per_day` in the settings changes the number (0 lets stories compete with the news on their own).
 
+**Funny posts, quotes and thoughts.** Every morning has at least one *Tech humour* card on LinkedIn: a light take
+on the day's tech news, or a relatable joke about building software, AI hype, demos, meetings or LinkedIn itself.
+On X, the *Funny* lane covers anything (news, work, cricket, Melbourne weather, family WhatsApp groups) and the
+*Quotes, excerpts and thoughts* lane brings a quote, a line worth quoting from the day's material, or one sharp
+thought. X has no fixed share for either: the ranking mixes them with the news and learns from what you pick, so
+skipping them makes them rarer and posting them makes them more common. The badge on a card says which kind it is
+(*Funny take*, *Relatable*, *Quote*, *Excerpt*, *Thought*).
+- A funny take keeps the facts to the sources; the joke is in the framing. A relatable post has no facts at all.
+  Nothing jokes about religion, caste, gender, a community, someone's appearance, a tragedy, a private person or
+  party politics, and a sensitive story is never made funny.
+- A quote is used only after its words are found on the author's Wikiquote page (outside the misattributed,
+  disputed and "about" sections). The first comment links to that page. If you change the quoted words, **Checks**
+  shows *Quote changed*: put them back or drop the quotation marks. The editor pass never rewrites a quote.
+- The premises, themes and quotes are in `pbs/defaults/humor_pools.yaml`, `thought_pools.yaml` and
+  `quote_pools.yaml`: add a line to add one. **Settings → Strategy** changes how much each lane gets; `pools` in the
+  settings changes how many premises and themes come up a day (0 turns one off), and the *Wikiquote: quotes worth
+  sharing* source on **Sources → Ideas** sets how many quotes are checked a day.
+
 **If a sentence sounds like AI.** The card's **Checks** tab lists *Sounds like AI* as you type ("It's not X, it's
 Y", "Here's why:", em dashes, emoji bullets, filler, every sentence the same length), and the tile shows a robot
 icon when the delivered draft still has one. Rewrite it in your own words. Before you see a draft, an editor pass
@@ -83,6 +101,8 @@ desk is where to look first.
 | A news source keeps failing | The doctor's `Sources` line names each failing source with its reason (HTTP 403 is usually a site refusing GitHub's servers). Swap it for a Google News query for the same outlet (`site:example.com when:2d`) on the Sources page |
 | A change you made "didn't stick" | **System → Rejected changes** lists anything the pipeline couldn't apply, with the reason. *Changes in flight* shows what's still waiting for a run |
 | A card is **Blocked** | It matched your blocklist. Nothing was reworded. Edit the draft by hand or skip it. If the match is a false positive, refine the term in `PBS_BLOCKLIST` |
+| No quote cards, or the run log says `quotes: 0 verified, 6 not found on Wikiquote` | The day's quotes weren't found word for word on their Wikiquote pages (a page renamed, or the quote worded differently there), so they were left out, as designed. A few not found each day is normal. If it's every quote, Wikiquote may be refusing GitHub's servers: the doctor's `Sources` line shows the source's error. Fix a quote's wording or `page` in `pbs/defaults/quote_pools.yaml` to match the page |
+| Too many or too few funny posts | **Settings → Strategy** sets each lane's share (LinkedIn's *Tech humour* keeps one card a day regardless: `strategy.linkedin.humor.min_per_day` in the settings, 0 to stop that). Skipping funny cards teaches the ranking to show fewer; posting them, more |
 | Drafts sound like AI | **Insights → Voice** shows AI tells per draft as the model wrote it and as shown to you, week by week, and which ones come up most. The run log has a line per draft, such as `edit: polished a linkedin draft (tells 2→0)` or `edit: kept the original draft of a linkedin card (added a figure the sources don't have)`: the editor never keeps a version that adds or drops a figure, claims an experience, or rewrites more than half the post. `edit: skipped … (budget)` means the run was short on model calls, and drafts come first. Taking the pattern out when you edit teaches the drafter; **Settings → Writing** turns the editor pass off or caps it |
 | Drafts suddenly need more editing | **Insights → Weekly report** shows edit ratio by prompt and playbook version. Remove the playbook rule that made things worse (**Insights → Playbook**), or **Settings → Learning → Freeze learning** while you review |
 | Want another set today | **Get fresh posts** on the board |
@@ -104,7 +124,8 @@ saved, so a crash mid-run can't lose your actions.
 ## Costs and limits
 
 Everything runs on free tiers: Actions minutes (unlimited on a public repo), Pages, Gemini and Groq, and free
-news sources. A normal day uses about 15–25 model calls, with a hard cap of 60 in settings; each cross-post is
+news sources. A normal day uses about 25–40 model calls (15 drafts, triage in two or three batches, and the editor
+pass), with a hard cap of 100 in settings; each cross-post is
 one more, as is each visual, each draft the editor pass rewrites (at most 12 a run, and only when the run has
 calls to spare), and the monthly platform research one. The one upgrade worth paying for, if drafts
 stay generic after a month, is a stronger drafting model: **Settings → Models**.

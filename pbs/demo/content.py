@@ -32,7 +32,8 @@ TRIAGE: dict[str, dict[str, Any]] = {
     "small models": {"linkedin": ("research", 3, "Distilled tool use makes small agents viable for on-prem work"),
                      "x": ("tech", 3, "x_single", "A 3B model keeping 90% of the teacher's tool-use accuracy")},
     "exception handling": {"linkedin": ("research", 4, "Exceptions are the real process, and now there's a benchmark for it"),
-                           "x": ("none", 1, "x_single", "")},
+                           "x": ("ideas", 4, "x_single", "The paper's own line says what to measure: recovery"),
+                           "x_post_type": "excerpt"},
     "streamable http": {"linkedin": ("learning", 3, "What changed in MCP's Python SDK and why remote servers matter"),
                         "x": ("tech", 2, "x_single", "MCP remote servers get resumable streams")},
     "industrial corridors": {"linkedin": ("none", 1, ""), "x": ("affairs", 5, "x_thread", "Three corridors along the expressways: what's planned and what to watch", "tracker")},
@@ -49,7 +50,8 @@ TRIAGE: dict[str, dict[str, Any]] = {
     "insurance claims": {"linkedin": ("industry", 3, "Claims automation is where AI startups are finding revenue"),
                          "x": ("startups", 4, "x_single", "4x faster claims is the kind of number buyers ask about")},
     "yc's latest batch": {"linkedin": ("industry", 3, "Two-thirds of a YC batch builds workflow agents"),
-                          "x": ("startups", 4, "x_thread", "105 of 160: what the YC batch says about agents")},
+                          "x": ("humor", 4, "x_single", "105 of 160 build agents: who manages the agents?"),
+                          "x_post_type": "funny_take"},
 }
 
 HINDI_TITLES = {
@@ -214,7 +216,9 @@ X_DRAFTS: dict[str, dict[str, Any]] = {
     "patna metro": {"x_single": {"text": "Patna Metro's priority corridor is set to open to passengers next month. The test comes after launch: frequency, last-mile links, and ridership."}},
     "legislative assembly": {"x_single": {"text": "On this day in 1952, the first session of the Bihar Legislative Assembly was convened in Patna."}},
     "insurance claims": {"x_single": {"text": "A Bengaluru AI startup raised $30M to automate insurance claims and says they're processed 4x faster. The real question: 4x faster on which claims?"}},
-    "yc's latest batch": {"x_thread": {"posts": ["Of 160 companies in YC's latest batch, roughly 105 build agents for specific business workflows.",
+    "exception handling": {"x_single": {"text": "From a new paper on agents in business processes: \u201cWe study how LLM agents recover from exceptions in invoice, KYC and claims workflows.\u201d Recovery is the part worth measuring. The happy path was never the hard part."}},
+    "yc's latest batch": {"x_single": {"text": "Of 160 companies in YC's latest batch, roughly 105 build agents for specific business workflows. Somewhere in the rest is the startup selling agents that manage all those agents."},
+                          "x_thread": {"posts": ["Of 160 companies in YC's latest batch, roughly 105 build agents for specific business workflows.",
                                                  "Not assistants. Workflow owners: one process, end to end.",
                                                  "That's how enterprise automation has always won: depth in one process beats breadth across many.",
                                                  "The shared hard part for all 105: integration, exceptions, and trust."]}},
@@ -248,9 +252,10 @@ def _triage(req: LLMRequest, data: Any) -> Any:
             "sensitive": key == "stampede",
             "sensitive_reason": "reports deaths in a stampede" if key == "stampede" else "",
             "issue_key": spec.get("issue"),
-            "linkedin": {"pillar": li[0], "angle_potential": li[1], "angle": li[2], "format_note": ""},
+            "linkedin": {"pillar": li[0], "angle_potential": li[1], "angle": li[2], "format_note": "",
+                         "post_type": spec.get("li_post_type")},
             "x": {"lane": x[0], "angle_potential": x[1], "angle": x[3], "format": x[2],
-                  "affairs_type": x[4] if len(x) > 4 else None},
+                  "affairs_type": x[4] if len(x) > 4 else None, "post_type": spec.get("x_post_type")},
         })
     return {"topics": out}
 
@@ -318,6 +323,9 @@ def _draft(req: LLMRequest, data: Any) -> Any:
         if platform == "linkedin":
             return _li_out(REQUEST_LINKEDIN, data)
         return _x_out(REQUEST_X.get(fmt) or REQUEST_X["x_single"], fmt, REQUEST_LINKEDIN, data)
+    typed = _typed(req, data)
+    if typed is not None:
+        return typed
     topic = f"{title} {' '.join(s.get('title', '') for s in data.get('sources', [])[:2])}"
     if platform == "linkedin":
         key = _key_for(title, LINKEDIN) or _key_for(topic, LINKEDIN)
@@ -329,6 +337,87 @@ def _draft(req: LLMRequest, data: Any) -> Any:
             variants = X_DRAFTS[key]
             return _x_out(variants.get(fmt) or next(iter(variants.values())), fmt, LINKEDIN.get(key, {}), data)
     return DEFAULT_HANDLERS["draft"](req, data)
+
+
+# Funny posts, quotes and thoughts (pbs/posttypes.py) for the pool entries the demo's last morning draws.
+POOL_DRAFTS: dict[str, dict[str, str]] = {
+    "the bug that only appears when you share your screen": {
+        "linkedin": ("Every bug has a favourite audience.\n\nYou can run the same flow forty times alone and it "
+                     "works forty times. Then someone says \"can you just show me?\", you share your screen, and the "
+                     "bug walks on stage like it has been rehearsing all week.\n\nWe should start booking it for "
+                     "demos. It never misses one."),
+        "x": "A bug that only appears when you share your screen has better timing than most of us."},
+    "a hackathon project that becomes a \"strategic initiative\" by monday": {
+        "linkedin": ("Friday, 4pm: a hackathon project held together with one script and a lot of optimism.\n\n"
+                     "Monday, 9am: a strategic initiative with a steering committee, a roadmap and a name in "
+                     "capital letters.\n\nThe script is still holding it together. Nobody has told the steering "
+                     "committee."),
+        "x": "Friday: a hackathon project held together by one script. Monday: a strategic initiative. The script is still holding it together."},
+    "the ai startup whose moat is a prompt and a very good logo": {
+        "linkedin": ("Every investor asks about the moat.\n\nSome teams have proprietary data. Some have years of "
+                     "integrations. And some have a very well written prompt and a logo with a gradient in it.\n\n"
+                     "To be fair to the logo, it is doing a lot of work."),
+        "x": "Some AI startups have proprietary data. Some have a moat made of one good prompt and a logo with a gradient. The logo is doing a lot of work."},
+    "\"it works on my machine\" is a complete sentence and also a deployment strategy": {
+        "linkedin": ("\"It works on my machine\" is the shortest complete sentence in software.\n\nIt is also, "
+                     "quietly, a deployment strategy: ship the machine.\n\nWhich, if you think about it, is how we "
+                     "ended up with containers."),
+        "x": "\"It works on my machine.\" Great, we'll ship your machine. (This is roughly how containers happened.)"},
+    "every benchmark is state of the art on the benchmark it was built for": {
+        "x": "Every new model is state of the art. On the benchmark its team picked. Measured by its team. Reported in its launch post."},
+    "melbourne weather offering all four seasons before lunch, and a fifth one after": {
+        "x": "Melbourne weather today: spring before breakfast, winter by morning tea, summer at lunch, and something new this afternoon that scientists are still naming."},
+    "the new framework that solves every problem the old framework created": {
+        "x": "A new JavaScript framework solves every problem the last one created. The next one is already in a README somewhere, solving this one."},
+    "every founder bio says \"serial entrepreneur\", which mostly means \"tried before\"": {
+        "x": "\"Serial entrepreneur\" is a lovely way of saying \"has done this before, and we don't talk about how it went\"."},
+    "the small kindness of strangers in a new city": {
+        "x": "You learn a city through the stranger who walks you to the right tram stop. Maps get you there; people make you want to stay."},
+    "measuring what matters versus measuring what's easy": {
+        "x": "Teams measure what's easy to count, then slowly start optimising for it. Pick the number that would embarrass you if it fell, and watch that one."},
+}
+QUOTE_THOUGHTS = {
+    "Chuck Close": "Most good work starts on the days you don't feel like it.",
+    "Ben Horowitz": "True of most hard problems in a company, and of most AI projects in production.",
+    "Eric S. Raymond": "Still the best argument for open source, and for code review.",
+    "Benjamin Franklin": "Worth remembering before the next meeting without an agenda.",
+    "Chanakya": "Written in Magadha over two thousand years ago, and still the best test of any government.",
+    "John Gall": "Every system that works started small. Start with the version that works, then grow it.",
+}
+_QUOTE_IN = re.compile("^(.+?): \u201c(.+?)\u201d")
+_TYPE_IN_PROMPT = {"Post type: a quote.": "quote", "Post type: a relatable funny observation": "observation",
+                   "Post type: a thought.": "thought", "Post type: a funny take": "funny_take",
+                   "Post type: an excerpt.": "excerpt"}
+
+
+def _typed(req: LLMRequest, data: dict[str, Any]) -> dict[str, Any] | None:
+    """Drafts for the humour and ideas lanes: from POOL_DRAFTS, or the quote with a line of its own."""
+    kind = next((k for marker, k in _TYPE_IN_PROMPT.items() if marker in req.prompt), None)
+    platform = data.get("platform") or "x"
+    title = (data.get("topic") or "").strip().rstrip(".").casefold()
+    if kind == "quote":
+        summary = (data.get("sources") or [{}])[0].get("summary") or ""
+        m = _QUOTE_IN.match(summary)
+        if not m:
+            return None
+        by, quote = m.group(1), m.group(2)
+        thought = QUOTE_THOUGHTS.get(by, "Worth rereading before the next plan gets made.")
+        return {"text": f"\u201c{quote}\u201d \u2014 {by}\n\n{thought}", "posts": [], "hook_type": "observation",
+                "hooks": [{"type": "observation", "text": f"\u201c{quote}\u201d"},
+                          {"type": "question", "text": f"What would {by} make of how we work now?"},
+                          {"type": "story", "text": f"{by} said it first."}],
+                "claims": [{"text": quote, "source": 0}], "hashtags": [], "format_note": "",
+                "angle": data.get("angle") or ""}
+    if kind in ("observation", "thought"):
+        text = (POOL_DRAFTS.get(title) or {}).get(platform)
+        if text is None:
+            return None
+        if platform == "linkedin":
+            first = text.split("\n")[0]
+            return _li_out({"text": text, "hooks": [("observation", first), ("question", "Is it just me?"),
+                                                     ("story", "It happened again this week.")], "claims": []}, data)
+        return _x_out({"text": text}, data.get("format"), {}, data)
+    return None
 
 
 def _li_out(d: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:

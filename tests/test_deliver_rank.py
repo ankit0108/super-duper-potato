@@ -13,7 +13,7 @@ from pbs.rank import Candidate, allocate, build_candidates, build_memory
 def test_morning_delivery_fills_slots_with_caps(make_ctx):
     ctx = make_ctx()
     res = morning_delivery(ctx)
-    assert res["counts"] == {"linkedin": 3, "x": 6}
+    assert res["counts"] == {"linkedin": 5, "x": 10}
     cards = ctx.store.select("cards", "delivery_id = ?", (res["id"],))
     for platform in ("linkedin", "x"):
         mine = [c for c in cards if c["platform"] == platform]

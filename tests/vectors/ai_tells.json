@@ -186,6 +186,30 @@
    "name": "a clean post",
    "text": "Agents finished 41% of real back-office tasks in AgentBench-Enterprise. The failures cluster around exceptions: a missing PO, a duplicate vendor, a currency mismatch. If you're piloting agents in finance ops, collect fifty of your own exceptions before you look at any vendor demo.",
    "kinds": []
+  },
+  {
+   "name": "a quoted line is someone else's words",
+   "text": "Feynman put it plainly: “The first principle is that you must not fool yourself — and you are the easiest person to fool — so be careful.” Worth rereading before any launch review.",
+   "kinds": []
+  },
+  {
+   "name": "straight quotes too",
+   "text": "Her advice: \"It's not about speed, it's about trust.\" We printed it on the wall.",
+   "kinds": []
+  },
+  {
+   "name": "outside the quote still counts",
+   "text": "“Real artists ship.” — Steve Jobs. It's not about speed, it's about trust.",
+   "kinds": [
+    "contrast"
+   ]
+  },
+  {
+   "name": "two quoted words don't hide anything",
+   "text": "They called it \"not just\" a launch — a moment — a shift.",
+   "kinds": [
+    "dashes"
+   ]
   }
  ]
 }

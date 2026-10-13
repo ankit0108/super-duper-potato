@@ -16,12 +16,14 @@ import { Tabs } from "@/components/ui/Tabs";
 // Store selectors must return stable references (zustand 5), so fallbacks live outside them.
 const NONE: never[] = [];
 
-type Scout = "tech" | "affairs" | "startups" | "life";
+type Scout = "tech" | "affairs" | "startups" | "life" | "humor" | "ideas";
 const SCOUTS: Array<{ value: Scout; label: string }> = [
   { value: "tech", label: "Tech & AI" },
   { value: "affairs", label: "Affairs" },
   { value: "startups", label: "Startups" },
   { value: "life", label: "Life" },
+  { value: "humor", label: "Humour" },
+  { value: "ideas", label: "Ideas" },
 ];
 const KIND_LABEL: Record<string, string> = {
   rss: "RSS",
@@ -32,6 +34,7 @@ const KIND_LABEL: Record<string, string> = {
   hn_show: "Show HN",
   wikipedia_otd: "Wikipedia",
   wikipedia_pool: "Wikipedia stories",
+  wikiquote_pool: "Wikiquote quotes",
   reddit: "Reddit",
 };
 
@@ -139,7 +142,7 @@ export function Sources() {
   const [adding, setAdding] = useState(false);
   const [replacing, setReplacing] = useState<Source | undefined>();
   const grouped = useMemo(() => {
-    const out: Record<Scout, Source[]> = { tech: [], affairs: [], startups: [], life: [] };
+    const out: Record<Scout, Source[]> = { tech: [], affairs: [], startups: [], life: [], humor: [], ideas: [] };
     for (const s of sources) (out[s.scout as Scout] ?? out.tech).push(s);
     for (const k of Object.keys(out) as Scout[]) out[k].sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name));
     return out;
@@ -160,7 +163,13 @@ export function Sources() {
       </header>
       <Tabs label="Scouts" value={scout} onChange={setScout} items={SCOUTS.map((s) => ({ ...s, count: grouped[s.value].length }))} />
       {grouped[scout].length === 0 ? (
-        <Empty title="No sources for this scout">{scout === "life" ? "Life posts come from interview questions, not feeds." : "Add a feed or a Google News query."}</Empty>
+        <Empty title="No sources for this scout">
+          {scout === "life"
+            ? "Life posts come from interview questions, not feeds."
+            : scout === "humor"
+              ? "Funny takes come from the day's news in every scout, and relatable premises from the humour pool. Add a humour or satire feed you like and it's ranked for the funny lanes."
+              : "Add a feed or a Google News query."}
+        </Empty>
       ) : (
         <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
           {grouped[scout].map((s) => {

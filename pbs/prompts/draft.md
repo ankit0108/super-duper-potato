@@ -4,6 +4,7 @@ Pillar: {{pillar_label}} — {{pillar_description}}
 Angle to develop: {{angle}}
 {{format_instructions}}
 {{affairs_instructions}}
+{{post_type_instructions}}
 {{mode_instructions}}
 {{sensitive_instructions}}
 {{experiment_instructions}}

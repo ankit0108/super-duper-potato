@@ -35,6 +35,8 @@ def parse(source: dict[str, Any], content: bytes, local_date: str | None = None)
         return _parse_otd(content, local_date)
     if kind == "wikipedia_pool":
         return _parse_pool(content)
+    if kind == "wikiquote_pool":
+        return _parse_quotes(source, content, local_date)
     return []
 
 
@@ -204,3 +206,63 @@ def _parse_pool(content: bytes) -> list[RawItem]:
             "signals": {"evergreen": 1},
         })
     return items
+
+
+def _parse_quotes(source: dict[str, Any], content: bytes, local_date: str | None) -> list[RawItem]:
+    """The day's quotes (sources.todays_quotes) found word for word on their author's Wikiquote page, outside the
+    misattributed, disputed and "about" sections. A quote that isn't there is left out and counted in the log, so
+    a misattributed or misremembered quote never reaches a card."""
+    from .. import log, pools
+    from .sources import todays_quotes
+
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError:
+        return []
+    query = (data.get("query") or {}) if isinstance(data, dict) else {}
+    # A page asked for by another name: the pool's title -> the page's title.
+    renamed = {r.get("from"): r.get("to") for r in [*(query.get("normalized") or []), *(query.get("redirects") or [])]
+               if isinstance(r, dict)}
+    pages: dict[str, dict[str, Any]] = {}
+    raw_pages = query.get("pages") or []
+    for page in raw_pages.values() if isinstance(raw_pages, dict) else raw_pages:
+        if isinstance(page, dict) and page.get("title") and not page.get("missing"):
+            pages[page["title"]] = page
+    quotes = todays_quotes(local_date, int(source.get("max_items") or 6))
+    items: list[RawItem] = []
+    missing: list[str] = []
+    for q in quotes:
+        title = q["page"]
+        for _ in range(3):
+            title = renamed.get(title, title)
+        page = pages.get(title)
+        wikitext = _page_text(page) if page else ""
+        if not wikitext or not pools.found_in(q["text"], wikitext):
+            missing.append(q["id"])
+            continue
+        url = page.get("fullurl") or f"https://en.wikiquote.org/wiki/{title.replace(' ', '_')}"
+        who = pools.lead_sentence(wikitext)
+        items.append({
+            "url": url,
+            # Each quote is its own item, though several can share an author's page.
+            "canonical": f"{textutil.canonical_url(url)}#q-{q['id']}",
+            "title": textutil.truncate(f"\u201c{q['text']}\u201d \u2014 {q['by']}", 240),
+            "summary": textutil.truncate(
+                f"{q['by']}: \u201c{q['text']}\u201d (word for word on Wikiquote's page for {title}). {who}".strip(), 900),
+            "published_at": None,
+            "lang": "en",
+            "publisher": "Wikiquote",
+            "signals": {"evergreen": 1, "quote": 1, "x_only": 1, "solo": 1},
+        })
+    log.info(f"quotes: {len(items)} verified, {len(missing)} not found on Wikiquote"
+             + (f" ({', '.join(missing)})" if missing else ""))
+    return items
+
+
+def _page_text(page: dict[str, Any]) -> str:
+    revs = page.get("revisions") or []
+    if not revs or not isinstance(revs[0], dict):
+        return ""
+    rev = revs[0]
+    main = ((rev.get("slots") or {}).get("main") or {}) if isinstance(rev.get("slots"), dict) else {}
+    return str(main.get("content") or main.get("*") or rev.get("content") or rev.get("*") or "")

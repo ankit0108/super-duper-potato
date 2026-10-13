@@ -1,0 +1,137 @@
+# Premises for relatable funny posts (pbs/pools.py): a few a day come up for ranking next to the news, in the
+# humour lanes (LinkedIn "Tech humour", X "Funny"). The drafter writes the joke fresh from the premise: no facts or
+# figures, no made-up experiences, and the joke is never on a community, a customer, a colleague or an employer.
+#
+# `platforms` says where a group can go. Add a premise as one line; a premise you post doesn't come back.
+
+work:
+  platforms: [linkedin, x]
+  premises:
+    - Every AI demo works perfectly until someone in the room asks a follow-up question.
+    - The two hardest problems in software are naming things and agreeing on what the thing was called last sprint.
+    - '"It works on my machine" is a complete sentence and also a deployment strategy.'
+    - The meeting that could have been an email now has a follow-up meeting to discuss the email.
+    - Every project plan has a phase called "integration" that is secretly the whole project.
+    - Prompt engineering is mostly saying "please" and "be concise" in increasingly desperate ways.
+    - The confidence of a chatbot explaining something it just made up.
+    - A product launch where the roadmap slide has more arrows than the product has features.
+    - Every legacy system was someone's elegant new architecture once.
+    - The bug that only appears when you share your screen.
+    - Estimating a task as "two days", which is a unit of time that means "I have no idea".
+    - The feature everyone asked for, that nobody uses, that nobody is allowed to remove.
+    - A standup where everyone is blocked by someone who is also in the standup.
+    - Release notes that say "bug fixes and performance improvements" and nothing else, forever.
+    - The dashboard everyone screenshots and nobody reads.
+    - Calling it an "agent" when it's a script with ambition.
+    - The new framework that solves every problem the old framework created.
+    - Every benchmark is state of the art on the benchmark it was built for.
+    - Spending a day automating a task that takes five minutes, and feeling great about it.
+    - The pull request titled "small fix" that touches 47 files.
+    - The documentation is up to date as of the moment it was written.
+    - A "quick sync" that is neither quick nor, in any meaningful way, a sync.
+    - Every company's AI strategy slide has the same three icons on it.
+    - The intern who asks "why do we do it this way?" and nobody has an answer.
+    - Renaming a product instead of fixing it.
+    - The error message that just says "Something went wrong" with total serenity.
+    - Turning it off and on again remains the most reliable fix in computing.
+    - The spreadsheet that runs a billion-dollar process and lives on one person's desktop.
+    - Adding "AI-powered" to a product page the way restaurants add "artisanal" to bread.
+    - The password rules that require a symbol, a number and the patience of a saint.
+    - The calendar invite with no agenda, sent by someone who will be "a few minutes late".
+    - Code reviews where the only comment is about a missing full stop.
+    - When the chatbot apologises more sincerely than any human in the support queue.
+    - Every engineer has a side project that is 90 percent setup and 10 percent abandoned.
+    - The tutorial that skips from "install the package" straight to the finished app.
+    - Reading the docs only after trying everything else.
+    - Keyboard shortcuts you learn once and then forget at the exact moment someone is watching.
+    - Everyone's favourite feature of the new tool is the dark mode.
+    - The "temporary" workaround that has outlived three reorganisations.
+    - '"We should write tests for this" as a team value rather than an activity.'
+    - LinkedIn posts that start with a personal story and end with a lesson about B2B sales.
+    - LinkedIn, where every job change is "a new chapter" and every chapter is "humbled and excited".
+    - Being asked for "a rough estimate" which will be treated as a signed contract.
+    - The AI that summarises the meeting nobody needed into notes nobody reads.
+    - Every captcha now asks you to prove you're human to a machine that's better at it than you are.
+    - Autocorrect confidently fixing the one word you typed correctly.
+    - The Wi-Fi that's perfect everywhere except the room with the important call.
+    - A hackathon project that becomes a "strategic initiative" by Monday.
+    - Version 2.0 of anything is version 1.0 with the apology built in.
+    - The keynote demo that was pre-recorded, and everyone knows, and nobody says.
+    - Copying a fix from a forum answer written eleven years ago by someone named "dave_1987".
+    - Explaining your job to your parents, and settling on "computer things".
+    - The model that writes a sonnet in seconds but can't count the letters in "strawberry".
+    - Every data project starts as AI and ends as cleaning a spreadsheet.
+    - Taking a screenshot of an error message to send to the person sitting next to you.
+    - The new laptop that is perfect until you install everything your job needs.
+    - '"Let''s take this offline", which means it will never be discussed again.'
+    - The product manager's favourite word is "just", as in "can we just add one more thing".
+    - Every slide deck has one slide that is just a quote, centred, in italics.
+    - The AI agent that books the meeting, attends the meeting and sends the follow-up to another AI agent.
+
+startups:
+  platforms: [linkedin, x]
+  premises:
+    - Every startup pitch is "Uber for something" until the Uber of that something pivots to B2B.
+    - The pivot announcement written in the tone of a wedding speech.
+    - A startup's office has a slide, a ping-pong table and a runway of nine months.
+    - Raising money to build a product so you can raise money to find the customers.
+    - Every founder bio says "serial entrepreneur", which mostly means "tried before".
+    - The demo day where every company is "the operating system for" something.
+    - '"We''re a family here", said every company before the reorg.'
+    - Valuations that go up faster than the number of customers.
+    - Launching on a Friday because the deadline said so and the weekend said otherwise.
+    - The stealth startup whose stealth is mostly that nobody knows what it does, including the founders.
+    - Every startup's culture deck promises "radical candour" and delivers a feedback form.
+    - Product-market fit, described by people who have not yet found it.
+    - The startup that solves a problem you didn't know you had, by creating one you definitely have now.
+    - Growth hacking, which is marketing wearing a hoodie.
+    - A seed round, a Series A and a Series "let's not talk about it".
+    - The founder who answers every question with "great question" and then a different question.
+    - Every new app wants permission to send notifications before it has told you what it does.
+    - Subscription pricing, where the free plan is a trailer for the paid plan.
+    - The AI startup whose moat is a prompt and a very good logo.
+    - '"Bootstrapped" as the most humblebrag word in tech.'
+
+life:
+  platforms: [x]
+  premises:
+    - Melbourne weather offering all four seasons before lunch, and a fifth one after.
+    - Bringing a jacket in Melbourne is not a choice, it's a lifestyle.
+    - The family WhatsApp group where every good-morning message has a sunrise and a flower.
+    - The forward in the family group that begins with "Very important, please share".
+    - Indian parents asking "beta, what is the salary" before asking what the job is.
+    - Every Indian wedding has an uncle who thinks he is the DJ.
+    - Growing up in Bihar, where litti chokha is an answer to every question including "what's wrong".
+    - Explaining to friends abroad that chhath is not a festival you attend, it's one you prepare for for weeks.
+    - The Indian mother who says "I'm not hungry" and then finishes everyone's leftovers.
+    - The relative who asks about your marks, your job and your marriage in one breath.
+    - Every Indian household has a plastic bag full of plastic bags.
+    - The steel tiffin that has outlived three generations of lunch.
+    - Cricket in the family is not a sport, it's a shared emotional condition.
+    - A one-day match is a full day; a Test match is a lifestyle choice.
+    - Every gully cricket game has a kid who owns the bat and therefore cannot be out.
+    - The tea stall uncle who knows more about the economy than most economists.
+    - Indian trains where the person in the next seat becomes family by the second station.
+    - Calling home from Melbourne and timing it around three time zones and one grandmother's TV serial.
+    - Packing for a trip home is mostly packing things other people asked for.
+    - The airport goodbye where your mother hands you food for a seven-hour flight that serves food.
+    - Monsoon in Patna, when every road becomes a river with ambitions.
+    - Every Bihari has explained, at least once, that Bihar has more history than most countries.
+    - The Diwali clean-up that finds things you lost three Diwalis ago.
+    - Holi, when you discover colours that will stay on your skin until next Holi.
+    - The neighbour who still borrows sugar, in the age of ten-minute delivery.
+    - Indian auto drivers who know shortcuts that don't exist on any map.
+    - Board exam season, when every relative becomes a career counsellor.
+    - The coaching-centre posters in Patna that promise every student will become an IAS officer.
+    - Ordering coffee in Melbourne requires more decisions than buying a car.
+    - Australians saying "no worries" in situations that clearly involve worries.
+    - Melbourne trams that arrive in threes after you've given up on the first one.
+    - The Aussie barbecue where the vegetarian option is bread.
+    - Dad jokes in Hindi that can't be translated and are better for it.
+    - Every Indian family trip includes one stop that "won't take long".
+    - Mango season, when the whole family becomes an expert on which variety is best.
+    - The rail ticket waitlist number that is somehow higher than the train's seats.
+    - When the power cut ends during a cricket final and the whole street cheers.
+    - The shaadi invitation that comes with a box of sweets heavier than the card.
+    - Finding Indian groceries abroad and paying four times the price with joy.
+    - Grandparents who learned video calls only to show you the ceiling fan.

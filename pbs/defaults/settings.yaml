@@ -20,15 +20,15 @@ delivery:
 platforms:
   linkedin:
     enabled: true
-    slots: 3
-    min_slots: 2
+    slots: 5
+    min_slots: 3
     max_interview_per_day: 1
     char_limit: 3000
     fold_chars: 210
   x:
     enabled: true
-    slots: 6
-    min_slots: 4
+    slots: 10
+    min_slots: 6
     max_interview_per_day: 1
     premium: false
     char_limit: 280
@@ -49,7 +49,7 @@ strategy:
   linkedin:
     receipts:
       label: Firsthand receipts
-      weight: 0.30
+      weight: 0.25
       mode: interview
       formats: [li_text]
       scouts: [tech]
@@ -62,7 +62,7 @@ strategy:
         power automate, blue prism, process mining, orchestration, adoption, roi, governance, production]
     research:
       label: Research and state of the art
-      weight: 0.25
+      weight: 0.20
       mode: external
       formats: [li_text]
       scouts: [tech]
@@ -75,7 +75,7 @@ strategy:
         hugging face, preprint, lab]
     industry:
       label: Industry news, with a take
-      weight: 0.25
+      weight: 0.20
       mode: external
       formats: [li_text]
       scouts: [tech, startups]
@@ -91,7 +91,7 @@ strategy:
         servicenow, digital public infrastructure, indiaai]
     learning:
       label: Learning in public
-      weight: 0.20
+      weight: 0.15
       mode: interview
       formats: [li_text]
       scouts: [tech]
@@ -100,10 +100,26 @@ strategy:
       keywords: [agents, agent, agentic, mcp, model context protocol, evals, tool calling, function calling, sdk,
         framework, langgraph, langchain, llamaindex, open source, tutorial, prototype, rag, retrieval, prompt,
         prompting, forward deployed, coding agent, claude code, cursor, workflow builder]
+    humor:
+      label: Tech humour
+      weight: 0.20
+      mode: external
+      # At least one funny post every morning.
+      min_per_day: 1
+      formats: [li_text]
+      scouts: [humor]
+      description: >-
+        Funny, work-safe posts about tech and work: a light take on today's tech, AI or startup news (the facts from
+        the sources, the joke in the framing), or a relatable observation about building software, AI hype, demos,
+        meetings, naming things and LinkedIn itself. Never mean, never about customers, colleagues or employers.
+      post_types: {funny_take: Funny take, observation: Relatable}
+      keywords: [joke, funny, meme, hype, buzzword, demo, standup, meeting, deadline, jira, bug, debugging, chatbot,
+        hallucination, prompt engineering, rebrand, rename, pivot, slide deck, roadmap, sprint, legacy code, outage,
+        captcha, keynote]
   x:
     tech:
       label: Tech and AI
-      weight: 0.35
+      weight: 0.25
       mode: external
       formats: [x_single, x_thread, x_quote, x_reply]
       scouts: [tech]
@@ -112,7 +128,7 @@ strategy:
         programming, chip, apple, robotics, open source, benchmark, release, launch]
     affairs:
       label: World, India and Bihar affairs
-      weight: 0.30
+      weight: 0.20
       mode: external
       formats: [x_single, x_thread, x_quote, x_reply]
       scouts: [affairs]
@@ -125,7 +141,7 @@ strategy:
         census, caste, reservation, education, health, migration, history, culture, बिहार, पटना, सरकार]
     startups:
       label: Startups
-      weight: 0.20
+      weight: 0.15
       mode: external
       formats: [x_single, x_thread, x_quote, x_reply]
       scouts: [startups, tech]
@@ -134,12 +150,38 @@ strategy:
         venture, unicorn, y combinator, accelerator, acquisition, bootstrapped, arr, saas, fintech, d2c]
     life:
       label: Life
-      weight: 0.15
+      weight: 0.10
       mode: interview
       formats: [x_single, x_thread]
       scouts: [life]
       description: Personal observations and experiences. Interview mode only.
       keywords: [festival, chhath, diwali, holi, cricket, melbourne, family, travel, food, books, habit, lesson]
+    humor:
+      label: Funny
+      weight: 0.15
+      mode: external
+      formats: [x_single, x_quote]
+      scouts: [humor]
+      description: >-
+        Funny posts about anything: a light take on today's news from any lane (the facts from the sources, the joke
+        in the framing), or a relatable observation about tech, work, startups, cricket, Melbourne weather, family
+        WhatsApp groups or growing up in Bihar, told with affection. The joke is never on a community or a person.
+      post_types: {funny_take: Funny take, observation: Relatable}
+      keywords: [joke, funny, meme, viral, hype, buzzword, rebrand, rename, keynote, demo, chatbot, hallucination,
+        whatsapp, captcha, autocorrect]
+    ideas:
+      label: Quotes, excerpts and thoughts
+      weight: 0.15
+      mode: external
+      formats: [x_single, x_thread]
+      scouts: [ideas]
+      description: >-
+        Insight in a line or two: a quote from someone worth quoting (checked word for word on Wikiquote), a short
+        excerpt from a paper, essay, speech or long read with what it means, or one sharp thought of his own on work,
+        learning, building or Bihar.
+      post_types: {quote: Quote, excerpt: Excerpt, thought: Thought}
+      keywords: [essay, speech, lecture, letter, interview, memoir, book, philosophy, principle, lesson, wisdom,
+        commencement, obituary, profile]
 
 affairs:
   # Post types for the affairs lane. `opinion` needs a recorded stance or interview answers.
@@ -153,6 +195,13 @@ affairs:
   # X slots a day kept for the best evergreen story (Bihar from ancient Magadha to today: story_pools.yaml), so
   # Bihar posts aren't only this week's headlines. 0 lets stories compete with the news on their own.
   stories_per_day: 1
+
+pools:
+  # Material that isn't news, a few entries a day each, ranked next to the news: premises for a relatable funny post
+  # (humor_pools.yaml: tech and work on both platforms, life on X only) and themes for a thought (thought_pools.yaml,
+  # X). Quotes come from the "Wikiquote: quotes worth sharing" source. 0 turns a pool off.
+  humor: 4
+  thoughts: 2
 
 hooks:
   types: [question, contrarian, number, story, how-to, observation]
@@ -170,10 +219,11 @@ scouting:
   max_items_per_source: 40
   item_retention_days: 45
   dedup_window_days: 7
-  lookback_hours: {tech: 72, affairs: 48, startups: 72, life: 168}
+  lookback_hours: {tech: 72, affairs: 48, startups: 72, life: 168, humor: 72, ideas: 72}
   cluster_threshold: 0.32
-  shortlist_per_platform: 12
-  candidates_per_scout: {tech: 30, affairs: 24, startups: 12, life: 6}
+  # Topics per platform sent to triage (in batches): enough to fill ten X slots after triage drops some.
+  shortlist_per_platform: 18
+  candidates_per_scout: {tech: 30, affairs: 24, startups: 12, life: 6, humor: 6, ideas: 6}
   per_source_cap: 8
   pause_after_failure_days: 7
   pause_after_zero_yield_weeks: 4
@@ -184,7 +234,7 @@ ranking:
   resuggest_block_days: 3
   diversity_arm_penalty: 0.7
   weights: {fit: 1.0, timeliness: 1.0, momentum: 0.8, novelty: 1.0}
-  timeliness_half_life_hours: {tech: 30, affairs: 20, startups: 36, life: 168, research: 96}
+  timeliness_half_life_hours: {tech: 30, affairs: 20, startups: 36, life: 168, research: 96, humor: 168, ideas: 168}
 
 learning:
   frozen: false
@@ -266,8 +316,9 @@ weekly_batch:
   evergreen_cards: {linkedin: 1, x: 2}
 
 llm:
-  daily_cap: 60
-  max_calls_per_run: 45
+  # A morning set of 15 cards is about 20 calls (triage, drafts) plus up to 12 editor passes.
+  daily_cap: 100
+  max_calls_per_run: 60
   personal_allow_training_fallback: true
   # Free tiers change often. Gemini models are discovered at run time ("auto:"), so retired models don't
   # break anything; its free quotas are per model, so a model that runs out hands over to the next.

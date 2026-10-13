@@ -209,6 +209,30 @@ def story_world() -> dict[str, tuple[int, str, str]]:
     return {"en.wikipedia.org/w/api.php": (200, "application/json", body)}
 
 
+def wikiquote_answer(url: str) -> dict[str, Any]:
+    """Wikiquote answering a quote pool's batch (scout.sources.quote_pages), whichever pages were asked for: each page
+    has the pool's quotes for it, except that one in seven sits under "Misattributed", so the check has something to
+    leave out."""
+    from .. import pools
+
+    titles = (httpx.URL(url).params.get("titles") or "").split("|")
+    pages = []
+    for n, title in enumerate(t for t in titles if t):
+        quotes = [q for q in pools.quotes() if q["page"] == title]
+        sourced = [q for q in quotes if int(q["id"], 16) % 7]
+        wrong = [q for q in quotes if not int(q["id"], 16) % 7]
+        who = quotes[0]["by"] if quotes else title
+        lines = [f"'''{who}''' is quoted here from published work, talks and interviews.", "", "== Sourced =="]
+        lines += [f"* {q['text']}\n** Quoted in a published interview." for q in sourced]
+        if wrong:
+            lines += ["", "== Misattributed ==", *[f"* {q['text']}" for q in wrong]]
+        lines += ["", "== External links =="]
+        pages.append({"pageid": 100 + n, "ns": 0, "title": title,
+                      "fullurl": f"https://en.wikiquote.org/wiki/{title.replace(' ', '_')}",
+                      "revisions": [{"slots": {"main": {"contentmodel": "wikitext", "content": "\n".join(lines)}}}]})
+    return {"batchcomplete": True, "query": {"pages": pages}}
+
+
 class MockWeb:
     """httpx transport serving `build_world()`. Unknown URLs get an empty feed (or empty JSON for APIs).
 
@@ -232,6 +256,8 @@ class MockWeb:
         url = str(request.url)
         self.requests.append(url)
         hit = self._match(url)
+        if hit is None and "en.wikiquote.org/w/api.php" in url:
+            return httpx.Response(200, json=wikiquote_answer(url))
         if hit is None and (image := self._image(request, url)) is not None:
             return image
         if hit is None:

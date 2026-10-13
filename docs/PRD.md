@@ -37,7 +37,7 @@ Four contradictions in v1 are resolved as follows:
 
 ## Overview and goals
 
-A $0, self-learning system that scouts topics every day, puts two or three LinkedIn drafts and four to six X drafts in front of Ankit each morning, and learns from his edits and post results.
+A $0, self-learning system that scouts topics every day, puts five LinkedIn drafts and ten X drafts in front of Ankit each morning, and learns from his edits and post results.
 
 The problem: posting daily on two platforms means finding topics, picking an angle and writing, on top of a full-time job. Generic AI-news posts won't build a reputation as a pioneer; firsthand, well-angled posts will.
 
@@ -97,10 +97,11 @@ LinkedIn is focused: AI and automation, from a practitioner who also tracks the 
 
 | Pillar | What it covers | Mode | Starting weight |
 | --- | --- | --- | --- |
-| Firsthand receipts | What building automation in enterprise and financial services actually teaches, with identifying details removed | Interview | 30% |
-| Research and state of the art | New papers, benchmarks, model and agent capabilities, and techniques moving from labs into practice, explained for people automating real work | External | 25% |
-| Industry news, with a take | The whole AI and automation industry: labs and model releases, AI startups and funding, big-tech moves, enterprise adoption, regulation, compute and infrastructure, and automation vendors (Automation Anywhere, UiPath, Power Automate), each with a proposed analytical angle | External | 25% |
-| Learning in public | Builds and experiments, including the FDE-track work: evals, agents, MCP | Interview | 20% |
+| Firsthand receipts | What building automation in enterprise and financial services actually teaches, with identifying details removed | Interview | 25% |
+| Research and state of the art | New papers, benchmarks, model and agent capabilities, and techniques moving from labs into practice, explained for people automating real work | External | 20% |
+| Industry news, with a take | The whole AI and automation industry: labs and model releases, AI startups and funding, big-tech moves, enterprise adoption, regulation, compute and infrastructure, and automation vendors (Automation Anywhere, UiPath, Power Automate), each with a proposed analytical angle | External | 20% |
+| Learning in public | Builds and experiments, including the FDE-track work: evals, agents, MCP | Interview | 15% |
+| Tech humour | Funny, work-safe posts about building software, AI and work: a light take on the day's tech news, or a relatable observation. At least one a day (FR-40) | External | 20% |
 
 Format: text posts up to 3,000 characters. The hook must land before LinkedIn's "see more" fold at about 210 characters, and the editor marks the fold. The system may suggest a carousel or poll, but drafts text only.
 
@@ -108,10 +109,12 @@ Format: text posts up to 3,000 characters. The hook must land before LinkedIn's 
 
 | Lane | What it covers | Mode | Starting weight |
 | --- | --- | --- | --- |
-| Tech and AI | Faster, lighter takes than LinkedIn; threads welcome | External | 35% |
-| World, India and Bihar affairs | History, developments, future prospects and Ankit's thoughts (see below) | External, or interview for opinions | 30% |
-| Startups | Ecosystem news, founder lessons, market moves | External | 20% |
-| Life | Personal observations and experiences | Interview only | 15% |
+| Tech and AI | Faster, lighter takes than LinkedIn; threads welcome | External | 25% |
+| World, India and Bihar affairs | History, developments, future prospects and Ankit's thoughts (see below) | External, or interview for opinions | 20% |
+| Startups | Ecosystem news, founder lessons, market moves | External | 15% |
+| Life | Personal observations and experiences | Interview only | 10% |
+| Funny | Funny posts about anything: a light take on the news, or a relatable observation about tech, work or life | External | 15% |
+| Quotes, excerpts and thoughts | A quote checked on Wikiquote, a passage worth quoting from the day's material, or one sharp thought | External | 15% |
 
 Formats: single post (280 weighted characters, or longer if Premium is switched on in settings), thread of 3 to 7 posts, quote-post angle, and reply angle. English only.
 
@@ -142,7 +145,7 @@ Ankit's whole job is to pick, edit, post and occasionally answer questions; ever
 
 | When | The system | Ankit | His time |
 | --- | --- | --- | --- |
-| Every morning, by about 6am Melbourne | Scouts, ranks and puts two or three LinkedIn cards and four to six X cards, all fully drafted, on the desk under **Suggested**, ranked best first. A push notification says they're ready | Picks one or more per platform and edits in the desk. Copies the text or uses the compose link, posts manually, then taps **Posted** (the final text is already captured) | About 20 to 30 min |
+| Every morning, by about 6am Melbourne | Scouts, ranks and puts five LinkedIn cards and ten X cards (at least three and six when the model budget runs short), all fully drafted, on the desk under **Suggested**, ranked best first. A push notification says they're ready | Picks one or more per platform and edits in the desk. Copies the text or uses the compose link, posts manually, then taps **Posted** (the final text is already captured) | About 20 to 30 min |
 | When a topic needs him | Puts the card in **Needs input** with two or three questions (firsthand posts, life posts, affairs opinions), at most one per platform per day | Answers on the card by typing or dictating. A drafting run starts straight away, and the draft appears in about two minutes | 2 to 3 min |
 | On demand | Searches any topic he adds under **Requests**, including sources beyond the daily lists, and returns full drafts | Adds the request; it runs immediately | 1 min |
 | Saturday night | Prepares the week's evergreen and interview-mode cards | Nothing | None |
@@ -208,7 +211,7 @@ v1's 26 requirements are kept; changed ones are marked **(v2)**, and new ones st
 | FR-5 | Score each topic per platform on pillar or lane fit, timeliness, angle potential for Ankit, novelty against the last 30 days of posts, and learner weights | 1 |
 | FR-6 | Reserve about 20% of slots for exploration: untested combinations of pillar, format and hook, and the experiments the weekly reflection proposes | 3 |
 | **Drafting** |  |  |
-| FR-7 **(v2)** | Deliver two or three LinkedIn cards and four to six X cards to the desk by about 6am Melbourne, all fully drafted and ranked best first, with at most one Needs-input card per platform per day | 2 |
+| FR-7 **(v2)** | Deliver five LinkedIn cards and ten X cards (configurable; at least three and six when the model budget is short) to the desk by about 6am Melbourne, all fully drafted and ranked best first, with at most one Needs-input card per platform per day | 2 |
 | FR-8 | Each card holds: topic, why now, Ankit's angle, format, full draft, three alternative hooks (typed), sources | 2 |
 | FR-9 | Two modes. External: draft fully from sources. Interview: for firsthand, learning-in-public, life and affairs-opinion posts, ask two or three questions and draft only from the answers | 2 |
 | FR-10 | Affairs drafts use one of four types: history behind the news, development tracker, future outlook, opinion | 2 |
@@ -245,6 +248,7 @@ v1's 26 requirements are kept; changed ones are marked **(v2)**, and new ones st
 | FR-37 | Any card can get a visual on request: carousel, flowchart, comparison, numbered list, big number or quote card (or let the model choose). Its words come only from the post and its sources; figures not in the sources are flagged and blocklist terms stop it. The desk draws it at 1080×1350 (LinkedIn) or 1600×900 (X), lets him edit every word, and exports PNG images or a PDF carousel. Whether a post went out with a visual is recorded and compared in Insights | 3 |
 | FR-38 | Drafts avoid the patterns that make writing read as AI-generated: contrast framing, labelled reveals, stock openers and closers, em dashes, emoji bullets, staccato lines, stacked questions, filler and same-length sentences. The pipeline and the desk detect them with the same rules. A draft that has any gets one editor pass that rewrites only those sentences. The revision is kept only if it has fewer tells, passes every check the draft passed (no added or dropped figure, no new first-person claim, no blocklist term or avoided phrase, no worse length) and changes at most half the words. A tell taken out of three drafts becomes a style rule; one added by hand three times is left alone. Insights tracks tells per draft and per post, week by week | 2 |
 | FR-39 | Bihar affairs posts draw on Bihar's whole story, not only this week's news: a story pool of English Wikipedia articles, from ancient Magadha to today's Bihar, supplies a few evergreen candidates a day in turn. One X slot a day is kept for the best of them (configurable; 0 lets them compete with the news). They are drafted as "Story, history to now" posts from the article alone, never presented as news, never as replies or quote-posts, and they keep for about a week | 2 |
+| FR-40 | Posts beyond analysis. A **Tech humour** pillar on LinkedIn (at least one card every morning) and **Funny** and **Quotes, excerpts and thoughts** lanes on X (no minimum: the ranking and the learner decide the mix). Material: triage can make any news topic a *funny take* (facts from the sources, the joke in the framing), an *excerpt* (a passage quoted word for word) or a *thought*; pools supply relatable funny premises (tech and work on both platforms, life on X only), themes for a thought and about 190 quotes, a few a day each. A quote is used only when its words are found on the author's Wikiquote page outside the misattributed, disputed and "about" sections; the run log counts those found and not found. No humour on sensitive topics, religion, caste, gender, a community, appearance, private people or partisan politics. Quote and excerpt posts are flagged *Quote changed* when their quoted words aren't in the material word for word, the editor pass leaves them alone, and quoted passages don't count as AI tells. Each card shows its kind of post | 2 |
 
 ## Learning design
 

@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from . import editing, guardrails, hashtags, ids, log, prompting, textutil, timeutil
+from . import editing, guardrails, hashtags, ids, log, posttypes, prompting, textutil, timeutil
 from .bandit import arm_id
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest, LLMResponse, json_rows, why_unavailable
@@ -34,8 +34,33 @@ AFFAIRS_INSTRUCTIONS = {
              "present only where the material does. Every name, date and figure must come from the material; don't "
              "call anything recent or say 'today' unless the material dates it.",
 }
+POST_TYPE_INSTRUCTIONS = {
+    "funny_take": ("Post type: a funny take on this news. Every fact comes from the material; the humour is in the "
+                   "framing: the irony, the familiar pattern, the understatement. Good-natured: the joke is on the "
+                   "situation, the hype or the idea, never on a person, a community, a customer or a colleague. One "
+                   "joke, well landed. Don't explain it and don't end on a lesson."),
+    "observation": ("Post type: a relatable funny observation, written fresh from the premise (the topic). It isn't "
+                    "news: no facts, figures, names, products or companies, and no made-up story of something that "
+                    "happened to the author. Write it as an observation people recognise from their own lives. Short, "
+                    "specific, one turn of phrase that lands. Don't explain the joke and don't end on a lesson."),
+    "quote": ("Post type: a quote. Open with the quote exactly as it is in the material, word for word, in double "
+              "quotes, then a dash and the author's name. Then at most two short sentences on what it means for "
+              "work or life today, concrete and specific to it. Never change, shorten or extend the quote, and add "
+              "nothing about the author that the material doesn't say."),
+    "excerpt": ("Post type: an excerpt. Quote one short passage from the material word for word, in double quotes, "
+                "and name where it comes from (the paper, essay, speech or article, and who wrote or said it). Then "
+                "one or two sentences on why it matters. Quote only words that are in the material, exactly."),
+    "thought": ("Post type: a thought. One sharp, concrete idea on the theme, in one to three sentences, that a "
+                "thoughtful person could disagree with. No slogans or poster lines, no figures, no made-up "
+                "experiences and no question tacked on at the end."),
+}
+LINKEDIN_HUMOR = ("On LinkedIn, keep it work-safe and about the craft: building software, AI, data, meetings, "
+                  "careers in tech.")
 MODE_EXTERNAL = ("Mode: external. Write analysis from the material. Don't claim experiences for him. An analytical "
                  "angle is fine: he sees it as a proposal and adopts it only by posting.")
+# For a post type (posttypes.py) the type says what to write; analysis isn't the point.
+MODE_EXTERNAL_TYPED = ("Mode: external. Follow the post type above. Don't claim experiences, or views on public "
+                       "issues, for the author.")
 UNANSWERED = ("This topic invites his own experience, but he hasn't answered the questions yet: write a strong "
               "analysis post from the sources alone, in his voice, without inventing anything he did, saw or thinks. "
               "Prefer the newest sources and say when things happened.")
@@ -51,7 +76,16 @@ ANGLE_FALLBACK = {
     "affairs": "What actually changed, with the numbers",
     "startups": "What this says about where the market is heading",
     "life": "A personal observation",
+    "humor": "The funny side of it",
+    "ideas": "What it means today",
 }
+
+
+def post_type_instructions(card: dict[str, Any]) -> str:
+    text = POST_TYPE_INSTRUCTIONS.get(card.get("post_type") or "", "")
+    if text and card.get("post_type") in posttypes.HUMOROUS and card.get("platform") == "linkedin":
+        text += " " + LINKEDIN_HUMOR
+    return text
 
 
 def format_instructions(ctx: Ctx, fmt: str) -> str:
@@ -429,6 +463,7 @@ def _common_vars(ctx: Ctx, card: dict[str, Any], style: Style) -> dict[str, Any]
         "angle": card.get("angle") or ANGLE_FALLBACK.get(card["pillar"], "A specific, non-generic angle"),
         "format_instructions": format_instructions(ctx, card["format"]),
         "affairs_instructions": AFFAIRS_INSTRUCTIONS.get(card.get("affairs_type") or "", ""),
+        "post_type_instructions": post_type_instructions(card),
         "sensitive_instructions": SENSITIVE if (card.get("flags") or {}).get("sensitive") else "",
         "style_rules": render_rules(style.rules),
         "length_target": style.length_target,
@@ -524,7 +559,7 @@ def draft_external(ctx: Ctx, card: dict[str, Any], avoid_angles: list[str] | Non
     elif avoid_angles:
         exp_text = "Take a clearly different angle from the ones already used (listed in the material)."
     vars_ = _common_vars(ctx, card, style)
-    mode = MODE_EXTERNAL
+    mode = MODE_EXTERNAL_TYPED if card.get("post_type") in POST_TYPE_INSTRUCTIONS else MODE_EXTERNAL
     if unanswered:
         mode += " " + UNANSWERED
         if opinion and not stance:
@@ -736,7 +771,8 @@ def adapt(ctx: Ctx, source_card: dict[str, Any], work: dict[str, Any]) -> dict[s
     platform). It's delivered with the original's set, so the ranking learns from it like any other card."""
     target = work["target_platform"]
     pillar_map = {"research": "tech", "industry": "tech", "receipts": "tech", "learning": "tech",
-                  "tech": "industry", "startups": "industry", "affairs": "industry", "life": "learning"}
+                  "tech": "industry", "startups": "industry", "affairs": "industry", "life": "learning",
+                  "ideas": "industry"}
     pillar = source_card["pillar"] if ctx.settings.pillar(target, source_card["pillar"]) else pillar_map.get(
         source_card["pillar"], next(iter(ctx.settings.pillars(target))))
     if ctx.settings.pillar(target, pillar) is None:
@@ -751,7 +787,8 @@ def adapt(ctx: Ctx, source_card: dict[str, Any], work: dict[str, Any]) -> dict[s
                                               (source_card["id"],)) if c["platform"] == target), None)
     card = {
         **{k: source_card.get(k) for k in ("topic_id", "request_id", "title", "why_now", "angle", "sources",
-                                            "questions", "answers", "issue_key", "affairs_type", "draft_basis")},
+                                            "questions", "answers", "issue_key", "affairs_type", "post_type",
+                                            "draft_basis")},
         "id": prior["id"] if prior else ids.new_id("crd"),
         "kind": "adapt",
         "platform": target,

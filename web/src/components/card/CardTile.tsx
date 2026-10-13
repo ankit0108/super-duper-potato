@@ -1,7 +1,7 @@
 import type { KeyboardEvent, ReactNode } from "react";
-import { Bot, Compass, FlaskConical, Loader2, MessageCircleQuestion, OctagonAlert, ShieldAlert, Sigma, UserRound, HeartHandshake, Ruler } from "lucide-react";
+import { Bot, Compass, FlaskConical, Loader2, MessageCircleQuestion, OctagonAlert, Quote, ShieldAlert, Sigma, UserRound, HeartHandshake, Ruler } from "lucide-react";
 import type { Card } from "@/types";
-import { FORMAT_LABEL, MENU_SKIP_REASONS, PLATFORM_LABEL, draftText } from "@/lib/format";
+import { FORMAT_LABEL, MENU_SKIP_REASONS, PLATFORM_LABEL, draftText, postTypeLabel } from "@/lib/format";
 import { tellSummary } from "@/lib/guard";
 import { navigate } from "@/lib/router";
 import { useDesk } from "@/state/store";
@@ -51,6 +51,7 @@ export function FlagIcons({ card }: { card: Card }) {
   const f = card.flags ?? {};
   const items: Array<{ show: boolean; icon: ReactNode; label: string; tone: string }> = [
     { show: !!f.blocked?.length, icon: <ShieldAlert className="size-3.5" />, label: `Blocked: matches your blocklist (${f.blocked?.length})`, tone: "text-bad" },
+    { show: !!f.quote_changed?.length, icon: <Quote className="size-3.5" />, label: "Quote changed: not word for word in the source", tone: "text-bad" },
     { show: !!f.unsourced?.length, icon: <Sigma className="size-3.5" />, label: `${f.unsourced?.length} figure(s) not found in the sources`, tone: "text-warn" },
     { show: !!f.first_person?.length, icon: <UserRound className="size-3.5" />, label: "First-person claim in an external draft", tone: "text-warn" },
     { show: !!f.sensitive, icon: <HeartHandshake className="size-3.5" />, label: `Handle with care${f.sensitive_reason ? `: ${f.sensitive_reason}` : ""}`, tone: "text-info" },
@@ -134,6 +135,7 @@ export function CardTile({ card, pending }: { card: Card; pending?: boolean }) {
         {card.rank != null && card.kind === "news" && <span className="text-[12px] font-semibold tabular-nums text-muted">#{card.rank}</span>}
         <Badge tone="neutral">{pillar(card.platform, card.pillar)}</Badge>
         <Badge tone="neutral">{FORMAT_LABEL[card.format]}</Badge>
+        {card.post_type && <Badge tone="info">{postTypeLabel(card.post_type)}</Badge>}
         {card.kind && card.kind !== "news" && (
           <Badge tone="info" title={card.crosspost_of ? "Made from a card for the other platform" : undefined}>
             {card.kind === "adapt" ? (card.crosspost_of ? "Cross-post" : "Adapted") : card.kind[0].toUpperCase() + card.kind.slice(1)}

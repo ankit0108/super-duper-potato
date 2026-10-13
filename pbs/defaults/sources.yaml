@@ -3,7 +3,9 @@
 # up on the desk; any of them can be replaced by a Google News query from the Sources page.
 #
 # kinds: rss (RSS/Atom URL), gnews (Google News query or topic), arxiv (API query), hf_papers,
-#        hn_front (Hacker News front page via Algolia), hn_show (Show HN), wikipedia_otd, reddit (best effort)
+#        hn_front (Hacker News front page via Algolia), hn_show (Show HN), wikipedia_otd, reddit (best effort),
+#        wikipedia_pool (a few articles a day from story_pools.yaml), wikiquote_pool (the day's quotes from
+#        quote_pools.yaml, each kept only if it's word for word on the author's Wikiquote page)
 # Some outlets refuse GitHub's servers or retire their feeds; a "site:" Google News query for the same outlet
 # is the dependable replacement (it is how the sources that failed on the first live runs are fetched now).
 
@@ -115,3 +117,11 @@ startups:
   - {id: gnews-ai-startups, name: "Google News: AI startup funding", kind: gnews, query: '"AI startup" raises OR funding when:2d', pillar_hints: [startups, industry]}
 
 life: []
+
+# Funny takes on the news come from every scout (triage picks them) and relatable premises from humor_pools.yaml.
+# A feed added here (a humour or satire site you like) is ranked for the humour lanes.
+humor: []
+
+ideas:
+  # Quotes for X: a few a day from quote_pools.yaml, each checked word for word against the author's Wikiquote page.
+  - {id: wikiquote-quotes, name: "Wikiquote: quotes worth sharing", kind: wikiquote_pool, query: quotes, max_items: 6, pillar_hints: [ideas]}
