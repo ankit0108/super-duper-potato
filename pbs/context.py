@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import datetime as dt
+import os
+import shlex
+import subprocess
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -169,6 +172,23 @@ class Ctx:
                 kwargs["sleep"] = self.sleep
             self._router = Router(self.settings, self.store, self.blocklist, **kwargs)
         return self._router
+
+    def checkpoint(self, why: str) -> None:
+        """Hand the state to the desk mid-run: save, write desk.json and run PBS_CHECKPOINT (the workflow sets it to
+        the script that pushes the data repo), so cards show up as they're drafted instead of all at the end."""
+        cmd = os.environ.get("PBS_CHECKPOINT")
+        if not cmd:
+            return
+        from . import export
+
+        try:
+            export.write(self)
+            self.store.save()
+            subprocess.run([*shlex.split(cmd), f"pbs: checkpoint ({why})"], check=True, timeout=120,
+                           capture_output=True)
+            log.info(f"checkpoint: {why}; sent to the desk")
+        except Exception as exc:  # noqa: BLE001 - the end of the run saves everything anyway
+            log.info(f"checkpoint: skipped ({type(exc).__name__})")
 
     def reload_settings(self) -> None:
         self.settings, self.settings_warnings = settings_from_store(self.store)

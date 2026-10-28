@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import os
 import re
+import threading
 import time
 from typing import Any
 
@@ -17,7 +18,7 @@ import httpx
 
 from .. import log
 from ..settings import ProviderSpec
-from .base import LLMError, LLMRequest, LLMResponse, ModelCycle, read_json
+from .base import LLMError, LLMRequest, LLMResponse, ModelCycle, read_json, timeout_error
 
 API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 MAX_AUTO_MODELS = 4
@@ -70,6 +71,7 @@ class GeminiProvider:
         self._cycle: ModelCycle | None = None
         self._discovered: set[str] = set()
         self._no_thinking_config = False
+        self._resolving = threading.RLock()
 
     # -- plumbing ---------------------------------------------------------------------------------
     def _key(self) -> str:
@@ -82,10 +84,12 @@ class GeminiProvider:
     def _base(self) -> str:
         return (self.spec.base_url or API_BASE).rstrip("/")
 
-    def _send(self, method: str, url: str, **kw: Any) -> httpx.Response:
-        client = self._client or httpx.Client(timeout=120)
+    def _send(self, method: str, url: str, timeout: float | None = None, **kw: Any) -> httpx.Response:
+        client = self._client or httpx.Client(timeout=httpx.Timeout(timeout or 120, connect=15))
         try:
             return client.request(method, url, headers={"x-goog-api-key": self._key()}, **kw)
+        except (httpx.ReadTimeout, httpx.WriteTimeout) as exc:
+            raise timeout_error(exc, timeout or 120) from exc
         except httpx.HTTPError as exc:
             raise LLMError(f"network error: {type(exc).__name__}", code="network", retryable=True) from exc
         finally:
@@ -99,6 +103,10 @@ class GeminiProvider:
 
     def resolve(self) -> list[str]:
         """The models this run will try, in order (discovers `auto:` entries on first use)."""
+        with self._resolving:  # drafts run in parallel: discover once
+            return self._resolve()
+
+    def _resolve(self) -> list[str]:
         if self._cycle is None:
             models: list[str] = []
             for entry in [self.spec.model, *self.spec.fallback_models]:
@@ -162,11 +170,11 @@ class GeminiProvider:
     def _generate(self, model: str, req: LLMRequest) -> LLMResponse:
         url = f"{self._base}/models/{model}:generateContent"
         started = time.monotonic()
-        resp = self._send("POST", url, json=self._body(model, req))
+        resp = self._send("POST", url, timeout=req.timeout, json=self._body(model, req))
         if (resp.status_code == 400 and not self._no_thinking_config and "thinking" in resp.text.lower()
                 and (major_version(model) or 0) >= 3):
             self._no_thinking_config = True  # this model doesn't take thinkingLevel; ask once more without it
-            resp = self._send("POST", url, json=self._body(model, req))
+            resp = self._send("POST", url, timeout=req.timeout, json=self._body(model, req))
         latency = int((time.monotonic() - started) * 1000)
         if resp.status_code != 200:
             raise _classify(resp)

@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from . import ids, learn, log, playbook, prompting, report, textutil, timeutil, voice
+from . import ids, learn, log, playbook, prompting, report, settings, textutil, timeutil, voice
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest
 
@@ -145,7 +145,9 @@ def weekly_reflection(ctx: Ctx) -> dict[str, Any]:
         rules = "\n".join(f"- {r['id']}: {r['text']} [{r.get('platform') or 'all'}]" for r in current.get("rules") or [])
         exps = "\n".join(f"- {x['instruction']} ({x.get('trials', 0)} trials, {x.get('picks', 0)} picks)"
                          for x in ctx.store.select("experiments", "status = 'active'")) or "(none)"
+        pillar_keys = "; ".join(f"{pl}: {', '.join(ctx.settings.pillars(pl))}" for pl in ("linkedin", "x"))
         prompt = prompting.render("reflect", display_name=ctx.settings.display_name, rules=rules or "(none)",
+                                  pillar_keys=pillar_keys,
                                   experiments=exps, input_json={k: v for k, v in week.items() if k != "post_ids"}
                                   | {"report": {"ranker_accuracy": sections["ranker_accuracy"],
                                                 "drafter_quality": sections["drafter_quality"]}})
@@ -170,10 +172,19 @@ def weekly_reflection(ctx: Ctx) -> dict[str, Any]:
                     "hypothesis": textutil.truncate(exp.hypothesis or "", 300), "status": "active", "trials": 0,
                     "picks": 0, "stats": {}, "source_version": (playbook.active(ctx) or {}).get("id"),
                     "updated_at": timeutil.now_iso()})
+            overrides = dict(ctx.store.get_setting("overrides", {}) or {})
             for prop in out.proposals[:5]:
-                payload = {"patch": prop.patch} if prop.patch else {}
+                payload: dict[str, Any] = {}
+                detail = prop.detail
+                if prop.patch:
+                    # Checked now, not when he approves: a change that can't be made stays as advice.
+                    _, error = settings.validate_patch(overrides, prop.patch)
+                    if error:
+                        log.info(f"reflect: dropped an invalid setting change from a proposal ({error})")
+                    else:
+                        payload = {"patch": prop.patch}
                 proposal_ids.append(playbook.create_proposal(
-                    ctx, kind=prop.kind, title=prop.title, detail=prop.detail, payload=payload,
+                    ctx, kind=prop.kind, title=prop.title, detail=detail, payload=payload,
                     evidence=[e for e in prop.evidence if e in valid_posts], confidence=prop.confidence))
         except (BudgetExhausted, ValueError) as exc:
             log.info(f"reflect: model reflection skipped ({type(exc).__name__})")

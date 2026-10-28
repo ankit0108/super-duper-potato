@@ -39,7 +39,7 @@ export function FreshPostsDialog({ open, onClose }: { open: boolean; onClose: ()
         per_platform: count === "usual" ? null : Number(count),
         find_sources: find,
       },
-      { toast: `Getting ${plural(total)}. They land on top of Today's picks, usually within 2–4 minutes.` },
+      { toast: `Getting ${plural(total)}. They land on top of Today's picks as they're drafted: the first in a minute or two.` },
     );
     onClose();
   };

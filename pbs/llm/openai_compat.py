@@ -10,7 +10,7 @@ from typing import Any
 import httpx
 
 from ..settings import ProviderSpec
-from .base import LLMError, LLMRequest, LLMResponse, ModelCycle, read_json
+from .base import LLMError, LLMRequest, LLMResponse, ModelCycle, read_json, timeout_error
 
 _GONE_CODES = {"model_not_found", "model_decommissioned", "model_not_available", "invalid_model"}
 _GONE_WORDS = ("decommissioned", "does not exist", "no longer supported", "no longer available", "not a valid model",
@@ -72,7 +72,7 @@ class OpenAICompatProvider:
             headers["X-Title"] = "PBS"
         url = f"{self.spec.base_url.rstrip('/')}/chat/completions"  # type: ignore[union-attr]
         started = time.monotonic()
-        client = self._client or httpx.Client(timeout=120)
+        client = self._client or httpx.Client(timeout=httpx.Timeout(req.timeout or 120, connect=15))
         try:
             resp = client.post(url, json=self._body(model, req), headers=headers)
             # Some models reject JSON mode or a provider-specific field: drop it, ask once more, remember.
@@ -81,6 +81,8 @@ class OpenAICompatProvider:
             if rejected:
                 self._dropped.update(rejected)
                 resp = client.post(url, json=self._body(model, req), headers=headers)
+        except (httpx.ReadTimeout, httpx.WriteTimeout) as exc:
+            raise timeout_error(exc, req.timeout or 120) from exc
         except httpx.HTTPError as exc:
             raise LLMError(f"network error: {type(exc).__name__}", code="network", retryable=True) from exc
         finally:

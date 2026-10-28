@@ -8,6 +8,7 @@ switched off for the rest of the run. Every call is redacted with the blocklist 
 
 from __future__ import annotations
 
+import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -96,6 +97,9 @@ class Router:
         self._strikes: dict[str, int] = {}
         self._overloaded: dict[str, str] = {}
         self._last_call: dict[str, float] = {}
+        # Drafts run in parallel (drafting.parallel): bookkeeping is shared, and each provider keeps its own pace.
+        self._lock = threading.RLock()
+        self._pace_locks: dict[str, threading.Lock] = {}
         for name, spec in settings.llm.providers.items():
             if name not in self._providers:
                 try:
@@ -170,10 +174,11 @@ class Router:
         return bool(configured) and all(n in self._disabled for n in configured)
 
     def _strike(self, name: str, exc: LLMError) -> None:
-        self._strikes[name] = self._strikes.get(name, 0) + 1
-        if self._strikes[name] >= 2 and name not in self._overloaded:
-            self._overloaded[name] = exc.public()
-            log.info(f"llm: {name} overloaded ({exc.public()}); using the next provider for the rest of this run")
+        with self._lock:
+            self._strikes[name] = self._strikes.get(name, 0) + 1
+            if self._strikes[name] >= 2 and name not in self._overloaded:
+                self._overloaded[name] = exc.public()
+                log.info(f"llm: {name} overloaded ({exc.public()}); using the next provider for the rest of this run")
 
     # -- calls ------------------------------------------------------------------------------------
     def call(self, req: LLMRequest) -> LLMResponse:
@@ -183,6 +188,9 @@ class Router:
             raise BudgetExhausted("daily LLM call cap reached")
         if req.temperature is None:
             req.temperature = self.settings.llm.temperature.get(req.task)
+        if req.timeout is None:
+            timeouts = self.settings.llm.timeouts
+            req.timeout = timeouts.get(req.task, timeouts.get("default", 90.0))
         req.system = redact(req.system, self.blocklist)
         req.prompt = redact(req.prompt, self.blocklist)
 
@@ -209,9 +217,10 @@ class Router:
                     if not isinstance(raw, LLMError):
                         log.error(f"llm:{name}", raw)
                     last_error = exc
-                    self.usage.failures += 1
-                    self.usage.errors.append(f"{req.task}/{name}: {exc}"[:300])
-                    self.usage.provider_errors[name] = exc.public()
+                    with self._lock:
+                        self.usage.failures += 1
+                        self.usage.errors.append(f"{req.task}/{name}: {exc}"[:300])
+                        self.usage.provider_errors[name] = exc.public()
                     self._record(name, error=str(exc)[:300], count=False)
                     if exc.quota or (req.grounding and exc.rate_limited):
                         if req.grounding:
@@ -232,14 +241,15 @@ class Router:
                         continue
                     break
                 else:
-                    self._strikes.pop(name, None)
-                    self._overloaded.pop(name, None)
-                    self.usage.calls += 1
-                    self.usage.tokens_in += resp.tokens_in
-                    self.usage.tokens_out += resp.tokens_out
-                    self.usage.by_provider[name] = self.usage.by_provider.get(name, 0) + 1
-                    self.usage.by_task[req.task] = self.usage.by_task.get(req.task, 0) + 1
-                    self.usage.models[name] = resp.model
+                    with self._lock:
+                        self._strikes.pop(name, None)
+                        self._overloaded.pop(name, None)
+                        self.usage.calls += 1
+                        self.usage.tokens_in += resp.tokens_in
+                        self.usage.tokens_out += resp.tokens_out
+                        self.usage.by_provider[name] = self.usage.by_provider.get(name, 0) + 1
+                        self.usage.by_task[req.task] = self.usage.by_task.get(req.task, 0) + 1
+                        self.usage.models[name] = resp.model
                     self._record(name, tokens_in=resp.tokens_in, tokens_out=resp.tokens_out, model=resp.model)
                     return resp
             if server_error is not None:
@@ -282,14 +292,22 @@ class Router:
     def _pace(self, name: str) -> None:
         spec = self.settings.llm.providers[name]
         min_interval = 60.0 / max(1, spec.rpm)
-        last = self._last_call.get(name)
-        now = time.monotonic()
-        if last is not None and now - last < min_interval:
-            self.sleep(min_interval - (now - last))
-        self._last_call[name] = time.monotonic()
+        with self._lock:
+            lock = self._pace_locks.setdefault(name, threading.Lock())
+        with lock:  # parallel drafts queue for the provider's next slot
+            last = self._last_call.get(name)
+            now = time.monotonic()
+            if last is not None and now - last < min_interval:
+                self.sleep(min_interval - (now - last))
+            self._last_call[name] = time.monotonic()
 
     def _record(self, name: str, tokens_in: int = 0, tokens_out: int = 0, error: str | None = None,
                 count: bool = True, model: str | None = None) -> None:
+        with self._lock:
+            self._record_locked(name, tokens_in, tokens_out, error, count, model)
+
+    def _record_locked(self, name: str, tokens_in: int, tokens_out: int, error: str | None, count: bool,
+                       model: str | None) -> None:
         row = self._quota_row(name)
         now = timeutil.now_iso()
         if count:
@@ -307,9 +325,10 @@ class Router:
 
     def _disable(self, name: str, exc: LLMError) -> None:
         """Switch a provider off for the rest of this run, saying why in the (public) log once."""
-        if name not in self._disabled:
-            self._disabled[name] = exc.public()
-            log.warn(f"llm: {name} switched off for this run: {exc.public()}")
+        with self._lock:
+            if name not in self._disabled:
+                self._disabled[name] = exc.public()
+                log.warn(f"llm: {name} switched off for this run: {exc.public()}")
 
     def grounding_off_today(self) -> bool:
         return (self.store.get_setting(GROUNDING_OFF) or {}).get("day") == self._day()
@@ -320,11 +339,14 @@ class Router:
             log.info(f"llm: {name} search grounding unavailable today ({exc.public()}); searches use the free feeds")
 
     def _mark_exhausted(self, name: str, error: str) -> None:
-        row = self._quota_row(name)
-        row["exhausted_at"] = timeutil.now_iso()
-        row["last_error"] = error[:300]
-        self.store.upsert("quota", row)
-        log.warn(f"llm: provider {name} reached its daily quota")
+        with self._lock:
+            row = self._quota_row(name)
+            already = bool(row.get("exhausted_at"))
+            row["exhausted_at"] = timeutil.now_iso()
+            row["last_error"] = error[:300]
+            self.store.upsert("quota", row)
+        if not already:
+            log.warn(f"llm: provider {name} reached its daily quota")
 
 
 def _validate(data: Any, schema: type[BaseModel] | Callable[[Any], Any] | None) -> Any:

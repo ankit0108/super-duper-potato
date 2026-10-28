@@ -609,11 +609,18 @@ export type CreatedAt8 = string | null;
 export type DecidedAt = string | null;
 export type DecisionNote = string | null;
 export type Detail1 = string | null;
+/**
+ * Why approving it couldn't change anything (status failed)
+ */
+export type Error = string | null;
 export type Evidence1 = string[];
 export type Id40 = string;
 export type Kind9 = string;
 export type Source5 = string | null;
-export type Status7 = "pending" | "approved" | "rejected" | "applied";
+/**
+ * noted: approved, with nothing to change automatically; failed: its change couldn't be made (see error), and it can be approved again or dismissed
+ */
+export type Status7 = "pending" | "approved" | "rejected" | "applied" | "noted" | "failed";
 export type Title7 = string;
 export type Proposals = Proposal[];
 export type DailyLimit1 = number | null;
@@ -629,7 +636,7 @@ export type TokensIn = number;
 export type TokensOut = number;
 export type Quota = Quota1[];
 export type At30 = string | null;
-export type Error = string | null;
+export type Error1 = string | null;
 export type Id41 = string;
 export type Type30 = string | null;
 export type RejectedEvents = RejectedEvent[];
@@ -646,7 +653,7 @@ export type ReportsIndex = {
 export type CardIds = string[];
 export type CompletedAt = string | null;
 export type CreatedAt10 = string | null;
-export type Error1 = string | null;
+export type Error2 = string | null;
 export type Id43 = string;
 export type Notes4 = string | null;
 export type Query2 = string;
@@ -711,7 +718,7 @@ export type Tier4 = "world" | "india" | "bihar" | "other";
 export type UpdatedAt2 = string | null;
 export type Stances = Stance[];
 export type CreatedAt11 = string | null;
-export type Error2 = string | null;
+export type Error3 = string | null;
 export type Id47 = string;
 export type Note8 = string | null;
 export type Paths1 = string[];
@@ -1711,6 +1718,7 @@ export interface Proposal {
   decided_at?: DecidedAt;
   decision_note?: DecisionNote;
   detail?: Detail1;
+  error?: Error;
   evidence?: Evidence1;
   id: Id40;
   kind: Kind9;
@@ -1745,7 +1753,7 @@ export interface Quota1 {
  */
 export interface RejectedEvent {
   at?: At30;
-  error?: Error;
+  error?: Error1;
   id: Id41;
   type?: Type30;
 }
@@ -1776,7 +1784,7 @@ export interface Request {
   card_ids?: CardIds;
   completed_at?: CompletedAt;
   created_at?: CreatedAt10;
-  error?: Error1;
+  error?: Error2;
   id: Id43;
   notes?: Notes4;
   platforms?: Platforms2;
@@ -1897,7 +1905,7 @@ export interface Stats1 {
  */
 export interface MetricUpload {
   created_at?: CreatedAt11;
-  error?: Error2;
+  error?: Error3;
   id: Id47;
   note?: Note8;
   paths?: Paths1;

@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import sqlite3
+import threading
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -91,7 +92,7 @@ TABLES: dict[str, Table] = {
            "query platforms notes status created_at started_at completed_at card_ids error search attempts",
            json_cols="platforms card_ids search"),
         _t("proposals",
-           "kind title detail payload evidence confidence status created_at decided_at decision_note source",
+           "kind title detail payload evidence confidence status created_at decided_at decision_note source error",
            json_cols="payload evidence"),
         _t("playbook_versions",
            "version created_at status rules changes experiments summary source",
@@ -162,8 +163,10 @@ class Store:
 
     def __post_init__(self) -> None:
         self.root = Path(self.root)
-        self.conn = sqlite3.connect(":memory:")
+        # Drafts run in parallel threads (drafting.parallel): one connection, one statement at a time.
+        self.conn = sqlite3.connect(":memory:", check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        self.lock = threading.RLock()
         for table in TABLES.values():
             cols = ", ".join(["id TEXT PRIMARY KEY", *[f'"{c}"' for c in table.columns[1:]]])
             self.conn.execute(f'CREATE TABLE "{table.name}" ({cols})')
@@ -213,7 +216,7 @@ class Store:
                     batch.append(tuple(_encode(table, c, row.get(c)) for c in table.columns))
                 self.conn.executemany(sql, batch)
 
-    def save(self) -> list[str]:
+    def _save_unlocked(self) -> list[str]:
         """Write changed tables back to disk. Returns relative paths that changed."""
         changed: list[str] = []
         self.db_dir.mkdir(parents=True, exist_ok=True)
@@ -255,12 +258,12 @@ class Store:
         return rel == f"db/{table.name}.jsonl"
 
     # -- reads -----------------------------------------------------------------------------------
-    def get(self, table: str, id: str) -> dict[str, Any] | None:
+    def _get_unlocked(self, table: str, id: str) -> dict[str, Any] | None:
         spec = TABLES[table]
         row = self.conn.execute(f'SELECT * FROM "{table}" WHERE id = ?', (id,)).fetchone()
         return _decode_row(spec, row) if row else None
 
-    def select(self, table: str, where: str = "", params: Iterable[Any] = (), order: str = "id",
+    def _select_unlocked(self, table: str, where: str = "", params: Iterable[Any] = (), order: str = "id",
                limit: int | None = None) -> list[dict[str, Any]]:
         spec = TABLES[table]
         sql = f'SELECT * FROM "{table}"'
@@ -278,16 +281,16 @@ class Store:
         for r in self.conn.execute(sql, tuple(params)):
             yield _decode_row(spec, r)
 
-    def count(self, table: str, where: str = "", params: Iterable[Any] = ()) -> int:
+    def _count_unlocked(self, table: str, where: str = "", params: Iterable[Any] = ()) -> int:
         sql = f'SELECT COUNT(*) FROM "{table}"' + (f" WHERE {where}" if where else "")
         return int(self.conn.execute(sql, tuple(params)).fetchone()[0])
 
-    def scalar(self, sql: str, params: Iterable[Any] = ()) -> Any:
+    def _scalar_unlocked(self, sql: str, params: Iterable[Any] = ()) -> Any:
         row = self.conn.execute(sql, tuple(params)).fetchone()
         return row[0] if row else None
 
     # -- writes ----------------------------------------------------------------------------------
-    def insert(self, table: str, row: dict[str, Any]) -> dict[str, Any]:
+    def _insert_unlocked(self, table: str, row: dict[str, Any]) -> dict[str, Any]:
         spec = TABLES[table]
         self._check_keys(spec, row)
         cols = [c for c in spec.columns if c in row]
@@ -297,7 +300,7 @@ class Store:
                           tuple(_encode(spec, c, row[c]) for c in cols))
         return row
 
-    def upsert(self, table: str, row: dict[str, Any]) -> dict[str, Any]:
+    def _upsert_unlocked(self, table: str, row: dict[str, Any]) -> dict[str, Any]:
         """Insert, or update only the columns present in `row`."""
         spec = TABLES[table]
         self._check_keys(spec, row)
@@ -310,7 +313,7 @@ class Store:
                           tuple(_encode(spec, c, row[c]) for c in cols))
         return row
 
-    def update(self, table: str, id: str, **fields: Any) -> None:
+    def _update_unlocked(self, table: str, id: str, **fields: Any) -> None:
         if not fields:
             return
         spec = TABLES[table]
@@ -319,10 +322,10 @@ class Store:
         self.conn.execute(f'UPDATE "{table}" SET {sets} WHERE id = ?',
                           (*[_encode(spec, c, v) for c, v in fields.items()], id))
 
-    def delete(self, table: str, id: str) -> None:
+    def _delete_unlocked(self, table: str, id: str) -> None:
         self.conn.execute(f'DELETE FROM "{table}" WHERE id = ?', (id,))
 
-    def delete_where(self, table: str, where: str, params: Iterable[Any] = ()) -> int:
+    def _delete_where_unlocked(self, table: str, where: str, params: Iterable[Any] = ()) -> int:
         cur = self.conn.execute(f'DELETE FROM "{table}" WHERE {where}', tuple(params))
         return cur.rowcount
 
@@ -331,6 +334,50 @@ class Store:
         unknown = set(row) - set(spec.columns)
         if unknown:
             raise KeyError(f"unknown columns for {spec.name}: {sorted(unknown)}")
+
+    # -- thread-safe entry points ------------------------------------------------------------------
+    def save(self) -> list[str]:
+        """Write changed tables back to disk. Returns relative paths that changed."""
+        with self.lock:
+            return self._save_unlocked()
+
+    def get(self, table: str, id: str) -> dict[str, Any] | None:
+        with self.lock:
+            return self._get_unlocked(table, id)
+
+    def select(self, table: str, where: str = "", params: Iterable[Any] = (), order: str = "id",
+               limit: int | None = None) -> list[dict[str, Any]]:
+        with self.lock:
+            return self._select_unlocked(table, where, params, order, limit)
+
+    def count(self, table: str, where: str = "", params: Iterable[Any] = ()) -> int:
+        with self.lock:
+            return self._count_unlocked(table, where, params)
+
+    def scalar(self, sql: str, params: Iterable[Any] = ()) -> Any:
+        with self.lock:
+            return self._scalar_unlocked(sql, params)
+
+    def insert(self, table: str, row: dict[str, Any]) -> dict[str, Any]:
+        with self.lock:
+            return self._insert_unlocked(table, row)
+
+    def upsert(self, table: str, row: dict[str, Any]) -> dict[str, Any]:
+        """Insert, or update only the columns present in `row`."""
+        with self.lock:
+            return self._upsert_unlocked(table, row)
+
+    def update(self, table: str, id: str, **fields: Any) -> None:
+        with self.lock:
+            self._update_unlocked(table, id, **fields)
+
+    def delete(self, table: str, id: str) -> None:
+        with self.lock:
+            self._delete_unlocked(table, id)
+
+    def delete_where(self, table: str, where: str, params: Iterable[Any] = ()) -> int:
+        with self.lock:
+            return self._delete_where_unlocked(table, where, params)
 
     # -- settings helpers ------------------------------------------------------------------------
     def get_setting(self, key: str, default: Any = None) -> Any:

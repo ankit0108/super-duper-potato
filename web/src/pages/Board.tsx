@@ -3,7 +3,7 @@ import { CalendarClock, CheckCircle2, Inbox, Loader2, Sparkles } from "lucide-re
 import type { Card, Platform } from "@/types";
 import { useDesk } from "@/state/store";
 import { useNow, useToday, useTz } from "@/state/hooks";
-import { boardSections, todaySets, type TodaySet } from "@/state/selectors";
+import { boardSections, draftingProgress, todaySets, type TodaySet } from "@/state/selectors";
 import { formatTime, greeting, localDateKey } from "@/lib/time";
 import { FORMAT_LABEL, SKIP_REASONS } from "@/lib/format";
 import { Link } from "@/lib/router";
@@ -72,6 +72,8 @@ export function Board() {
   const now = useNow(60_000);
   useBoardKeys();
   const sections = useMemo(() => boardSections(view, today, tz, prefs.platform), [view, today, tz, prefs.platform]);
+  // A set still being drafted (the run sends cards in batches): how far along it is.
+  const drafting = useMemo(() => draftingProgress(view?.cards ?? [], today), [view, today]);
 
   if (!view) {
     return loading ? (
@@ -164,9 +166,14 @@ export function Board() {
       )}
 
       <Section id="sec-today" title="Today's picks" count={todayCount} hint={<>Newest set first, ranked best first<span className="hidden lg:inline"> · press j / k to move, Enter to open</span></>}>
-        {freshPending && (
+        {freshPending && !drafting && (
           <p role="status" className="mb-3 flex items-center gap-2 rounded-xl border border-accent/30 bg-accent-soft px-3 py-2 text-[13.5px] text-accent">
-            <Loader2 className="size-4 shrink-0 animate-spin" /> Getting fresh posts: finding stories, ranking, drafting. Usually 2–4 minutes; they appear here.
+            <Loader2 className="size-4 shrink-0 animate-spin" /> Getting fresh posts: finding stories and ranking them. The first drafts appear here in a minute or two.
+          </p>
+        )}
+        {drafting && (
+          <p role="status" className="mb-3 flex items-center gap-2 rounded-xl border border-accent/30 bg-accent-soft px-3 py-2 text-[13.5px] text-accent">
+            <Loader2 className="size-4 shrink-0 animate-spin" /> Drafting: {drafting.done} of {drafting.total} ready. The rest appear as they're done.
           </p>
         )}
         {todayCount === 0 ? (

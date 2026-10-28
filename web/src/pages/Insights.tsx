@@ -386,7 +386,12 @@ function ProposalCard({ p }: { p: Proposal }) {
   const tz = useTz();
   const [note, setNote] = useState("");
   const pending = p.status === "pending";
+  const failed = p.status === "failed";
+  const payload = (p.payload ?? {}) as Record<string, unknown>;
+  // Approving one that only asks you to look at something just records that you've seen it.
+  const changes = ["patch", "rule", "source", "guide_change"].some((k) => !!payload[k]);
   const guideChange = p.kind === "platform_guide" ? ((p.payload as { guide_change?: GuideChange } | null)?.guide_change ?? null) : null;
+  const STATUS: Record<string, string> = { applied: "Applied", noted: "Noted", rejected: "Rejected", failed: "Couldn't apply", approved: "Approved" };
   return (
     <li className="rounded-2xl border border-border bg-surface p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -396,9 +401,14 @@ function ProposalCard({ p }: { p: Proposal }) {
             {formatDate(p.created_at, tz)} · {p.kind.replace(/_/g, " ")} · {p.confidence} confidence
           </p>
         </div>
-        <Badge tone={pending ? "warn" : p.status === "rejected" ? "neutral" : "ok"}>{pending ? "Waiting for you" : p.status}</Badge>
+        <Badge tone={pending ? "warn" : failed ? "bad" : p.status === "rejected" ? "neutral" : "ok"}>{pending ? "Waiting for you" : (STATUS[p.status ?? ""] ?? p.status)}</Badge>
       </div>
       {p.detail && <p className="mt-2 text-[13.5px]">{p.detail}</p>}
+      {failed && p.error && (
+        <p className="mt-2 rounded-lg border border-bad/30 bg-bad-soft px-3 py-2 text-[13px] text-bad">
+          Couldn't apply: {p.error}. Approve it again after fixing that, or dismiss it.
+        </p>
+      )}
       {guideChange ? (
         <div className="mt-2 rounded-lg bg-surface-2 p-3 text-[13px]">
           <div className="mb-1 flex flex-wrap items-center gap-1.5">
@@ -417,14 +427,20 @@ function ProposalCard({ p }: { p: Proposal }) {
         p.payload &&
         Object.keys(p.payload).length > 0 && <pre className="mt-2 overflow-x-auto rounded-lg bg-surface-2 p-2 text-[11.5px] text-muted">{JSON.stringify(p.payload.patch ?? p.payload, null, 1)}</pre>
       )}
-      {pending && (
+      {(pending || failed) && (
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <Textarea aria-label="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} minRows={1} placeholder="Note (optional)" className="min-w-52 flex-1" />
-          <Button variant="primary" icon={<Check className="size-4" />} onClick={() => act({ type: "proposal.decide", proposal_id: p.id, decision: "approve", note: note || null }, { toast: "Approved. It applies on the next run." })}>
-            Approve
+          <Button
+            variant="primary"
+            icon={<Check className="size-4" />}
+            onClick={() =>
+              act({ type: "proposal.decide", proposal_id: p.id, decision: "approve", note: note || null }, { toast: changes ? "Approved: it applies on the next run." : "Noted." })
+            }
+          >
+            {changes ? (failed ? "Try again" : "Approve") : "Got it"}
           </Button>
-          <Button icon={<X className="size-4" />} onClick={() => act({ type: "proposal.decide", proposal_id: p.id, decision: "reject", note: note || null }, { toast: "Rejected." })}>
-            Reject
+          <Button icon={<X className="size-4" />} onClick={() => act({ type: "proposal.decide", proposal_id: p.id, decision: "reject", note: note || null }, { toast: failed ? "Dismissed." : "Rejected." })}>
+            {failed ? "Dismiss" : "Reject"}
           </Button>
         </div>
       )}
@@ -434,8 +450,8 @@ function ProposalCard({ p }: { p: Proposal }) {
 
 function ProposalsTab({ view }: { view: DeskState }) {
   const proposals = view.proposals ?? [];
-  const pending = proposals.filter((p) => p.status === "pending");
-  const decided = proposals.filter((p) => p.status !== "pending");
+  const pending = proposals.filter((p) => p.status === "pending" || p.status === "failed");
+  const decided = proposals.filter((p) => p.status !== "pending" && p.status !== "failed");
   const experiments = view.experiments ?? [];
   return (
     <div className="space-y-5">
@@ -843,7 +859,7 @@ export function Insights() {
   const tab = (route.query.get("tab") as Tab) || "overview";
   const setTab = (t: Tab) => navigate(`/insights?tab=${t}`, { replace: true });
   if (!view) return <Empty title="No data yet">Insights appear after the first runs.</Empty>;
-  const pendingProps = (view.proposals ?? []).filter((p) => p.status === "pending").length;
+  const pendingProps = (view.proposals ?? []).filter((p) => p.status === "pending" || p.status === "failed").length;
   return (
     <div className="space-y-5">
       <header>

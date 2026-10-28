@@ -239,6 +239,45 @@ def test_proposal_approval_applies_settings(make_ctx):
     assert ctx.settings.pillar("x", "affairs").weight == 0.4
 
 
+def test_approving_never_bounces_a_proposal(make_ctx):
+    ctx = make_ctx()
+    look = playbook.create_proposal(ctx, kind="prompt_review", title="Review linkedin drafting", detail="Edit ratio rose",
+                                    payload={}, source="report")
+    bad = playbook.create_proposal(ctx, kind="other", title="More X", detail=None,
+                                   payload={"patch": {"strategy": {"x": {"tech": {"weight": 7}}}}})
+    write_inbox(ctx.data_root, [{"id": "p1", "type": "proposal.decide", "proposal_id": look, "decision": "approve"},
+                                {"id": "p2", "type": "proposal.decide", "proposal_id": bad, "decision": "approve"}])
+    stats = inbox.ingest(ctx)
+    assert stats["rejected"] == 0  # nothing lands in "Rejected changes"
+    assert ctx.store.get("proposals", look)["status"] == "noted"  # it only asked him to look
+    failed = ctx.store.get("proposals", bad)
+    assert failed["status"] == "failed" and "isn't valid" in failed["error"]
+    # A failed one can be dismissed (or approved again).
+    write_inbox(ctx.data_root, [{"id": "p3", "type": "proposal.decide", "proposal_id": bad, "decision": "reject"}],
+                name="later")
+    inbox.ingest(ctx)
+    assert ctx.store.get("proposals", bad)["status"] == "rejected" and not ctx.store.get("proposals", bad).get("error")
+
+
+def test_the_weekly_review_keeps_only_setting_changes_that_can_be_applied(make_ctx):
+    def reflect_with_proposals(req, data):
+        assert "pillar keys: linkedin: receipts" in req.prompt.replace("(pillar keys: ", "pillar keys: ")
+        return {"summary": "ok", "changes": [], "experiments": [], "proposals": [
+            {"kind": "pillar_weights", "title": "More affairs", "patch": {"strategy": {"x": {"affairs": {"weight": 0.3}}}}},
+            {"kind": "other", "title": "Post at lunch", "detail": "Lunchtime posts did better.",
+             "patch": {"posting": {"time": "12:00"}}}]}
+
+    ctx = _delivered(make_ctx)
+    ctx.llm._providers.update(fake_providers(reflect=reflect_with_proposals))
+    for card in ctx.store.select("cards", "status = 'suggested'")[:2]:
+        learn.record_post(ctx, card, text="A post.", posts=None, post_url=None, posted_at=timeutil.now_iso(),
+                          editing_seconds=None, hook_index=None)
+    reflect.weekly_reflection(ctx)
+    props = {p["title"]: p for p in ctx.store.select("proposals")}
+    assert props["More affairs"]["payload"] == {"patch": {"strategy": {"x": {"affairs": {"weight": 0.3}}}}}
+    assert props["Post at lunch"]["payload"] == {}  # unknown setting: kept as advice, approving just notes it
+
+
 def test_metrics_screenshot_extraction_matches_posts(make_ctx):
     from pbs import metrics
 

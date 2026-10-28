@@ -141,6 +141,7 @@ export const useDesk = create<DeskStore>()((set, get) => {
   const trackRun = () => {
     if (runTimer) clearInterval(runTimer);
     const started = Date.now();
+    let lastLook = 0;
     runTimer = setInterval(async () => {
       const client = gh(get().connection);
       if (!client) return;
@@ -163,6 +164,11 @@ export const useDesk = create<DeskStore>()((set, get) => {
           setTimeout(() => get().run.state !== "queued" && set({ run: { state: "idle" } }), 8000);
         } else {
           set({ run: { ...get().run, state: mine.status === "in_progress" ? "running" : "queued", url: mine.html_url, startedAt: mine.run_started_at } });
+          // The run hands cards over in batches as they're drafted: look for them every 15 seconds meanwhile.
+          if (mine.status === "in_progress" && Date.now() - lastLook >= 15_000) {
+            lastLook = Date.now();
+            await get().refresh({ quiet: true });
+          }
         }
       } catch {
         /* keep polling */
