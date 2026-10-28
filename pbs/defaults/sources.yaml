@@ -5,7 +5,10 @@
 # kinds: rss (RSS/Atom URL), gnews (Google News query or topic), arxiv (API query), hf_papers,
 #        hn_front (Hacker News front page via Algolia), hn_show (Show HN), wikipedia_otd, reddit (best effort),
 #        wikipedia_pool (a few articles a day from story_pools.yaml), wikiquote_pool (the day's quotes from
-#        quote_pools.yaml, each kept only if it's word for word on the author's Wikiquote page)
+#        quote_pools.yaml, each kept only if it's word for word on the author's Wikiquote page),
+#        reddit_json (a subreddit's top posts with score and comments; min_score), hn_ask (Ask HN),
+#        mastodon_links (links trending on Mastodon), gtrends (Google Trends daily searches; geo),
+#        trends24 and bsky_trends (trending words on X and Bluesky: they lift matching stories, they aren't stories)
 # Some outlets refuse GitHub's servers or retire their feeds; a "site:" Google News query for the same outlet
 # is the dependable replacement (it is how the sources that failed on the first live runs are fetched now).
 
@@ -115,6 +118,51 @@ startups:
   - {id: hn-show, name: Show HN, kind: hn_show, url: "https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&numericFilters=points%3E40&hitsPerPage=40", pillar_hints: [startups, learning]}
   - {id: gnews-india-startups, name: "Google News: Indian startups", kind: gnews, query: 'Indian startup funding OR raises when:2d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [startups]}
   - {id: gnews-ai-startups, name: "Google News: AI startup funding", kind: gnews, query: '"AI startup" raises OR funding when:2d', pillar_hints: [startups, industry]}
+
+# What people are talking about beyond the news and the papers: tech communities, odd, funny and bizarre tech
+# stories, and what's trending. How much a story is discussed (Reddit score and comments, Hacker News comments,
+# Mastodon shares, search traffic, a matching trend on X or Bluesky) lifts it in the ranking, and a few shortlist
+# seats a day are kept for it (scouting.shortlist_seats). Reddit and trends24 often refuse GitHub's servers, so
+# they're best effort.
+buzz:
+  # Once a day, a Google search (through Gemini) of public LinkedIn and X posts on your topics: the conversations
+  # taking off and why they work (pbs/pulse.py; settings `pulse`). Pause it here to stop it.
+  - {id: social-pulse, name: "Social pulse: what's working on LinkedIn and X", kind: pulse, best_effort: true}
+  - {id: reddit-technology, name: r/technology, kind: reddit_json, url: "https://www.reddit.com/r/technology/top.json?t=day&limit=30", best_effort: true, min_score: 1500, pillar_hints: [industry]}
+  - {id: reddit-programming, name: r/programming, kind: reddit_json, url: "https://www.reddit.com/r/programming/top.json?t=day&limit=30", best_effort: true, min_score: 250, pillar_hints: [learning]}
+  - {id: reddit-programmerhumor, name: r/ProgrammerHumor, kind: reddit_json, url: "https://www.reddit.com/r/ProgrammerHumor/top.json?t=day&limit=30", best_effort: true, min_score: 1500, pillar_hints: [humor]}
+  - {id: reddit-linkedinlunatics, name: r/LinkedInLunatics, kind: reddit_json, url: "https://www.reddit.com/r/LinkedInLunatics/top.json?t=day&limit=30", best_effort: true, min_score: 800, pillar_hints: [humor]}
+  - {id: reddit-singularity, name: r/singularity, kind: reddit_json, url: "https://www.reddit.com/r/singularity/top.json?t=day&limit=30", best_effort: true, min_score: 300, pillar_hints: [industry, research]}
+  - {id: reddit-chatgpt, name: r/ChatGPT, kind: reddit_json, url: "https://www.reddit.com/r/ChatGPT/top.json?t=day&limit=30", best_effort: true, min_score: 800, pillar_hints: [humor, industry]}
+  - {id: reddit-openai, name: r/OpenAI, kind: reddit_json, url: "https://www.reddit.com/r/OpenAI/top.json?t=day&limit=30", best_effort: true, min_score: 300, pillar_hints: [industry]}
+  - {id: reddit-artificial, name: r/artificial, kind: reddit_json, url: "https://www.reddit.com/r/artificial/top.json?t=day&limit=30", best_effort: true, min_score: 150, pillar_hints: [industry]}
+  - {id: reddit-developersindia, name: r/developersIndia, kind: reddit_json, url: "https://www.reddit.com/r/developersIndia/top.json?t=day&limit=30", best_effort: true, min_score: 200, pillar_hints: [humor, industry]}
+  - {id: reddit-cscareerquestions, name: r/cscareerquestions, kind: reddit_json, url: "https://www.reddit.com/r/cscareerquestions/top.json?t=day&limit=30", best_effort: true, min_score: 300, pillar_hints: [humor]}
+  - {id: hn-ask, name: Ask HN, kind: hn_ask, url: "https://hn.algolia.com/api/v1/search_by_date?tags=ask_hn&numericFilters=points%3E40&hitsPerPage=30", pillar_hints: [learning, industry]}
+  - {id: hn-heated, name: "Hacker News: most discussed", kind: hn_front, url: "https://hn.algolia.com/api/v1/search_by_date?tags=story&numericFilters=num_comments%3E250&hitsPerPage=30", pillar_hints: [industry]}
+  - {id: techmeme, name: Techmeme, kind: rss, url: "https://www.techmeme.com/feed.xml", pillar_hints: [industry]}
+  - {id: lobsters, name: Lobsters, kind: rss, url: "https://lobste.rs/hottest.rss", pillar_hints: [learning]}
+  - {id: product-hunt, name: Product Hunt, kind: rss, url: "https://www.producthunt.com/feed", best_effort: true, pillar_hints: [startups]}
+  - {id: github-trending, name: GitHub trending, kind: rss, url: "https://mshibanami.github.io/GitHubTrendingRSS/daily/all.xml", best_effort: true, pillar_hints: [learning]}
+  - {id: the-register, name: The Register, kind: rss, url: "https://www.theregister.com/headlines.atom", pillar_hints: [industry, humor]}
+  - {id: 404-media, name: 404 Media, kind: rss, url: "https://www.404media.co/rss/", pillar_hints: [industry]}
+  - {id: futurism, name: Futurism, kind: rss, url: "https://futurism.com/feed", pillar_hints: [industry, humor]}
+  - {id: gizmodo, name: Gizmodo, kind: rss, url: "https://gizmodo.com/feed", pillar_hints: [industry]}
+  - {id: ars-technica, name: Ars Technica, kind: rss, url: "https://feeds.arstechnica.com/arstechnica/index", pillar_hints: [industry, research]}
+  - {id: hackaday, name: Hackaday, kind: rss, url: "https://hackaday.com/blog/feed/", pillar_hints: [learning]}
+  - {id: slashdot, name: Slashdot, kind: rss, url: "https://rss.slashdot.org/Slashdot/slashdotMain", pillar_hints: [industry]}
+  - {id: engadget, name: Engadget, kind: rss, url: "https://www.engadget.com/rss.xml", pillar_hints: [industry]}
+  - {id: gnews-ai-bizarre, name: "Google News: bizarre AI and tech", kind: gnews, query: '(AI OR chatbot OR robot OR tech) bizarre OR weird OR strange OR absurd when:3d', pillar_hints: [humor, industry]}
+  - {id: gnews-ai-fails, name: "Google News: AI blunders", kind: gnews, query: '(chatbot OR "AI agent" OR "AI model" OR "AI tool") blunder OR mistake OR glitch OR "went wrong" when:3d', pillar_hints: [humor, industry]}
+  - {id: gnews-tech-viral, name: "Google News: viral in tech", kind: gnews, query: '(AI OR tech OR startup OR CEO) viral OR backlash OR outrage OR memo when:2d', pillar_hints: [industry, humor]}
+  - {id: gtrends-india, name: "Google Trends: India", kind: gtrends, url: "https://trends.google.com/trending/rss?geo=IN", best_effort: true, geo: India}
+  - {id: gtrends-australia, name: "Google Trends: Australia", kind: gtrends, url: "https://trends.google.com/trending/rss?geo=AU", best_effort: true, geo: Australia}
+  - {id: gtrends-us, name: "Google Trends: United States", kind: gtrends, url: "https://trends.google.com/trending/rss?geo=US", best_effort: true, geo: the US}
+  - {id: mastodon-links, name: "Mastodon: trending links", kind: mastodon_links, url: "https://mastodon.social/api/v1/trends/links?limit=40", best_effort: true}
+  - {id: trends24-india, name: "X trends: India (trends24)", kind: trends24, url: "https://trends24.in/india/", best_effort: true, region: India}
+  - {id: trends24-australia, name: "X trends: Australia (trends24)", kind: trends24, url: "https://trends24.in/australia/", best_effort: true, region: Australia}
+  - {id: trends24-world, name: "X trends: worldwide (trends24)", kind: trends24, url: "https://trends24.in/", best_effort: true, region: worldwide}
+  - {id: bsky-trends, name: "Bluesky: trending topics", kind: bsky_trends, url: "https://public.api.bsky.app/xrpc/app.bsky.unspecced.getTrendingTopics?limit=25", best_effort: true}
 
 life: []
 

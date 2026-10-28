@@ -315,6 +315,15 @@
      "default": null,
      "title": "Affairs Type"
     },
+    "alternatives": {
+     "default": [],
+     "description": "Funny posts: the writers' room's next-best versions",
+     "items": {
+      "type": "string"
+     },
+     "title": "Alternatives",
+     "type": "array"
+    },
     "angle": {
      "anyOf": [
       {
@@ -405,6 +414,19 @@
      "default": null,
      "title": "Delivery Id"
     },
+    "discussion_url": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The Hacker News or Reddit thread people are talking in",
+     "title": "Discussion Url"
+    },
     "draft": {
      "anyOf": [
       {
@@ -490,6 +512,7 @@
       "avoid_phrases": [],
       "bait": [],
       "blocked": [],
+      "cliches": [],
       "first_person": [],
       "length": [],
       "notes": [],
@@ -551,6 +574,17 @@
      },
      "title": "Hooks",
      "type": "array"
+    },
+    "humor": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/HumorInfo"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
     },
     "id": {
      "title": "Id",
@@ -744,6 +778,27 @@
      "default": null,
      "title": "Status Changed At"
     },
+    "story": {
+     "anyOf": [
+      {
+       "enum": [
+        "news",
+        "conversation",
+        "bizarre",
+        "funny",
+        "launch",
+        "research"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "What kind of story triage says it is",
+     "title": "Story"
+    },
     "title": {
      "title": "Title",
      "type": "string"
@@ -759,6 +814,17 @@
      ],
      "default": null,
      "title": "Topic Id"
+    },
+    "trending": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/TrendInfo"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
     },
     "updated_at": {
      "anyOf": [
@@ -1471,7 +1537,8 @@
       "too_risky",
       "already_covered",
       "other",
-      "wrong_platform"
+      "wrong_platform",
+      "not_funny"
      ],
      "title": "Reason",
      "type": "string"
@@ -1894,6 +1961,17 @@
      },
      "title": "Proposals",
      "type": "array"
+    },
+    "pulse": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/PulseInfo"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
     },
     "quota": {
      "default": [],
@@ -2386,6 +2464,15 @@
      "title": "Blocked",
      "type": "array"
     },
+    "cliches": {
+     "default": [],
+     "description": "Funny posts: jokes everyone has seen (settings humor.cliches)",
+     "items": {
+      "type": "string"
+     },
+     "title": "Cliches",
+     "type": "array"
+    },
     "first_person": {
      "default": [],
      "items": {
@@ -2505,6 +2592,59 @@
     "text"
    ],
    "title": "HookIn",
+   "type": "object"
+  },
+  "HumorInfo": {
+   "description": "How a funny post was written (pbs/humor.py): the writers' room's options and the critic's verdict.",
+   "properties": {
+    "device": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Device"
+    },
+    "note": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Note"
+    },
+    "options": {
+     "default": 0,
+     "title": "Options",
+     "type": "integer"
+    },
+    "verdict": {
+     "anyOf": [
+      {
+       "enum": [
+        "strong",
+        "ok",
+        "weak"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Verdict"
+    }
+   },
+   "title": "HumorInfo",
    "type": "object"
   },
   "ImagesStatus": {
@@ -4220,6 +4360,87 @@
    "title": "ProposalDecideEvent",
    "type": "object"
   },
+  "PulseConversation": {
+   "properties": {
+    "angle": {
+     "default": "",
+     "title": "Angle",
+     "type": "string"
+    },
+    "date": {
+     "title": "Date",
+     "type": "string"
+    },
+    "platform": {
+     "enum": [
+      "linkedin",
+      "x"
+     ],
+     "title": "Platform",
+     "type": "string"
+    },
+    "said": {
+     "default": "",
+     "title": "Said",
+     "type": "string"
+    },
+    "topic": {
+     "title": "Topic",
+     "type": "string"
+    },
+    "url": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Url"
+    },
+    "why": {
+     "default": "",
+     "title": "Why",
+     "type": "string"
+    }
+   },
+   "required": [
+    "date",
+    "platform",
+    "topic"
+   ],
+   "title": "PulseConversation",
+   "type": "object"
+  },
+  "PulseInfo": {
+   "description": "What's working on LinkedIn and X: the social pulse's conversations over the last week (pbs/pulse.py).",
+   "properties": {
+    "conversations": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/PulseConversation"
+     },
+     "title": "Conversations",
+     "type": "array"
+    },
+    "updated": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Updated"
+    }
+   },
+   "title": "PulseInfo",
+   "type": "object"
+  },
   "Question": {
    "properties": {
     "id": {
@@ -4949,7 +5170,8 @@
       "too_risky",
       "already_covered",
       "other",
-      "wrong_platform"
+      "wrong_platform",
+      "not_funny"
      ],
      "title": "Reason",
      "type": "string"
@@ -5290,10 +5512,17 @@
         "hf_papers",
         "hn_front",
         "hn_show",
+        "hn_ask",
         "wikipedia_otd",
         "wikipedia_pool",
         "wikiquote_pool",
-        "reddit"
+        "reddit",
+        "reddit_json",
+        "mastodon_links",
+        "gtrends",
+        "trends24",
+        "bsky_trends",
+        "pulse"
        ],
        "type": "string"
       },
@@ -5370,7 +5599,8 @@
         "startups",
         "life",
         "humor",
-        "ideas"
+        "ideas",
+        "buzz"
        ],
        "type": "string"
       },
@@ -6299,6 +6529,49 @@
     "created_at"
    ],
    "title": "SystemReport",
+   "type": "object"
+  },
+  "TrendInfo": {
+   "description": "Where a card's topic is trending: the social pulse found it taking off on LinkedIn or X (with why it works\nthere), or it matches a word trending on X or Bluesky.",
+   "properties": {
+    "on": {
+     "enum": [
+      "linkedin",
+      "x",
+      "bluesky"
+     ],
+     "title": "On",
+     "type": "string"
+    },
+    "term": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Term"
+    },
+    "why": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Why"
+    }
+   },
+   "required": [
+    "on"
+   ],
+   "title": "TrendInfo",
    "type": "object"
   },
   "Versions": {

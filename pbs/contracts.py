@@ -22,7 +22,7 @@ CardKind = Literal["news", "evergreen", "interview", "request", "adapt", "studio
 FormatName = Literal["li_text", "x_single", "x_thread", "x_quote", "x_reply"]
 VisualKind = Literal["carousel", "flow", "compare", "list", "stat", "quote", "image"]
 SkipReason = Literal["not_interesting", "off_brand", "wrong_timing", "too_risky", "already_covered", "other",
-                     "wrong_platform"]
+                     "wrong_platform", "not_funny"]
 Tier = Literal["world", "india", "bihar", "other"]
 
 
@@ -92,6 +92,7 @@ class Flags(_Out):
     ai_tells: list[AiTell] = Field([], description="What makes the draft read as AI-written (guardrails.ai_tells)")
     quote_changed: list[str] = Field([], description="Quote and excerpt posts: quoted words the material doesn't "
                                      "have word for word, or that the quote is missing (guardrails.quote_check)")
+    cliches: list[str] = Field([], description="Funny posts: jokes everyone has seen (settings humor.cliches)")
     stance_id: str | None = None
     notes: list[str] = []
 
@@ -124,6 +125,25 @@ class VisualImage(_Out):
     provider: str
     model: str | None = None
     created_at: str | None = None
+
+
+class HumorInfo(_Out):
+    """How a funny post was written (pbs/humor.py): the writers' room's options and the critic's verdict."""
+    options: int = 0
+    verdict: Literal["strong", "ok", "weak"] | None = None
+    note: str | None = None
+    device: str | None = None
+
+
+class TrendInfo(_Out):
+    """Where a card's topic is trending: the social pulse found it taking off on LinkedIn or X (with why it works
+    there), or it matches a word trending on X or Bluesky."""
+    on: Literal["linkedin", "x", "bluesky"]
+    term: str | None = None
+    why: str | None = None
+
+
+StoryKind = Literal["news", "conversation", "bizarre", "funny", "launch", "research"]
 
 
 class Attachment(_Out):
@@ -253,6 +273,11 @@ class Card(_Out):
     crosspost_of: str | None = Field(None, description="The card this one was made from for the other platform")
     visual: Visual | None = None
     attachments: list[Attachment] = Field([], description="Pictures from the Studio that go with the post")
+    trending: TrendInfo | None = None
+    story: StoryKind | None = Field(None, description="What kind of story triage says it is")
+    humor: HumorInfo | None = None
+    alternatives: list[str] = Field([], description="Funny posts: the writers' room's next-best versions")
+    discussion_url: str | None = Field(None, description="The Hacker News or Reddit thread people are talking in")
     created_at: str
     updated_at: str | None = None
     revision: int = 0
@@ -589,6 +614,22 @@ class StudioKit(_Out):
     fold: int = 210
 
 
+class PulseConversation(_Out):
+    date: str
+    platform: Literal["linkedin", "x"]
+    topic: str
+    said: str = ""
+    why: str = ""
+    angle: str = ""
+    url: str | None = None
+
+
+class PulseInfo(_Out):
+    """What's working on LinkedIn and X: the social pulse's conversations over the last week (pbs/pulse.py)."""
+    updated: str | None = None
+    conversations: list[PulseConversation] = []
+
+
 class DeskState(_Out):
     meta: DeskMeta
     settings: dict[str, Any]
@@ -623,6 +664,7 @@ class DeskState(_Out):
         None, description="What works on each platform: {reviewed, rules: [{id, platform, format, text, source, "
                           "sources}], research: {month, summary, articles, proposals}}")
     studio: StudioKit | None = None
+    pulse: PulseInfo | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -856,11 +898,12 @@ class SourceUpsertEvent(_Event):
     type: Literal["source.upsert"]
     source_id: str
     name: str | None = Field(None, max_length=120)
-    kind: Literal["rss", "gnews", "arxiv", "hf_papers", "hn_front", "hn_show", "wikipedia_otd", "wikipedia_pool",
-                  "wikiquote_pool", "reddit"] | None = None
+    kind: Literal["rss", "gnews", "arxiv", "hf_papers", "hn_front", "hn_show", "hn_ask", "wikipedia_otd",
+                  "wikipedia_pool", "wikiquote_pool", "reddit", "reddit_json", "mastodon_links", "gtrends",
+                  "trends24", "bsky_trends", "pulse"] | None = None
     url: str | None = Field(None, max_length=1000)
     query: str | None = Field(None, max_length=300)
-    scout: Literal["tech", "affairs", "startups", "life", "humor", "ideas"] | None = None
+    scout: Literal["tech", "affairs", "startups", "life", "humor", "ideas", "buzz"] | None = None
     tier: Tier | None = None
     lang: Literal["en", "hi"] | None = None
     active: bool | None = None

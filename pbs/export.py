@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from . import __version__, images, log, platform, stats, studio, timeutil
+from . import __version__, images, log, platform, pulse, stats, studio, timeutil
 from .context import Ctx
 from .contracts import DESK_SCHEMA_VERSION, DeskState
 
@@ -161,6 +161,7 @@ def build(ctx: Ctx) -> dict[str, Any]:
         "platform_guide": {"reviewed": platform.base_guide().get("reviewed"), "rules": platform.current_rules(ctx),
                            "research": store.get_setting("platform_research_summary")},
         "studio": _studio_kit(ctx),
+        "pulse": pulse.recent(ctx),
     }
     validated = DeskState.model_validate(_drop_nones(state))
     return validated.model_dump(mode="json", exclude_none=True)

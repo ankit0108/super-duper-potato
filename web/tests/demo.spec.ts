@@ -166,7 +166,7 @@ test("a newer deployed desk is noticed and offered as a reload, and System shows
   await expect(page.getByText("The desk was updated. Reload to get the new version (your edits are kept).")).toBeVisible();
 });
 
-type DemoCard = { title: string; platform: string; status: string; delivery_id?: string | null; post_type?: string | null; llm?: { edit?: { kept?: boolean; before?: number } | null } | null };
+type DemoCard = { title: string; platform: string; status: string; delivery_id?: string | null; post_type?: string | null; alternatives?: string[]; trending?: { on: string } | null; llm?: { edit?: { kept?: boolean; before?: number } | null } | null };
 /** The demo's own data (the pipeline's output), to find a card by what happened to it rather than by its title. */
 const demoDesk = () => JSON.parse(readFileSync("public/demo/desk.json", "utf-8")) as { delivery?: { id: string }; cards: DemoCard[] };
 
@@ -202,13 +202,14 @@ test("a Bihar story from history arrives as its own kind of X post, not as news"
 test("funny posts, quotes and thoughts arrive with a badge saying which kind", async ({ page }) => {
   const desk = demoDesk();
   const today = desk.cards.filter((c) => c.delivery_id === desk.delivery?.id && c.status === "suggested");
-  const funny = today.find((c) => c.platform === "linkedin" && c.post_type === "observation");
+  // Funny posts come from real stories now, written in the writers' room (the generic premises are off).
+  const funny = today.find((c) => c.platform === "linkedin" && c.post_type === "funny_take" && (c.alternatives?.length ?? 0) > 0);
   const quote = today.find((c) => c.platform === "x" && c.post_type === "quote");
   const thought = today.find((c) => c.platform === "x" && c.post_type === "thought");
   expect(funny && quote && thought, "the demo's morning has a funny LinkedIn post, a quote and a thought").toBeTruthy();
   const funnyTile = todaySection(page).getByRole("article", { name: `LinkedIn card: ${funny!.title}` });
   await expect(funnyTile.getByText("Tech humour")).toBeVisible();
-  await expect(funnyTile.getByText("Relatable")).toBeVisible();
+  await expect(funnyTile.getByText("Funny take")).toBeVisible();
   await expect(todaySection(page).getByRole("article", { name: `X card: ${thought!.title}` }).getByText("Thought", { exact: true })).toBeVisible();
   const quoteTile = todaySection(page).getByRole("article", { name: `X card: ${quote!.title}` });
   await expect(quoteTile.getByText("Quote", { exact: true })).toBeVisible();
@@ -352,6 +353,9 @@ test("move a card to the other platform from the Skip menu", async ({ page }) =>
 
 test("make an X version of a LinkedIn card, and the two link to each other", async ({ page }) => {
   await todaySection(page).locator("[data-tile]").first().click();
+  // The card's own heading, once its page is open (not the board's, while it's still on screen).
+  await expect(page).toHaveURL(/#\/card\//);
+  await expect(page.getByRole("button", { name: "Also for X" })).toBeVisible();
   const title = (await page.getByRole("heading", { level: 1 }).textContent())!;
   await page.getByRole("button", { name: "Also for X" }).click();
   const dialog = page.getByRole("dialog", { name: "Make an X version" });
@@ -607,4 +611,26 @@ test.describe("Studio", () => {
     await page.goto("/#/studio?shared=1");
     await expect(page.getByText("What do you want to post about?")).toBeVisible();
   });
+});
+
+test("a funny post from the writers' room: the critic's note, and another version in one tap", async ({ page }) => {
+  const desk = demoDesk();
+  const funny = desk.cards.find((c) => c.delivery_id === desk.delivery?.id && c.status === "suggested" && c.platform === "linkedin" && (c.alternatives?.length ?? 0) > 0);
+  expect(funny, "the demo's morning has a funny post from the writers' room").toBeTruthy();
+  await todaySection(page).getByRole("article", { name: `LinkedIn card: ${funny!.title}` }).click();
+  const room = page.getByRole("region", { name: "Writers' room" });
+  await expect(room.getByText(/Critic's verdict: ok/)).toBeVisible();
+  await room.getByRole("button", { name: "Use version 2" }).click();
+  await expect(page.getByRole("textbox", { name: "LinkedIn post" })).toHaveValue(funny!.alternatives![0]);
+  if (funny!.trending) await expect(page.getByText(/^Trending on /).first()).toBeVisible();
+});
+
+test("what's working on LinkedIn and X: the week's conversations in Insights", async ({ page }) => {
+  await page.goto("/#/insights?tab=working");
+  await expect(page.getByText("What's working on LinkedIn and X")).toBeVisible();
+  await expect(page.getByText("AI agents that report work they never did").first()).toBeVisible();
+  await expect(page.getByText(/^Why it works:/).first()).toBeVisible();
+  await page.goto("/#/sources");
+  await page.getByRole("tab", { name: /^Buzz/ }).click();
+  await expect(page.getByText("Social pulse: what's working on LinkedIn and X").filter({ visible: true }).first()).toBeVisible();
 });

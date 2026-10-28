@@ -15,6 +15,8 @@ from ..store import Store
 
 SEED_FIELDS = ("name", "kind", "url", "query", "lang", "hl", "gl", "ceid", "scout", "pillar_hints", "tier",
                "best_effort", "max_items")
+# Per-kind options kept in a source's `extra`: a Google News topic, a subreddit's score floor, where a trend is.
+EXTRA_FIELDS = ("topic", "min_score", "geo", "region")
 
 
 @cache
@@ -25,8 +27,9 @@ def seed_sources() -> list[dict[str, Any]]:
         for entry in entries or []:
             row = dict(entry)
             row["scout"] = scout
-            if row.get("topic"):
-                row["extra"] = {"topic": row.pop("topic")}
+            extra = {k: row.pop(k) for k in EXTRA_FIELDS if row.get(k) is not None}
+            if extra:
+                row["extra"] = extra
             out.append(row)
     return out
 
@@ -66,8 +69,9 @@ def sync_seeds(store: Store) -> int:
                                                    "tier", "max_items") if seed.get(k) != existing.get(k)}
                 if bool(seed.get("best_effort", False)) != bool(existing.get("best_effort")):
                     patch["best_effort"] = bool(seed.get("best_effort", False))
-                if seed.get("extra") and (existing.get("extra") or {}).get("topic") != seed["extra"].get("topic"):
-                    patch["extra"] = {**(existing.get("extra") or {}), **seed["extra"]}
+                old_extra = existing.get("extra") or {}
+                if seed.get("extra") and any(old_extra.get(k) != v for k, v in seed["extra"].items()):
+                    patch["extra"] = {**old_extra, **seed["extra"]}
                 if set(patch) & {"kind", "url", "query", "hl", "gl", "ceid"}:
                     # A new address gets a fresh start: no stale validators, failure count or automatic pause.
                     patch.update(etag=None, last_modified=None, consecutive_failures=0, last_error=None)

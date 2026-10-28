@@ -81,6 +81,11 @@ def canonical_url(url: str | None) -> str:
     return urlunsplit((scheme, host, path, urlencode(query), ""))
 
 
+def http_url(url: str | None) -> str | None:
+    """The URL when it's an http(s) link, else None (feed content is untrusted)."""
+    return url if isinstance(url, str) and url.startswith(("https://", "http://")) and len(url) <= 2000 else None
+
+
 def url_host(url: str | None) -> str:
     try:
         host = (urlsplit(url or "").hostname or "").lower()

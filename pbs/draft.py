@@ -435,6 +435,14 @@ def _material(card: dict[str, Any], extra: dict[str, Any] | None = None) -> dict
                      "date": (s.get("published_at") or "")[:10] or None, "summary": s.get("summary"),
                      "url": s.get("url")} for i, s in enumerate(card.get("sources") or [])],
     }
+    trend = card.get("trending") or {}
+    if trend.get("why"):
+        data["why_posts_about_it_are_working"] = f"On {PLATFORM_LABEL.get(trend.get('on'), trend.get('on'))}: {trend['why']}"
+    elif trend.get("term"):
+        data["trending"] = f"\u201c{trend['term']}\u201d is trending on {PLATFORM_LABEL.get(trend.get('on'), 'Bluesky')}"
+    if card.get("story") in ("conversation", "bizarre", "funny"):
+        data["story"] = {"conversation": "people are arguing or sharing experiences about it",
+                         "bizarre": "people find it bizarre", "funny": "people are laughing at it"}[card["story"]]
     data.update(extra or {})
     return data
 
@@ -565,6 +573,8 @@ def draft_external(ctx: Ctx, card: dict[str, Any], avoid_angles: list[str] | Non
         if opinion and not stance:
             vars_["affairs_instructions"] = AFFAIRS_INSTRUCTIONS["outlook"]
     vars_.update(mode_instructions=mode, experiment_instructions=exp_text, input_json=_material(card, extra))
+    if card.get("post_type") in posttypes.HUMOROUS and ctx.settings.humor.writers_room and not experiment:
+        return _draft_funny(ctx, card, vars_, style)
     version = prompting.version("system", "draft")
     req = LLMRequest(task="draft", system=_system(ctx), prompt=prompting.render("draft", **vars_),
                      max_output_tokens=3000, prompt_version=version)
@@ -572,6 +582,20 @@ def draft_external(ctx: Ctx, card: dict[str, Any], avoid_angles: list[str] | Non
     norm = normalize_output(ctx, card, out, card.get("sources") or [], style)
     card["draft_basis"] = "sources"
     return _apply(ctx, card, norm, resp, style, version, stance, keep_status=True)
+
+
+def _draft_funny(ctx: Ctx, card: dict[str, Any], vars_: dict[str, Any], style: Style) -> dict[str, Any]:
+    """A funny post from the writers' room (pbs/humor.py): the critic's pick is the draft, the next best are the
+    card's other versions, and the critic's verdict shows on the card."""
+    from . import humor
+
+    raw, resp, room = humor.writers_room(ctx, card, {**vars_, "system": _system(ctx), "material": vars_["input_json"]})
+    norm = normalize_output(ctx, card, DraftOut.model_validate(raw), card.get("sources") or [], style)
+    norm["hooks"] = []  # a joke's alternatives are whole versions (below), not openings
+    card["draft_basis"] = "sources" if card.get("sources") else card.get("draft_basis")
+    card["alternatives"] = room["alternatives"]
+    card["humor"] = {k: room.get(k) for k in ("options", "verdict", "note", "device")}
+    return _apply(ctx, card, norm, resp, style, prompting.version("system", "humor_write"), None, keep_status=True)
 
 
 class NoSources(Exception):

@@ -32,7 +32,11 @@ export const SKIP_REASONS: Array<{ value: SkipReason; label: string; help: strin
   { value: "already_covered", label: "Already covered", help: "You've said this before", learns: "Topics like this are held back for a while." },
   { value: "other", label: "Other", help: "Tell it why: used in tomorrow's ranking", learns: "Your reason feeds tomorrow's ranking and the weekly review.", needsNote: true },
   { value: "wrong_platform", label: "Wrong platform", help: "Moved to the other platform", learns: "The topic was right: only this platform's lane is marked down.", menu: false },
+  { value: "not_funny", label: "Not funny", help: "The joke didn't land", learns: "The critic in the writers' room learns from jokes you didn't find funny.", menu: false },
 ];
+
+export const STORY_LABEL: Record<string, string> = { conversation: "People are talking", bizarre: "Bizarre", funny: "People are laughing", launch: "Launch", research: "Research" };
+export const TREND_PLACE: Record<string, string> = { linkedin: "LinkedIn", x: "X", bluesky: "Bluesky" };
 
 export const MENU_SKIP_REASONS = SKIP_REASONS.filter((r) => r.menu !== false);
 

@@ -11,7 +11,7 @@ from .. import ids, log, textutil, timeutil
 from ..context import Ctx
 from ..store import Store
 from .fetch import FetchJob, fetch_all, no_sleep
-from .parsers import parse
+from .parsers import TERM_KINDS, parse
 from .sources import AUTO_PAUSE, fetch_url, sync_seeds
 
 NEAR_DUP_JACCARD = 0.82
@@ -156,9 +156,13 @@ def run_scouts(ctx: Ctx, only: set[str] | None = None) -> dict[str, Any]:
                     log.error(f"parse:{source['id']}", exc)
                     raw = []
                     patch["last_error"] = f"parse error: {type(exc).__name__}"
-                cap = int(source.get("max_items") or sc.max_items_per_source)
-                new_ids, dups = ingest_items(store, source, raw, index, limit=cap)
-                stats["duplicates"] += dups
+                if source.get("kind") in TERM_KINDS:
+                    save_terms(store, source, raw)
+                    stats["terms"] = stats.get("terms", 0) + len(raw)
+                else:
+                    cap = int(source.get("max_items") or sc.max_items_per_source)
+                    new_ids, dups = ingest_items(store, source, raw, index, limit=cap)
+                    stats["duplicates"] += dups
                 if not raw and not patch.get("last_error"):
                     patch["last_error"] = "feed returned no items"
             stats["new_items"] += len(new_ids)
@@ -172,10 +176,35 @@ def run_scouts(ctx: Ctx, only: set[str] | None = None) -> dict[str, Any]:
     _auto_pause(ctx)
     failing = [f"{r.key} ({r.error})" for r in results if not r.ok]
     log.info(f"scout: {stats['ok']}/{stats['sources']} sources ok, {stats['new_items']} new items, "
-             f"{stats['duplicates']} duplicates, {stats['failed']} failed"
+             f"{stats['duplicates']} duplicates, {stats.get('terms', 0)} trending terms, {stats['failed']} failed"
              + (f": {', '.join(failing[:12])}" if failing else ""))
     return stats
 
+
+
+TERMS_KEY = "trending_terms"
+TERMS_HOURS = 36
+
+
+def save_terms(store: Store, source: dict[str, Any], terms: list[dict[str, Any]]) -> None:
+    """Keep what's trending on X and Bluesky for a day and a half: topics that mention it rank higher."""
+    now = timeutil.now()
+    since = timeutil.iso(now - dt.timedelta(hours=TERMS_HOURS))
+    kept = [t for t in store.get_setting(TERMS_KEY, []) or [] if isinstance(t, dict) and (t.get("at") or "") >= since]
+    seen = {(str(t.get("term", "")).casefold(), t.get("where")) for t in kept}
+    region = (source.get("extra") or {}).get("region") or source.get("gl")
+    for t in terms:
+        term = str(t.get("term") or "").strip()
+        key = (term.casefold(), t.get("where"))
+        if term and key not in seen:
+            seen.add(key)
+            kept.append({"term": term, "where": t.get("where"), "region": region, "at": timeutil.iso(now)})
+    store.set_setting(TERMS_KEY, kept[-400:])
+
+
+def trending_terms(store: Store) -> list[dict[str, Any]]:
+    since = timeutil.iso(timeutil.now() - dt.timedelta(hours=TERMS_HOURS))
+    return [t for t in store.get_setting(TERMS_KEY, []) or [] if isinstance(t, dict) and (t.get("at") or "") >= since]
 
 
 def _auto_pause(ctx: Ctx) -> None:

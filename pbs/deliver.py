@@ -8,7 +8,7 @@ import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
-from . import bandit, draft, ids, log, prompting, textutil, timeutil
+from . import bandit, draft, ids, log, prompting, pulse, textutil, timeutil
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest, json_rows, why_unavailable
 from .rank import Candidate, allocate, build_candidates, build_memory, interview_bank
@@ -73,6 +73,9 @@ def card_from_candidate(ctx: Ctx, cand: Candidate, dlv_id: str | None, rank: int
         "explore": cand.explore,
         "experiment_id": (cand.experiment or {}).get("id"),
         "arm": cand.arm,
+        "trending": cand.trend,
+        "story": cand.story,
+        "discussion_url": textutil.http_url(((topic.get("why_now") or {}).get("signals") or {}).get("discussion_url")),
         "created_at": now,
         "updated_at": now,
         "delivered_at": now,
@@ -148,6 +151,9 @@ def morning_delivery(ctx: Ctx, scout: bool = True, dlv_id: str | None = None, pl
     if scout:
         with ctx.run.step("scout"):
             run_scouts(ctx)
+        if pulse.due(ctx):
+            with ctx.run.step("pulse") as s:
+                s["stats"] = pulse.run(ctx)
         with ctx.run.step("topics"):
             build_topics(ctx)
     since = timeutil.iso(timeutil.now() - dt.timedelta(hours=96))
@@ -159,10 +165,14 @@ def morning_delivery(ctx: Ctx, scout: bool = True, dlv_id: str | None = None, pl
     rng = random.Random(f"{local_date}:{ctx.run.id}")
     plan: dict[str, list[Candidate]] = {}
     taken: set[str] = set()
+    first = delivery_id(local_date)
+    # Another set today ("Get fresh posts"): nothing already in today's sets, on either platform.
+    seen = ({c["topic_id"] for c in ctx.store.select("cards", "delivery_id LIKE ?", (f"{first}%",)) if c.get("topic_id")}
+            if dlv_id != first else set())
     for platform in ("linkedin", "x"):
         if ctx.settings.platform_enabled(platform) and (not platforms or platform in platforms):
             plan[platform] = allocate(ctx, platform, cands.get(platform, []), arms, rng, taken_elsewhere=taken,
-                                      slots=per_platform)
+                                      slots=per_platform, exclude=seen)
             taken |= {c.topic_key for c in plan[platform]}
     return deliver_plan(ctx, plan, dlv_id)
 

@@ -57,6 +57,8 @@ def kit(ctx: Ctx) -> dict[str, Any]:
         linkedin=_style_block(ctx, "linkedin"), x=_style_block(ctx, "x"),
         post_types="\n".join(f"- {k} ({posttypes.LABELS.get(k, k)}): {v}"
                              for k, v in draft.POST_TYPE_INSTRUCTIONS.items()),
+        x_funny=s.humor.x_max_chars, cliches=", ".join(f'"{c.strip()}"' for c in s.humor.cliches[:40]) or "(none)",
+        funny_examples=" | ".join(f'"{textutil.truncate(e, 200)}"' for e in s.humor.examples[:5]) or "(none yet)",
         visual_kinds="\n".join(f"  - {k}: {rule}" for k, rule in visuals.KIND_RULES.items() if k != "image"))
     return {
         "version": prompting.version("system", "studio"),

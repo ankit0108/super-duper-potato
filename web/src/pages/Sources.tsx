@@ -16,7 +16,7 @@ import { Tabs } from "@/components/ui/Tabs";
 // Store selectors must return stable references (zustand 5), so fallbacks live outside them.
 const NONE: never[] = [];
 
-type Scout = "tech" | "affairs" | "startups" | "life" | "humor" | "ideas";
+type Scout = "tech" | "affairs" | "startups" | "life" | "humor" | "ideas" | "buzz";
 const SCOUTS: Array<{ value: Scout; label: string }> = [
   { value: "tech", label: "Tech & AI" },
   { value: "affairs", label: "Affairs" },
@@ -24,6 +24,7 @@ const SCOUTS: Array<{ value: Scout; label: string }> = [
   { value: "life", label: "Life" },
   { value: "humor", label: "Humour" },
   { value: "ideas", label: "Ideas" },
+  { value: "buzz", label: "Buzz" },
 ];
 const KIND_LABEL: Record<string, string> = {
   rss: "RSS",
@@ -36,6 +37,13 @@ const KIND_LABEL: Record<string, string> = {
   wikipedia_pool: "Wikipedia stories",
   wikiquote_pool: "Wikiquote quotes",
   reddit: "Reddit",
+  reddit_json: "Reddit",
+  hn_ask: "Ask HN",
+  mastodon_links: "Mastodon",
+  gtrends: "Google Trends",
+  trends24: "X trends",
+  bsky_trends: "Bluesky trends",
+  pulse: "Social pulse",
 };
 
 function health(s: Source, now: Date): { tone: "ok" | "warn" | "bad" | "neutral"; text: string } {
@@ -142,7 +150,7 @@ export function Sources() {
   const [adding, setAdding] = useState(false);
   const [replacing, setReplacing] = useState<Source | undefined>();
   const grouped = useMemo(() => {
-    const out: Record<Scout, Source[]> = { tech: [], affairs: [], startups: [], life: [], humor: [], ideas: [] };
+    const out: Record<Scout, Source[]> = { tech: [], affairs: [], startups: [], life: [], humor: [], ideas: [], buzz: [] };
     for (const s of sources) (out[s.scout as Scout] ?? out.tech).push(s);
     for (const k of Object.keys(out) as Scout[]) out[k].sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name));
     return out;

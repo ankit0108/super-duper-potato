@@ -31,6 +31,8 @@ How to judge:
 - sensitive = true for tragedies, violence, communal incidents, or disasters with casualties.
 - issue_key: the key of a recorded stance issue the topic touches, otherwise null.
 - summary_en: one neutral English sentence (translate if the topic is in Hindi).
+- story: what kind of story it is. "conversation" (people are arguing, asking or sharing experiences about it: an Ask HN, a heated thread, a memo everyone reacts to), "bizarre" (strange, absurd or surprising: an AI that did something odd, a weird product, an unlikely lawsuit), "funny" (people are already laughing at it), "launch" (a new product, model or tool), "research" (a paper or a result), otherwise "news". The why_now says when people are talking about it (comments, upvotes, shares, searches, trending).
+- Bizarre, funny and conversation stories are the best material for the humour lanes: the joke comes from something specific and true that people are already talking about.
 
 Topics:
 <input>
@@ -38,6 +40,6 @@ Topics:
 </input>
 
 Reply with JSON only, one entry per topic id:
-{"topics": [{"id": "T1", "summary_en": "…", "sensitive": false, "sensitive_reason": "", "issue_key": null,
+{"topics": [{"id": "T1", "summary_en": "…", "story": "news|conversation|bizarre|funny|launch|research", "sensitive": false, "sensitive_reason": "", "issue_key": null,
   "linkedin": {"pillar": "{{linkedin_keys}}|none", "angle_potential": 3, "angle": "…", "format_note": "", "post_type": "funny_take|null"},
   "x": {"lane": "{{x_keys}}|none", "angle_potential": 3, "angle": "…", "format": "x_single|x_thread|x_quote|x_reply", "affairs_type": "history|tracker|outlook|opinion|null", "post_type": "funny_take|excerpt|thought|null"}}]}

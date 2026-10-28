@@ -172,6 +172,12 @@ def _ago(hours: float | None) -> str:
     return f"{int(round(hours / 24))} days ago"
 
 
+# Signals that are words, not counts: a discussion thread, a trending search, the platform a conversation is
+# taking off on (the social pulse) and why it works there.
+TEXT_SIGNALS = ("discussion_url", "trend_term", "trending_on", "why_works")
+PLACE = {"linkedin": "LinkedIn", "x": "X", "bluesky": "Bluesky"}
+
+
 def why_now(items: list[dict[str, Any]], publishers: list[str]) -> dict[str, Any]:
     now = timeutil.now()
     times = [timeutil.parse(it.get("published_at") or it.get("fetched_at")) for it in items]
@@ -189,6 +195,8 @@ def why_now(items: list[dict[str, Any]], publishers: list[str]) -> dict[str, Any
             if k == "hf_rank" and (signals.get(k) is None or v < signals[k]):
                 signals[k] = v
             if k == "otd_year":
+                signals[k] = v
+            if k in TEXT_SIGNALS and isinstance(v, str) and v and not signals.get(k):
                 signals[k] = v
     also = sorted({p for it in items for p in (it.get("signals") or {}).get("also_seen_in", [])} - set(publishers))
     outlets = len(set(publishers) | set(also))
@@ -208,8 +216,19 @@ def why_now(items: list[dict[str, Any]], publishers: list[str]) -> dict[str, Any
         parts.append(f"Reported by {publishers[0]} {_ago(timeutil.hours_between(newest, now))}")
     if pace == "accelerating":
         parts.append("coverage is accelerating")
+    if signals.get("trending_on"):
+        parts.append(f"people are talking about it on {PLACE.get(signals['trending_on'], signals['trending_on'])}")
     if signals.get("hn_points"):
-        parts.append(f"{int(signals['hn_points'])} points on Hacker News")
+        comments = int(signals.get("hn_comments") or 0)
+        parts.append(f"{int(signals['hn_points'])} points" + (f" and {comments:,} comments" if comments >= 50 else "")
+                     + " on Hacker News")
+    if signals.get("reddit_score"):
+        parts.append(f"{int(signals['reddit_score']):,} upvotes and {int(signals.get('reddit_comments') or 0):,} "
+                     "comments on Reddit")
+    if signals.get("mastodon_accounts"):
+        parts.append(f"shared by {int(signals['mastodon_accounts'])} accounts on Mastodon")
+    if signals.get("search_traffic"):
+        parts.append(f"{int(signals['search_traffic']):,}+ searches on Google")
     if signals.get("hf_upvotes"):
         rank = signals.get("hf_rank")
         parts.append(f"#{rank} on Hugging Face daily papers ({int(signals['hf_upvotes'])} upvotes)" if rank

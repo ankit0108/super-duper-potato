@@ -76,7 +76,7 @@ weekly reviews, then a fresh morning.
 
 | Path | What's there |
 | --- | --- |
-| `pbs/` | The pipeline: `tick.py` (orchestrator), `scout/`, `topics.py`, `rank.py`, `bandit.py`, `draft.py`, `hashtags.py`, `platform.py` (platform guide and research), `visuals.py`, `studio.py` (the Studio kit and saved Studio posts), `images.py` (AI images), `guardrails.py`, `learn.py`, `voice.py`, `reflect.py`, `report.py`, `metrics.py`, `llm/`, `export.py`, `contracts.py` (the desk contract) |
+| `pbs/` | The pipeline: `tick.py` (orchestrator), `scout/`, `topics.py`, `rank.py`, `bandit.py`, `draft.py`, `hashtags.py`, `platform.py` (platform guide and research), `visuals.py`, `studio.py` (the Studio kit and saved Studio posts), `pulse.py` (what's working on LinkedIn and X), `humor.py` (the writers' room), `images.py` (AI images), `guardrails.py`, `learn.py`, `voice.py`, `reflect.py`, `report.py`, `metrics.py`, `llm/`, `export.py`, `contracts.py` (the desk contract) |
 | `pbs/defaults/` | Default settings, sources, stances, the platform guide, voice rules, interview questions and the profile template |
 | `pbs/prompts/` | Versioned prompt templates |
 | `pbs/demo/` | Offline world (mock feeds + demo model) and the demo builder |

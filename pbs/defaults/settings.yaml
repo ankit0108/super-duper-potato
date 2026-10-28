@@ -78,7 +78,7 @@ strategy:
       weight: 0.20
       mode: external
       formats: [li_text]
-      scouts: [tech, startups]
+      scouts: [tech, startups, buzz]
       description: >-
         The whole AI and automation industry: labs and model releases, AI startups and funding, big-tech moves,
         enterprise adoption, regulation, compute and infrastructure, and automation vendors (Automation Anywhere,
@@ -107,7 +107,7 @@ strategy:
       # At least one funny post every morning.
       min_per_day: 1
       formats: [li_text]
-      scouts: [humor]
+      scouts: [humor, buzz]
       description: >-
         Funny, work-safe posts about tech and work: a light take on today's tech, AI or startup news (the facts from
         the sources, the joke in the framing), or a relatable observation about building software, AI hype, demos,
@@ -122,7 +122,7 @@ strategy:
       weight: 0.25
       mode: external
       formats: [x_single, x_thread, x_quote, x_reply]
-      scouts: [tech]
+      scouts: [tech, buzz]
       description: Faster, lighter takes than LinkedIn; threads welcome.
       keywords: [ai, llm, model, openai, anthropic, google, gpt, claude, gemini, llama, agent, software, developer,
         programming, chip, apple, robotics, open source, benchmark, release, launch]
@@ -161,7 +161,7 @@ strategy:
       weight: 0.15
       mode: external
       formats: [x_single, x_quote]
-      scouts: [humor]
+      scouts: [humor, buzz]
       description: >-
         Funny posts about anything: a light take on today's news from any lane (the facts from the sources, the joke
         in the framing), or a relatable observation about tech, work, startups, cricket, Melbourne weather, family
@@ -199,9 +199,37 @@ affairs:
 pools:
   # Material that isn't news, a few entries a day each, ranked next to the news: premises for a relatable funny post
   # (humor_pools.yaml: tech and work on both platforms, life on X only) and themes for a thought (thought_pools.yaml,
-  # X). Quotes come from the "Wikiquote: quotes worth sharing" source. 0 turns a pool off.
-  humor: 4
+  # X). Quotes come from the "Wikiquote: quotes worth sharing" source. 0 turns a pool off. The funny premises are off:
+  # funny posts now come from real stories people are talking about (the buzz scout), which land better.
+  humor: 0
   thoughts: 2
+
+pulse:
+  # Once a day, one Google search (through Gemini) of public LinkedIn and X posts on your topics: the conversations
+  # taking off, and why they work. They're ranked with the day's stories, marked "Trending on LinkedIn/X".
+  enabled: true
+  per_platform: 4
+
+humor:
+  # Funny posts are written in a writers' room: several jokes in different styles, then a critic keeps the best
+  # (the runner-up becomes another opening). `examples`: funny posts you like, the humour to aim for.
+  writers_room: true
+  options: 6
+  examples: []
+  x_max_chars: 180
+  # Jokes everyone has seen: the critic rejects them and the card flags them.
+  cliches: ["works on my machine", "it's always dns", "naming things", "cache invalidation", "off-by-one",
+            "nobody:", "no one:", "it's not a bug, it's a feature", "not a bug, it's a feature",
+            "have you tried turning it off and on", "turn it off and on again",
+            "99 little bugs", "deploy on friday", "friday deploy", "git push --force", "sudo rm -rf",
+            "rm -rf /", "copied from stack overflow", "copy-paste from stack overflow", "tabs vs spaces",
+            "but it compiles", "senior developer vs junior",
+            "this meeting could have been an email", "could have been an email", "per my last email",
+            "let's circle back", "synergy", "rockstar developer", "10x engineer", "move fast and break things",
+            "ai will take your job", "ai won't replace you", "prompt engineer is the new",
+            "chatgpt wrote this", "written by chatgpt", "as an ai language model", "skynet", "terminator",
+            "agree?", "thoughts?", "who else", "tag someone who", "and that's okay", "let that sink in",
+            "unpopular opinion", "hot take:", "plot twist", "i'll see myself out", "said no one ever"]
 
 hooks:
   types: [question, contrarian, number, story, how-to, observation]
@@ -219,11 +247,13 @@ scouting:
   max_items_per_source: 40
   item_retention_days: 45
   dedup_window_days: 7
-  lookback_hours: {tech: 72, affairs: 48, startups: 72, life: 168, humor: 72, ideas: 72}
+  lookback_hours: {tech: 72, affairs: 48, startups: 72, life: 168, humor: 72, ideas: 72, buzz: 48}
   cluster_threshold: 0.32
   # Topics per platform sent to triage (in batches): enough to fill ten X slots after triage drops some.
   shortlist_per_platform: 18
-  candidates_per_scout: {tech: 30, affairs: 24, startups: 12, life: 6, humor: 6, ideas: 6}
+  # Of those, at least this many from a scout when it has any (what people are talking about, not only the news).
+  shortlist_seats: {buzz: 5}
+  candidates_per_scout: {tech: 30, affairs: 24, startups: 12, life: 6, humor: 6, ideas: 6, buzz: 24}
   per_source_cap: 8
   pause_after_failure_days: 7
   pause_after_zero_yield_weeks: 4
@@ -236,7 +266,8 @@ ranking:
   triage_reuse_hours: 6
   diversity_arm_penalty: 0.7
   weights: {fit: 1.0, timeliness: 1.0, momentum: 0.8, novelty: 1.0}
-  timeliness_half_life_hours: {tech: 30, affairs: 20, startups: 36, life: 168, research: 96, humor: 168, ideas: 168}
+  timeliness_half_life_hours: {tech: 30, affairs: 20, startups: 36, life: 168, research: 96, humor: 168, ideas: 168,
+                               buzz: 24}
 
 learning:
   frozen: false
@@ -258,6 +289,8 @@ learning:
     other: 0.1
     # Moved to the other platform: the topic was fine, the platform wasn't.
     wrong_platform: 0.3
+    # A joke that didn't land: the critic learns from it; the lane isn't punished as hard as a dull topic.
+    not_funny: 0.15
   edit_ratio_review_weeks: 4
 
 rewards:
@@ -383,6 +416,9 @@ llm:
     voice: [groq, gemini, gemini_lite]
     vision: [gemini, gemini_lite]
     search: [gemini]
+    pulse: [gemini]
+    humor_write: [gemini, groq, gemini_lite, openrouter]
+    humor_judge: [gemini, groq, gemini_lite, openrouter]
     search_plan: [gemini_lite, groq, gemini, openrouter]
     search_rerank: [gemini_lite, groq, gemini, openrouter]
     research: [gemini, groq, gemini_lite]
@@ -392,7 +428,7 @@ llm:
   # Seconds a call may take before that model counts as busy and the next one answers: a stalled call once cost
   # minutes. Search with grounding and the weekly review get longer.
   timeouts: {default: 90, draft: 50, draft_personal: 50, edit: 40, triage: 75, translate: 45, questions: 45,
-             visual: 60, search_plan: 40, search_rerank: 40}
+             visual: 60, search_plan: 40, search_rerank: 40, humor_write: 60, humor_judge: 45, pulse: 90}
   temperature:
     translate: 0.1
     triage: 0.2
@@ -404,6 +440,10 @@ llm:
     voice: 0.3
     vision: 0.0
     search: 0.2
+    pulse: 0.3
+    # The writers' room aims wide; the critic judges coldly.
+    humor_write: 1.0
+    humor_judge: 0.2
     search_plan: 0.2
     search_rerank: 0.0
     research: 0.2

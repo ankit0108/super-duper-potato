@@ -373,6 +373,8 @@ def check_card(card: dict[str, Any], *, settings: Any, blocklist: list[str], evi
         "length": length_flags(card["platform"], card["format"], draft, settings),
         "ai_tells": ai_tells(body),
         "quote_changed": quote_check(body, evidence, card.get("post_type")),
+        "cliches": (phrase_hits(body, getattr(getattr(settings, "humor", None), "cliches", None) or [])
+                    if card.get("post_type") in ("funny_take", "observation") else []),
         "sensitive": bool(prev.get("sensitive")),
         "sensitive_reason": prev.get("sensitive_reason"),
         "stance_id": prev.get("stance_id"),

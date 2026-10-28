@@ -52,7 +52,14 @@ export type CardId3 = string;
 export type Id3 = string;
 export type Note = string | null;
 export type Reason =
-  "not_interesting" | "off_brand" | "wrong_timing" | "too_risky" | "already_covered" | "other" | "wrong_platform";
+  | "not_interesting"
+  | "off_brand"
+  | "wrong_timing"
+  | "too_risky"
+  | "already_covered"
+  | "other"
+  | "wrong_platform"
+  | "not_funny";
 export type Type4 = "card.skip";
 export type At4 = string;
 export type CardId4 = string;
@@ -200,17 +207,24 @@ export type Kind2 =
       | "hf_papers"
       | "hn_front"
       | "hn_show"
+      | "hn_ask"
       | "wikipedia_otd"
       | "wikipedia_pool"
       | "wikiquote_pool"
       | "reddit"
+      | "reddit_json"
+      | "mastodon_links"
+      | "gtrends"
+      | "trends24"
+      | "bsky_trends"
+      | "pulse"
     )
   | null;
 export type Lang = ("en" | "hi") | null;
 export type Name = string | null;
 export type PillarHints = string[] | null;
 export type Query1 = string | null;
-export type Scout = ("tech" | "affairs" | "startups" | "life" | "humor" | "ideas") | null;
+export type Scout = ("tech" | "affairs" | "startups" | "life" | "humor" | "ideas" | "buzz") | null;
 export type SourceId = string;
 export type Tier2 = ("world" | "india" | "bihar" | "other") | null;
 export type Type22 = "source.upsert";
@@ -358,6 +372,10 @@ export type Platform4 = "linkedin" | "x";
 export type PriorMean = number;
 export type Arms = Arm[];
 export type AffairsType = string | null;
+/**
+ * Funny posts: the writers' room's next-best versions
+ */
+export type Alternatives = string[];
 export type Angle = string | null;
 export type Answer2 = string;
 export type At29 = string | null;
@@ -388,6 +406,10 @@ export type CreatedAt1 = string;
 export type CrosspostOf = string | null;
 export type DeliveredAt = string | null;
 export type DeliveryId = string | null;
+/**
+ * The Hacker News or Reddit thread people are talking in
+ */
+export type DiscussionUrl = string | null;
 /**
  * Posted right after (LinkedIn comment / X reply): the link
  */
@@ -421,6 +443,10 @@ export type AiTells = AiTell[];
 export type AvoidPhrases = string[];
 export type Bait = string[];
 export type Blocked = string[];
+/**
+ * Funny posts: jokes everyone has seen (settings humor.cliches)
+ */
+export type Cliches = string[];
 export type FirstPerson = string[];
 export type Length = string[];
 export type Notes1 = string[];
@@ -440,6 +466,10 @@ export type HookType = string | null;
 export type Text13 = string;
 export type Type30 = string;
 export type Hooks2 = Hook[];
+export type Device1 = string | null;
+export type Note6 = string | null;
+export type Options = number;
+export type Verdict = ("strong" | "ok" | "weak") | null;
 export type Id32 = string;
 export type IssueKey = string | null;
 export type Kind5 = "news" | "evergreen" | "interview" | "request" | "adapt" | "studio";
@@ -486,9 +516,16 @@ export type Revision = number;
 export type RewriteCount = number;
 export type Score = number | null;
 export type At30 = string | null;
-export type Note6 = string | null;
+export type Note7 = string | null;
 export type Reason2 =
-  "not_interesting" | "off_brand" | "wrong_timing" | "too_risky" | "already_covered" | "other" | "wrong_platform";
+  | "not_interesting"
+  | "off_brand"
+  | "wrong_timing"
+  | "too_risky"
+  | "already_covered"
+  | "other"
+  | "wrong_platform"
+  | "not_funny";
 export type Lang1 = string;
 export type OrigTitle = string | null;
 export type PublishedAt = string | null;
@@ -500,8 +537,15 @@ export type Sources1 = SourceRef[];
 export type Status2 =
   "drafting" | "suggested" | "needs_input" | "editing" | "posted" | "skipped" | "expired" | "blocked" | "failed";
 export type StatusChangedAt = string | null;
+/**
+ * What kind of story triage says it is
+ */
+export type Story = ("news" | "conversation" | "bizarre" | "funny" | "launch" | "research") | null;
 export type Title6 = string;
 export type TopicId = string | null;
+export type On = "linkedin" | "x" | "bluesky";
+export type Term = string | null;
+export type Why1 = string | null;
 export type UpdatedAt = string | null;
 export type Playbook = string | null;
 export type Prompt = string | null;
@@ -549,7 +593,7 @@ export type Chips1 = string[];
 export type Crosspost = ("both" | "switch") | null;
 export type Kind8 = "draft" | "rewrite" | "questions" | "visual";
 export type LastError = string | null;
-export type Note7 = string | null;
+export type Note8 = string | null;
 export type RequestedAt = string | null;
 export type TargetFormat2 = ("li_text" | "x_single" | "x_thread" | "x_quote" | "x_reply") | null;
 export type TargetPlatform2 = ("linkedin" | "x") | null;
@@ -693,6 +737,15 @@ export type Source5 = string | null;
 export type Status7 = "pending" | "approved" | "rejected" | "applied" | "noted" | "failed";
 export type Title10 = string;
 export type Proposals = Proposal[];
+export type Angle1 = string;
+export type Date2 = string;
+export type Platform10 = "linkedin" | "x";
+export type Said = string;
+export type Topic = string;
+export type Url3 = string | null;
+export type Why2 = string;
+export type Conversations = PulseConversation[];
+export type Updated = string | null;
 export type DailyLimit1 = number | null;
 export type Day = string;
 export type ExhaustedAt = string | null;
@@ -769,7 +822,7 @@ export type PausedReason = string | null;
 export type Query3 = string | null;
 export type Scout1 = string;
 export type Tier3 = string | null;
-export type Url3 = string | null;
+export type Url4 = string | null;
 export type Sources3 = Source6[];
 export type CustomText1 = string | null;
 export type PositionKey = string | null;
@@ -796,7 +849,7 @@ export type XLimit = number;
 export type CreatedAt11 = string | null;
 export type Error3 = string | null;
 export type Id48 = string;
-export type Note8 = string | null;
+export type Note9 = string | null;
 export type Paths1 = string[];
 export type ProcessedAt = string | null;
 export type Results = {
@@ -1359,6 +1412,7 @@ export interface DeskState {
   posts?: Posts6;
   processed_event_ids?: ProcessedEventIds;
   proposals?: Proposals;
+  pulse?: PulseInfo | null;
   quota?: Quota;
   rejected_events?: RejectedEvents;
   report?: SystemReport | null;
@@ -1408,6 +1462,7 @@ export interface Arm {
  */
 export interface Card {
   affairs_type?: AffairsType;
+  alternatives?: Alternatives;
   angle?: Angle;
   answers?: Answers1;
   arm?: Arm1;
@@ -1417,6 +1472,7 @@ export interface Card {
   crosspost_of?: CrosspostOf;
   delivered_at?: DeliveredAt;
   delivery_id?: DeliveryId;
+  discussion_url?: DiscussionUrl;
   draft?: Draft | null;
   draft_basis?: DraftBasis;
   draft_original?: Draft | null;
@@ -1430,6 +1486,7 @@ export interface Card {
   hashtags?: Hashtags3;
   hook_type?: HookType;
   hooks?: Hooks2;
+  humor?: HumorInfo | null;
   id: Id32;
   issue_key?: IssueKey;
   kind?: Kind5;
@@ -1450,8 +1507,10 @@ export interface Card {
   sources?: Sources1;
   status: Status2;
   status_changed_at?: StatusChangedAt;
+  story?: Story;
   title: Title6;
   topic_id?: TopicId;
+  trending?: TrendInfo | null;
   updated_at?: UpdatedAt;
   versions?: Versions;
   visual?: Visual | null;
@@ -1513,6 +1572,7 @@ export interface Flags {
   avoid_phrases?: AvoidPhrases;
   bait?: Bait;
   blocked?: Blocked;
+  cliches?: Cliches;
   first_person?: FirstPerson;
   length?: Length;
   notes?: Notes1;
@@ -1538,6 +1598,18 @@ export interface AiTell {
 export interface Hook {
   text: Text13;
   type?: Type30;
+}
+/**
+ * How a funny post was written (pbs/humor.py): the writers' room's options and the critic's verdict.
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "HumorInfo".
+ */
+export interface HumorInfo {
+  device?: Device1;
+  note?: Note6;
+  options?: Options;
+  verdict?: Verdict;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -1582,7 +1654,7 @@ export interface ScoreParts {
  */
 export interface Skip {
   at?: At30;
-  note?: Note6;
+  note?: Note7;
   reason: Reason2;
 }
 /**
@@ -1597,6 +1669,18 @@ export interface SourceRef {
   summary?: Summary;
   title?: Title5;
   url: Url2;
+}
+/**
+ * Where a card's topic is trending: the social pulse found it taking off on LinkedIn or X (with why it works
+ * there), or it matches a word trending on X or Bluesky.
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "TrendInfo".
+ */
+export interface TrendInfo {
+  on: On;
+  term?: Term;
+  why?: Why1;
 }
 export interface Versions {
   playbook?: Playbook;
@@ -1656,7 +1740,7 @@ export interface Work {
   crosspost?: Crosspost;
   kind: Kind8;
   last_error?: LastError;
-  note?: Note7;
+  note?: Note8;
   requested_at?: RequestedAt;
   target_format?: TargetFormat2;
   target_platform?: TargetPlatform2;
@@ -1879,6 +1963,29 @@ export interface Payload {
   [k: string]: unknown;
 }
 /**
+ * What's working on LinkedIn and X: the social pulse's conversations over the last week (pbs/pulse.py).
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "PulseInfo".
+ */
+export interface PulseInfo {
+  conversations?: Conversations;
+  updated?: Updated;
+}
+/**
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "PulseConversation".
+ */
+export interface PulseConversation {
+  angle?: Angle1;
+  date: Date2;
+  platform: Platform10;
+  said?: Said;
+  topic: Topic;
+  url?: Url3;
+  why?: Why2;
+}
+/**
  * This interface was referenced by `Contracts`'s JSON-Schema
  * via the `definition` "Quota".
  */
@@ -1996,7 +2103,7 @@ export interface Source6 {
   query?: Query3;
   scout: Scout1;
   tier?: Tier3;
-  url?: Url3;
+  url?: Url4;
   yield_stats?: YieldStats;
 }
 export interface SourceHealth {
@@ -2076,7 +2183,7 @@ export interface MetricUpload {
   created_at?: CreatedAt11;
   error?: Error3;
   id: Id48;
-  note?: Note8;
+  note?: Note9;
   paths?: Paths1;
   processed_at?: ProcessedAt;
   results?: Results;
@@ -2124,6 +2231,7 @@ export interface Flags1 {
   avoid_phrases?: AvoidPhrases;
   bait?: Bait;
   blocked?: Blocked;
+  cliches?: Cliches;
   first_person?: FirstPerson;
   length?: Length;
   notes?: Notes1;

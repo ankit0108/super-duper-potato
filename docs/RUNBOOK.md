@@ -23,23 +23,32 @@ today's Bihar. It's drafted from the Wikipedia article (about 140 of them, a few
 `pbs/defaults/story_pools.yaml`), and it stays for about a week. Bihar news still comes as usual.
 `affairs.stories_per_day` in the settings changes the number (0 lets stories compete with the news on their own).
 
-**Funny posts, quotes and thoughts.** Every morning has at least one *Tech humour* card on LinkedIn: a light take
-on the day's tech news, or a relatable joke about building software, AI hype, demos, meetings or LinkedIn itself.
-On X, the *Funny* lane covers anything (news, work, cricket, Melbourne weather, family WhatsApp groups) and the
-*Quotes, excerpts and thoughts* lane brings a quote, a line worth quoting from the day's material, or one sharp
-thought. X has no fixed share for either: the ranking mixes them with the news and learns from what you pick, so
-skipping them makes them rarer and posting them makes them more common. The badge on a card says which kind it is
-(*Funny take*, *Relatable*, *Quote*, *Excerpt*, *Thought*).
-- A funny take keeps the facts to the sources; the joke is in the framing. A relatable post has no facts at all.
-  Nothing jokes about religion, caste, gender, a community, someone's appearance, a tragedy, a private person or
-  party politics, and a sensitive story is never made funny.
-- A quote is used only after its words are found on the author's Wikiquote page (outside the misattributed,
-  disputed and "about" sections). The first comment links to that page. If you change the quoted words, **Checks**
-  shows *Quote changed*: put them back or drop the quotation marks. The editor pass never rewrites a quote.
-- The premises, themes and quotes are in `pbs/defaults/humor_pools.yaml`, `thought_pools.yaml` and
-  `quote_pools.yaml`: add a line to add one. **Settings → Strategy** changes how much each lane gets; `pools` in the
-  settings changes how many premises and themes come up a day (0 turns one off), and the *Wikiquote: quotes worth
-  sharing* source on **Sources → Ideas** sets how many quotes are checked a day.
+**What people are talking about, not only the news.** Besides news sites and papers, the *Buzz* scout (Sources →
+Buzz) reads tech communities (Reddit's top posts of the day, Ask HN and the most-discussed Hacker News stories,
+Techmeme, Lobsters, Product Hunt, GitHub trending), odd and funny tech news (The Register, 404 Media, Futurism,
+Gizmodo, Ars Technica, Hackaday, Slashdot, Engadget, Google News searches for bizarre, viral and AI-blunder stories)
+and what's trending (Google Trends for India, Australia and the US, Mastodon's trending links). How much a story is
+discussed (comments, upvotes, shares, searches) lifts it, and the card's note says so ("5,400 upvotes and 900
+comments on Reddit"). Words trending on X (trends24) and Bluesky lift the stories that mention them for a day and a
+half. Cards are badged *People are talking*, *Bizarre* or *Trending on X*, and **Read what people are saying** opens
+the thread. Reddit and trends24 often refuse GitHub's servers: those are best effort, and the doctor lists them.
+
+**What's working on LinkedIn and X.** Once a day the morning run searches Google (through Gemini) for public
+LinkedIn and X posts on your topics: the conversations taking off and why they work. The best reach the board marked
+*Trending on LinkedIn* or *Trending on X*, with why posts about them are working, and the draft is written with
+that in mind. **Insights → What's working** lists the week's. PBS never logs in to or scrapes LinkedIn or X. When
+you see a post you like in their apps, share it to **PBS Desk** (Studio, above). Pause it on Sources → Buzz
+(*Social pulse*); `pulse` in the settings turns it off or changes how many a platform.
+
+**Funny posts.** Every morning has at least one funny card on LinkedIn, and X mixes them in as the ranking learns.
+They're about real stories (the bizarre, the funny, what people are arguing about), not generic premises (the premise
+pool is off: `pools.humor`). Each is written in a *writers' room*: six versions in different styles, then a critic
+that keeps the best and throws out clichés, explained jokes, jokes that punch down and anything the story doesn't
+support. The card shows the critic's verdict and the next two versions (**Use** swaps one in); when the critic
+says *weak*, rewrite it or skip it. Skip a joke as **Not funny** and the critic learns from it. `humor.examples` in
+the settings takes funny posts you like (the taste to aim for) and `humor.cliches` the jokes to never use; drafts
+that lean on one are flagged. On X, the *Quotes, excerpts and thoughts* lane still brings a quote checked word for
+word on Wikiquote, a line worth quoting from the day's material, or one sharp thought.
 
 **If a sentence sounds like AI.** The card's **Checks** tab lists *Sounds like AI* as you type ("It's not X, it's
 Y", "Here's why:", em dashes, emoji bullets, filler, every sentence the same length), and the tile shows a robot
