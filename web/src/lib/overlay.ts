@@ -44,6 +44,52 @@ export function deepMerge<T extends AnyObj>(base: T, patch: AnyObj): T {
   return out as T;
 }
 
+/** A post saved from the Studio, as the card the pipeline will make of it (pbs/studio.py save). */
+export function studioCard(ev: Extract<InboxEvent, { type: "studio.save" }>): Card {
+  const thread = ev.format === "x_thread";
+  const posts = thread ? (ev.posts ?? []).filter((p) => p.trim()) : [];
+  const text = thread ? "" : (ev.text ?? "").trim();
+  const draft = { text, posts, first_comment: ev.first_comment?.trim() || null };
+  const attachments = (ev.images ?? []).map((img) => ({ path: img.path, content_type: "image/jpeg", width: img.width ?? null, height: img.height ?? null }));
+  const photo = ev.visual?.photo != null ? attachments[ev.visual.photo] : undefined;
+  return {
+    id: ev.card_id,
+    kind: "studio",
+    platform: ev.platform,
+    pillar: ev.pillar || (ev.platform === "linkedin" ? "industry" : "tech"),
+    format: ev.format,
+    mode: "external",
+    post_type: ev.post_type ?? null,
+    title: (ev.title || text || posts[0] || "Studio post").slice(0, 200),
+    why_now: "Written with you in the Studio.",
+    status: "suggested",
+    draft_state: "full",
+    draft,
+    draft_original: draft,
+    hooks: (ev.hooks ?? []).filter((h) => h.trim()).slice(0, 3).map((h) => ({ type: "observation", text: h.trim() })),
+    hashtags: ev.hashtags ?? [],
+    sources: (ev.sources ?? []).map((s) => ({ url: s.url, title: s.title || s.url })),
+    visual: ev.visual
+      ? {
+          kind: ev.visual.kind,
+          title: ev.visual.title,
+          subtitle: ev.visual.subtitle ?? null,
+          caption: ev.visual.caption ?? null,
+          alt_text: ev.visual.alt_text ?? "",
+          items: ev.visual.items ?? [],
+          image: photo ? { path: photo.path, width: photo.width ?? 1080, height: photo.height ?? 1080, content_type: photo.content_type, provider: "your photo" } : null,
+          created_at: ev.at,
+        }
+      : null,
+    attachments,
+    llm: { provider: "studio", model: ev.model ?? "gemini" },
+    created_at: ev.at,
+    delivered_at: ev.at,
+    updated_at: ev.at,
+    revision: 1,
+  } as Card;
+}
+
 export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: DeskState; pending: Pending } {
   const pending = emptyPending();
   if (!events.length) return { desk, pending };
@@ -332,6 +378,13 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
         break;
       case "run.request":
         pending.runRequested.push(...(ev.tasks?.length ? ev.tasks : ["tick"]));
+        break;
+      case "studio.save":
+        if (!cardIndex.has(ev.card_id)) {
+          cardIndex.set(ev.card_id, out.cards!.length);
+          out.cards!.push(studioCard(ev));
+        }
+        pending.cards.add(ev.card_id);
         break;
     }
   }

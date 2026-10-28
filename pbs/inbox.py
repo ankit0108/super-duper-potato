@@ -610,6 +610,17 @@ def _proposal_decide(ctx: Ctx, ev: C.ProposalDecideEvent) -> None:
         ctx.run.note(f"A proposal couldn't be applied: {error}")
 
 
+def _studio_save(ctx: Ctx, ev: C.StudioSaveEvent) -> None:
+    from . import studio
+
+    if ctx.store.get("cards", ev.card_id):
+        return  # sent twice (a retry from the desk): the card is already on the board
+    try:
+        studio.save(ctx, ev)
+    except ValueError as exc:
+        raise Reject(str(exc)) from exc
+
+
 def _playbook_rule(ctx: Ctx, ev: C.PlaybookRuleEvent) -> None:
     error = playbook.user_rule(ctx, ev.action, rule_id=ev.rule_id, text=ev.text, platform=ev.platform,
                                pillar=ev.pillar)
@@ -657,6 +668,7 @@ APPLY = {
     "settings.update": _settings_update,
     "profile.update": _profile_update,
     "proposal.decide": _proposal_decide,
+    "studio.save": _studio_save,
     "playbook.rule": _playbook_rule,
     "run.request": _run_request,
 }

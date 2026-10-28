@@ -31,7 +31,9 @@ function Section({ title, hint, count, children, id }: { title: string; hint?: R
 /** The divider above each set in Today's picks when there's more than one. */
 function SetLabel({ set, tz }: { set: TodaySet; tz: string }) {
   const at = set.at ? formatTime(set.at, tz) : "";
-  const label = set.kind === "crossposts" ? "Cross-posts you made" : set.kind === "fresh" ? `Fresh set${at ? ` · ${at}` : ""}` : `Morning set${at ? ` · ${at}` : ""}`;
+  const studio = set.cards.filter((c) => c.kind === "studio").length;
+  const yours = studio === set.cards.length ? "From the Studio" : studio ? "Cross-posts and Studio posts" : "Cross-posts you made";
+  const label = set.kind === "crossposts" ? yours : set.kind === "fresh" ? `Fresh set${at ? ` · ${at}` : ""}` : `Morning set${at ? ` · ${at}` : ""}`;
   return (
     <p className="mb-2 flex items-center gap-2 text-[12px] font-medium tracking-wide text-muted uppercase">
       {set.kind === "fresh" && <Sparkles className="size-3.5 text-accent" aria-hidden />}

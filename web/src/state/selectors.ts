@@ -47,7 +47,7 @@ export function boardSections(view: DeskState | null, today: string, tz: string,
   const changedToday = (c: Card) => localDateKey(c.status_changed_at ?? c.updated_at ?? c.created_at, tz) === today;
   // Today's sets, plus the cross-posts he made today of earlier cards (they belong with what he's working on).
   const deliveredToday = (c: Card) =>
-    (!!c.delivery_id && c.delivery_id.startsWith(`dly_${today}`)) || (!!c.crosspost_of && localDateKey(c.created_at, tz) === today);
+    (!!c.delivery_id && c.delivery_id.startsWith(`dly_${today}`)) || ((!!c.crosspost_of || c.kind === "studio") && localDateKey(c.created_at, tz) === today);
 
   const needsYou: Card[] = [];
   const today_: Record<Platform, Card[]> = { linkedin: [], x: [] };
@@ -77,7 +77,7 @@ export function boardSections(view: DeskState | null, today: string, tz: string,
     else thisWeek.push(c);
   }
   needsYou.sort(byNewest);
-  // Newest set first (a fresh set above the morning's), each in rank order; his cross-posts of earlier cards on top.
+  // Newest set first (a fresh set above the morning's), each in rank order; cross-posts and Studio posts on top.
   const newestSetFirst = (a: Card, b: Card) => setNumber(b, today) - setNumber(a, today) || byRank(a, b) || byNewest(a, b);
   today_.linkedin.sort(newestSetFirst);
   today_.x.sort(newestSetFirst);

@@ -257,6 +257,50 @@
    "title": "Arm",
    "type": "object"
   },
+  "Attachment": {
+   "description": "A picture shared in the Studio and kept with the post (to post alongside it).",
+   "properties": {
+    "content_type": {
+     "default": "image/jpeg",
+     "title": "Content Type",
+     "type": "string"
+    },
+    "height": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Height"
+    },
+    "path": {
+     "description": "File in the data repo, like media/studio/<card id>/1.jpg",
+     "title": "Path",
+     "type": "string"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Width"
+    }
+   },
+   "required": [
+    "path"
+   ],
+   "title": "Attachment",
+   "type": "object"
+  },
   "Card": {
    "properties": {
     "affairs_type": {
@@ -302,6 +346,15 @@
      ],
      "default": null,
      "title": "Arm"
+    },
+    "attachments": {
+     "default": [],
+     "description": "Pictures from the Studio that go with the post",
+     "items": {
+      "$ref": "#/$defs/Attachment"
+     },
+     "title": "Attachments",
+     "type": "array"
     },
     "claims": {
      "default": [],
@@ -522,7 +575,8 @@
       "evergreen",
       "interview",
       "request",
-      "adapt"
+      "adapt",
+      "studio"
      ],
      "title": "Kind",
      "type": "string"
@@ -1928,6 +1982,17 @@
      "title": "Stats",
      "type": "object"
     },
+    "studio": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/StudioKit"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
     "uploads": {
      "default": [],
      "items": {
@@ -2535,7 +2600,8 @@
         "source.upsert": "#/$defs/SourceUpsertEvent",
         "stance.delete": "#/$defs/StanceDeleteEvent",
         "stance.propose": "#/$defs/StanceProposeEvent",
-        "stance.upsert": "#/$defs/StanceUpsertEvent"
+        "stance.upsert": "#/$defs/StanceUpsertEvent",
+        "studio.save": "#/$defs/StudioSaveEvent"
        },
        "propertyName": "type"
       },
@@ -2623,6 +2689,9 @@
        },
        {
         "$ref": "#/$defs/RunRequestEvent"
+       },
+       {
+        "$ref": "#/$defs/StudioSaveEvent"
        }
       ]
      },
@@ -5779,6 +5848,405 @@
     "stance_id"
    ],
    "title": "StanceUpsertEvent",
+   "type": "object"
+  },
+  "StudioImageIn": {
+   "additionalProperties": false,
+   "properties": {
+    "height": {
+     "anyOf": [
+      {
+       "maximum": 20000,
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Height"
+    },
+    "path": {
+     "description": "Uploaded under inbox/blobs/",
+     "maxLength": 300,
+     "title": "Path",
+     "type": "string"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "maximum": 20000,
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Width"
+    }
+   },
+   "required": [
+    "path"
+   ],
+   "title": "StudioImageIn",
+   "type": "object"
+  },
+  "StudioKit": {
+   "description": "What the desk's Studio needs to write like the pipeline (pbs/studio.py): its full instructions, rendered\nfrom the system rules, the style learned from edits, the platform guide and examples of past posts.",
+   "properties": {
+    "avoid": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Avoid",
+     "type": "array"
+    },
+    "bait": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Bait",
+     "type": "array"
+    },
+    "fold": {
+     "default": 210,
+     "title": "Fold",
+     "type": "integer"
+    },
+    "pillars": {
+     "additionalProperties": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object"
+     },
+     "default": {},
+     "title": "Pillars",
+     "type": "object"
+    },
+    "system": {
+     "title": "System",
+     "type": "string"
+    },
+    "version": {
+     "title": "Version",
+     "type": "string"
+    },
+    "x_limit": {
+     "default": 280,
+     "title": "X Limit",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "version",
+    "system"
+   ],
+   "title": "StudioKit",
+   "type": "object"
+  },
+  "StudioSaveEvent": {
+   "additionalProperties": false,
+   "description": "A draft from the Studio, saved as a card on the board (pbs/studio.py).",
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "pattern": "^[A-Za-z0-9_-]+$",
+     "title": "Card Id",
+     "type": "string"
+    },
+    "evidence": {
+     "default": "",
+     "description": "What the post may draw on: what was said in the chat and the sources",
+     "maxLength": 12000,
+     "title": "Evidence",
+     "type": "string"
+    },
+    "first_comment": {
+     "default": "",
+     "maxLength": 1000,
+     "title": "First Comment",
+     "type": "string"
+    },
+    "format": {
+     "enum": [
+      "li_text",
+      "x_single",
+      "x_thread",
+      "x_quote",
+      "x_reply"
+     ],
+     "title": "Format",
+     "type": "string"
+    },
+    "hashtags": {
+     "default": [],
+     "items": {
+      "maxLength": 60,
+      "type": "string"
+     },
+     "maxItems": 15,
+     "title": "Hashtags",
+     "type": "array"
+    },
+    "hooks": {
+     "default": [],
+     "items": {
+      "maxLength": 600,
+      "type": "string"
+     },
+     "maxItems": 5,
+     "title": "Hooks",
+     "type": "array"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "images": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/StudioImageIn"
+     },
+     "maxItems": 10,
+     "title": "Images",
+     "type": "array"
+    },
+    "kit_version": {
+     "anyOf": [
+      {
+       "maxLength": 20,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Kit Version"
+    },
+    "model": {
+     "anyOf": [
+      {
+       "maxLength": 80,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Model"
+    },
+    "pillar": {
+     "anyOf": [
+      {
+       "maxLength": 60,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Pillar"
+    },
+    "platform": {
+     "enum": [
+      "linkedin",
+      "x"
+     ],
+     "title": "Platform",
+     "type": "string"
+    },
+    "post_type": {
+     "anyOf": [
+      {
+       "maxLength": 40,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Post Type"
+    },
+    "posts": {
+     "default": [],
+     "items": {
+      "maxLength": 30000,
+      "type": "string"
+     },
+     "maxItems": 25,
+     "title": "Posts",
+     "type": "array"
+    },
+    "sources": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/StudioSourceIn"
+     },
+     "maxItems": 12,
+     "title": "Sources",
+     "type": "array"
+    },
+    "text": {
+     "default": "",
+     "maxLength": 30000,
+     "title": "Text",
+     "type": "string"
+    },
+    "title": {
+     "default": "",
+     "maxLength": 300,
+     "title": "Title",
+     "type": "string"
+    },
+    "type": {
+     "const": "studio.save",
+     "title": "Type",
+     "type": "string"
+    },
+    "visual": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/StudioVisualIn"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id",
+    "platform",
+    "format"
+   ],
+   "title": "StudioSaveEvent",
+   "type": "object"
+  },
+  "StudioSourceIn": {
+   "additionalProperties": false,
+   "properties": {
+    "title": {
+     "default": "",
+     "maxLength": 300,
+     "title": "Title",
+     "type": "string"
+    },
+    "url": {
+     "maxLength": 2000,
+     "title": "Url",
+     "type": "string"
+    }
+   },
+   "required": [
+    "url"
+   ],
+   "title": "StudioSourceIn",
+   "type": "object"
+  },
+  "StudioVisualIn": {
+   "additionalProperties": false,
+   "properties": {
+    "alt_text": {
+     "default": "",
+     "maxLength": 1500,
+     "title": "Alt Text",
+     "type": "string"
+    },
+    "caption": {
+     "anyOf": [
+      {
+       "maxLength": 300,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Caption"
+    },
+    "items": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/VisualItemIn"
+     },
+     "maxItems": 12,
+     "title": "Items",
+     "type": "array"
+    },
+    "kind": {
+     "enum": [
+      "carousel",
+      "flow",
+      "compare",
+      "list",
+      "stat",
+      "quote",
+      "image"
+     ],
+     "title": "Kind",
+     "type": "string"
+    },
+    "photo": {
+     "anyOf": [
+      {
+       "maximum": 9,
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Index of the shared picture (in images) behind the visual",
+     "title": "Photo"
+    },
+    "subtitle": {
+     "anyOf": [
+      {
+       "maxLength": 300,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Subtitle"
+    },
+    "title": {
+     "default": "",
+     "maxLength": 200,
+     "title": "Title",
+     "type": "string"
+    }
+   },
+   "required": [
+    "kind"
+   ],
+   "title": "StudioVisualIn",
    "type": "object"
   },
   "SystemReport": {

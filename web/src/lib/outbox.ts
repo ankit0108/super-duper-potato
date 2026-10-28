@@ -49,6 +49,7 @@ export const STARTS_RUN: Record<InboxEvent["type"], boolean> = {
   "proposal.decide": false,
   "playbook.rule": false,
   "run.request": true,
+  "studio.save": true,
 };
 
 export function makeEvent(input: EventInput, now: Date = new Date()): InboxEvent {

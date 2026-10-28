@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, Download, LogOut, Save } from "lucide-react";
+import { ArrowDown, ArrowUp, Download, LogOut, Save, Trash2 } from "lucide-react";
 import type { Platform } from "@/types";
 import { parseTerms } from "@/lib/guard";
 import { navigate } from "@/lib/router";
@@ -10,6 +10,8 @@ import { Button, IconButton } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Feedback";
 import { Field, Input, Stepper, Textarea, Toggle } from "@/components/ui/Field";
 import { Segmented } from "@/components/ui/Tabs";
+import { listChats, deleteChat } from "@/lib/studio/chats";
+import { StudioKeyPanel } from "@/pages/studio/KeyPanel";
 
 type S = Record<string, any>;
 const NAMES: Record<Platform, string> = { linkedin: "LinkedIn", x: "X" };
@@ -519,6 +521,27 @@ function GuardSection() {
   );
 }
 
+function StudioSection() {
+  const toast = useDesk((s) => s.toast);
+  const clear = async () => {
+    const chats = await listChats();
+    if (!chats.length) return toast("info", "There are no Studio chats on this device.");
+    if (!window.confirm(`Delete all ${chats.length} Studio chat(s) from this device? Posts you saved to the board stay.`)) return;
+    for (const c of chats) await deleteChat(c.id);
+    toast("ok", "Studio chats deleted from this device.");
+  };
+  return (
+    <Section id="studio" title="Studio (this device only)" description="The Studio chats with Gemini straight from this device: it needs its own free Gemini key, stored only in this browser.">
+      <StudioKeyPanel />
+      <div className="mt-3">
+        <Button variant="ghost" icon={<Trash2 className="size-4" />} onClick={() => void clear()}>
+          Delete all Studio chats
+        </Button>
+      </div>
+    </Section>
+  );
+}
+
 function ConnectionSection() {
   const conn = useDesk((s) => s.connection);
   const disconnect = useDesk((s) => s.disconnect);
@@ -641,6 +664,7 @@ export function Settings() {
         <p className="text-sm text-muted">Pipeline settings appear after the first run.</p>
       )}
       <GuardSection />
+      <StudioSection />
       <AppearanceSection />
       <ConnectionSection />
     </div>

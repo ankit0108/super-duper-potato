@@ -39,6 +39,8 @@ export type DeliveryInfo = NonNullable<DeskState["delivery"]>;
 export type RejectedEvent = Item<DeskState["rejected_events"]>;
 export type DoctorReport = NonNullable<DeskState["doctor"]>;
 export type ImagesStatus = NonNullable<DeskState["images"]>;
+export type StudioKit = NonNullable<DeskState["studio"]>;
+export type Attachment = Item<Card["attachments"]>;
 
 export type Platform = Card["platform"];
 export type CardStatus = Card["status"];
