@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { Download, ImageIcon, Share2 } from "lucide-react";
 import type { Attachment } from "@/types";
 import { downloadBlob } from "@/lib/visual/export";
+import { dataUrlBytes } from "@/lib/studio/images";
 import { useDesk } from "@/state/store";
 import { Button } from "@/components/ui/Button";
 import { canShareFiles } from "@/components/VisualViewer";
 
+// Decoded here rather than fetched: the desk's content security policy doesn't let it fetch data: URLs.
 async function toFile(dataUrl: string, name: string): Promise<File> {
-  const blob = await (await fetch(dataUrl)).blob();
-  return new File([blob], name, { type: blob.type || "image/jpeg" });
+  const type = /^data:([^;,]+)/.exec(dataUrl)?.[1] ?? "image/jpeg";
+  return new File([dataUrlBytes(dataUrl).buffer as ArrayBuffer], name, { type });
 }
 
 /** Pictures saved with a Studio post: shown here to download, or share to the app on a phone. */
