@@ -353,6 +353,9 @@ test("move a card to the other platform from the Skip menu", async ({ page }) =>
 
 test("make an X version of a LinkedIn card, and the two link to each other", async ({ page }) => {
   await todaySection(page).locator("[data-tile]").first().click();
+  // The card's own heading, once its page is open (not the board's, while it's still on screen).
+  await expect(page).toHaveURL(/#\/card\//);
+  await expect(page.getByRole("button", { name: "Also for X" })).toBeVisible();
   const title = (await page.getByRole("heading", { level: 1 }).textContent())!;
   await page.getByRole("button", { name: "Also for X" }).click();
   const dialog = page.getByRole("dialog", { name: "Make an X version" });
