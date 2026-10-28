@@ -18,7 +18,7 @@ DESK_SCHEMA_VERSION = 1
 PlatformName = Literal["linkedin", "x"]
 CardStatus = Literal["drafting", "suggested", "needs_input", "editing", "posted", "skipped", "expired",
                      "blocked", "failed"]
-CardKind = Literal["news", "evergreen", "interview", "request", "adapt"]
+CardKind = Literal["news", "evergreen", "interview", "request", "adapt", "studio"]
 FormatName = Literal["li_text", "x_single", "x_thread", "x_quote", "x_reply"]
 VisualKind = Literal["carousel", "flow", "compare", "list", "stat", "quote", "image"]
 SkipReason = Literal["not_interesting", "off_brand", "wrong_timing", "too_risky", "already_covered", "other",
@@ -124,6 +124,14 @@ class VisualImage(_Out):
     provider: str
     model: str | None = None
     created_at: str | None = None
+
+
+class Attachment(_Out):
+    """A picture shared in the Studio and kept with the post (to post alongside it)."""
+    path: str = Field(description="File in the data repo, like media/studio/<card id>/1.jpg")
+    content_type: str = "image/jpeg"
+    width: int | None = None
+    height: int | None = None
 
 
 class Visual(_Out):
@@ -244,6 +252,7 @@ class Card(_Out):
         None, description="What the current draft was written from: recent sources, or his answers (plus sources)")
     crosspost_of: str | None = Field(None, description="The card this one was made from for the other platform")
     visual: Visual | None = None
+    attachments: list[Attachment] = Field([], description="Pictures from the Studio that go with the post")
     created_at: str
     updated_at: str | None = None
     revision: int = 0
@@ -568,6 +577,18 @@ class ImagesStatus(_Out):
     last_error: str | None = None
 
 
+class StudioKit(_Out):
+    """What the desk's Studio needs to write like the pipeline (pbs/studio.py): its full instructions, rendered
+    from the system rules, the style learned from edits, the platform guide and examples of past posts."""
+    version: str
+    system: str
+    pillars: dict[str, dict[str, str]] = {}
+    avoid: list[str] = []
+    bait: list[str] = []
+    x_limit: int = 280
+    fold: int = 210
+
+
 class DeskState(_Out):
     meta: DeskMeta
     settings: dict[str, Any]
@@ -601,6 +622,7 @@ class DeskState(_Out):
     platform_guide: dict[str, Any] | None = Field(
         None, description="What works on each platform: {reviewed, rules: [{id, platform, format, text, source, "
                           "sources}], research: {month, summary, articles, proposals}}")
+    studio: StudioKit | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -860,6 +882,43 @@ class ProfileUpdateEvent(_Event):
     text: str = Field(max_length=8000)
 
 
+class StudioSourceIn(_In):
+    url: str = Field(max_length=2000)
+    title: str = Field("", max_length=300)
+
+
+class StudioImageIn(_In):
+    path: str = Field(max_length=300, description="Uploaded under inbox/blobs/")
+    width: int | None = Field(None, ge=1, le=20000)
+    height: int | None = Field(None, ge=1, le=20000)
+
+
+class StudioVisualIn(VisualIn):
+    photo: int | None = Field(None, ge=0, le=9, description="Index of the shared picture (in images) behind the visual")
+
+
+class StudioSaveEvent(_Event):
+    """A draft from the Studio, saved as a card on the board (pbs/studio.py)."""
+    type: Literal["studio.save"]
+    card_id: str = Field(min_length=1, max_length=80, pattern=r"^[A-Za-z0-9_-]+$")
+    platform: PlatformName
+    format: FormatName
+    title: str = Field("", max_length=300)
+    text: str = Field("", max_length=30000)
+    posts: list[Annotated[str, Field(max_length=30000)]] = Field([], max_length=25)
+    hooks: list[Annotated[str, Field(max_length=600)]] = Field([], max_length=5)
+    hashtags: list[Annotated[str, Field(max_length=60)]] = Field([], max_length=15)
+    first_comment: str = Field("", max_length=1000)
+    pillar: str | None = Field(None, max_length=60)
+    post_type: str | None = Field(None, max_length=40)
+    sources: list[StudioSourceIn] = Field([], max_length=12)
+    images: list[StudioImageIn] = Field([], max_length=10)
+    visual: StudioVisualIn | None = None
+    evidence: str = Field("", max_length=12000, description="What the post may draw on: what was said in the chat and the sources")
+    model: str | None = Field(None, max_length=80)
+    kit_version: str | None = Field(None, max_length=20)
+
+
 class ProposalDecideEvent(_Event):
     type: Literal["proposal.decide"]
     proposal_id: str
@@ -893,7 +952,8 @@ InboxEvent = Annotated[
     | CardVisualEvent | CardAnswersEvent | CardRestoreEvent | CardDraftNowEvent | CardHookEvent | PostUpdateEvent | PostMetricsEvent
     | MetricsUploadEvent | MetricsReviewEvent | AccountStatsEvent | RequestCreateEvent | RequestCancelEvent
     | StanceUpsertEvent | StanceDeleteEvent | StanceProposeEvent | SourceUpsertEvent | SourceDeleteEvent
-    | SettingsUpdateEvent | ProfileUpdateEvent | ProposalDecideEvent | PlaybookRuleEvent | RunRequestEvent,
+    | SettingsUpdateEvent | ProfileUpdateEvent | ProposalDecideEvent | PlaybookRuleEvent | RunRequestEvent
+    | StudioSaveEvent,
     Field(discriminator="type"),
 ]
 

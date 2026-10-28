@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
 const PAGES: Array<[string, RegExp]> = [
+  ["/studio", /^Studio$/],
   ["/requests", /^Requests$/],
   ["/stances", /^Stances$/],
   ["/metrics", /^Metrics$/],
@@ -521,4 +522,89 @@ test("every page renders, with no sideways scrolling", async ({ page }) => {
   await todaySection(page).locator("[data-tile]").first().click();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await noSidewaysScroll(page);
+});
+
+// A small PNG (a 16x16 square) for picture uploads.
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGPQCDhBEmIY1TCqYfhqAAB/t0AQQWrvwQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+const studioMessage = (page: Page) => page.getByRole("textbox", { name: "Message the Studio" });
+
+test.describe("Studio", () => {
+  test("a picture becomes a LinkedIn post, saved to the board with the picture", async ({ page }) => {
+    await page.goto("/#/studio");
+    await expect(page.getByRole("heading", { level: 1, name: "Studio" })).toBeVisible();
+    await page.locator('input[type="file"][multiple]').setInputFiles({ name: "whiteboard.png", mimeType: "image/png", buffer: PNG });
+    await expect(page.getByRole("img", { name: "Picture 1" })).toBeVisible();
+    await studioMessage(page).fill("Write a LinkedIn post about this picture.");
+    await page.getByRole("button", { name: "Send" }).click();
+    const post = page.getByRole("region", { name: "LinkedIn post" });
+    await expect(post.getByRole("textbox", { name: "LinkedIn post text" })).toHaveValue(/Whiteboards tell you more/);
+    // The picture you sent is picked to post with it; another opening swaps in at the top.
+    await expect(post.getByRole("button", { name: "Picture 1, included" })).toHaveAttribute("aria-pressed", "true");
+    await post.getByRole("button", { name: /^Use opening: Agents don't fail in demos/ }).click();
+    await expect(post.getByRole("textbox", { name: "LinkedIn post text" })).toHaveValue(/^Agents don't fail in demos\. They fail on Tuesdays\./);
+    // The chat stays on this device: still there after a reload, with your edit.
+    await page.reload();
+    await expect(post.getByRole("textbox", { name: "LinkedIn post text" })).toHaveValue(/^Agents don't fail in demos/);
+    await post.getByRole("button", { name: "Save to board" }).click();
+    await expect(page.getByText("Saved to the board: it's in Today's picks.")).toBeVisible();
+    await expect(post.getByText("On the board")).toBeVisible();
+    await post.getByRole("link", { name: "Open the card" }).click();
+    await expect(page.getByText("From the Studio", { exact: true })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "LinkedIn post" })).toHaveValue(/^Agents don't fail in demos/);
+    await expect(page.getByRole("region", { name: "Pictures" }).getByRole("img", { name: "Picture 1" })).toBeVisible();
+    await page.goto("/#/");
+    await expect(todaySection(page).getByText("From the Studio")).toBeVisible();
+  });
+
+  test("a carousel: start from a quick action, flip through it and download the PDF", async ({ page }) => {
+    await page.goto("/#/studio");
+    await page.getByRole("group", { name: "Quick actions" }).getByRole("button", { name: "Carousel" }).click();
+    await expect(studioMessage(page)).toHaveValue("Make a LinkedIn carousel about ");
+    await studioMessage(page).pressSequentially("shipping AI agents");
+    await page.getByRole("button", { name: "Send" }).click();
+    const visual = page.getByRole("region", { name: "Carousel" });
+    await expect(visual.getByText("Slide 1 of 6")).toBeVisible();
+    await visual.getByRole("button", { name: "Next slide" }).click();
+    await expect(visual.getByText("Slide 2 of 6")).toBeVisible();
+    const [pdf] = await Promise.all([page.waitForEvent("download"), visual.getByRole("button", { name: "Download PDF" }).click()]);
+    expect(readFileSync((await pdf.path())!).toString("latin1")).toContain("/Count 6");
+    // Then the post to go with it, saved together.
+    await visual.getByRole("button", { name: "Write the post for it" }).click();
+    const post = page.getByRole("region", { name: "LinkedIn post" });
+    await expect(post.getByRole("combobox", { name: "Visual to save with it" })).toHaveValue(/:/);
+  });
+
+  test("Ask Studio from a card, and an idea becomes a draft", async ({ page }) => {
+    await page.getByRole("article", { name: /^LinkedIn card: AgentBench/ }).click();
+    await page.getByRole("button", { name: "Ask Studio" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Studio" })).toBeVisible();
+    await expect(page.getByText(/AgentBench/).first()).toBeVisible();
+    await page.getByRole("group", { name: "Quick actions" }).getByRole("button", { name: "Post ideas" }).click();
+    const ideas = page.getByRole("region", { name: "Post ideas" });
+    await expect(ideas.getByRole("listitem")).toHaveCount(4);
+    await ideas.getByRole("button", { name: "Write for LinkedIn" }).first().click();
+    await expect(page.getByRole("region", { name: "LinkedIn post" })).toBeVisible();
+    await noSidewaysScroll(page);
+  });
+
+  test("a post shared from another app opens the Studio, which says why it works", async ({ page }) => {
+    // What the service worker keeps when you pick PBS Desk in Android's share sheet (public/sw.js).
+    await page.evaluate(async (png) => {
+      const cache = await caches.open("pbs-share");
+      await cache.put("shared/meta", new Response(JSON.stringify({ title: "", text: "This agent post is everywhere", url: "https://www.linkedin.com/posts/someone_agents", files: 1 })));
+      await cache.put("shared/file-0", new Response(Uint8Array.from(atob(png), (c) => c.charCodeAt(0)), { headers: { "content-type": "image/png" } }));
+    }, PNG.toString("base64"));
+    await page.goto("/#/studio?shared=1");
+    await expect(page.getByText("Shared from LinkedIn")).toBeVisible();
+    await expect(page.getByRole("img", { name: "Picture 1" })).toBeVisible();
+    await page.getByRole("group", { name: "Quick actions" }).getByRole("button", { name: "Why is it working?" }).click();
+    await expect(page.getByText("Why it works:")).toBeVisible();
+    // Taken once: opening the link again starts empty.
+    await page.goto("/#/studio?shared=1");
+    await expect(page.getByText("What do you want to post about?")).toBeVisible();
+  });
 });

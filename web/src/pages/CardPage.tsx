@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowLeftRight, ChevronDown, Copy, ExternalLink, GitCompare, Loader2, MessageCircleQuestion, RotateCcw, Send, Sparkle, Undo2 } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, ChevronDown, Copy, ExternalLink, GitCompare, Loader2, MessageCircleQuestion, RotateCcw, Send, Sparkle, Undo2, WandSparkles } from "lucide-react";
 import type { Card, EventInput } from "@/types";
 import { FORMAT_LABEL, PLATFORM_LABEL, SKIP_REASONS, draftText, pct } from "@/lib/format";
 import { copyText, linkedInComposeUrl, linkedInViaShareSheet, safeUrl, shareText, xComposeUrl } from "@/lib/compose";
@@ -24,6 +24,8 @@ import { HashtagsBar } from "./card/Hashtags";
 import { Interview } from "./card/Interview";
 import { currentVisual, editedVisual, useWorkingCopy, type WorkingCopy } from "./card/useWorkingCopy";
 import { VISUAL_KINDS, VisualPanel, type VisualChoice } from "./card/VisualPanel";
+import { Attachments } from "./card/Attachments";
+import { fileSlug } from "@/lib/visual/export";
 
 /** The working copy as a card.edit event: text or thread posts, the opening in use and his edited openings. */
 function editEvent(card: Card, copy: WorkingCopy): EventInput {
@@ -343,9 +345,12 @@ function CardView({ card }: { card: Card }) {
 
   return (
     <div className="pb-20 lg:pb-0">
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4 flex items-center justify-between gap-2">
         <Button variant="ghost" size="sm" icon={<ArrowLeft className="size-4" />} onClick={() => (history.length > 1 ? history.back() : navigate("/"))}>
           Back
+        </Button>
+        <Button variant="soft" size="sm" icon={<WandSparkles className="size-4" />} onClick={() => navigate(`/studio?card=${encodeURIComponent(card.id)}`)}>
+          Ask Studio
         </Button>
       </div>
       <header className="mb-5">
@@ -357,6 +362,7 @@ function CardView({ card }: { card: Card }) {
           <Badge tone="neutral">{FORMAT_LABEL[card.format]}</Badge>
           <StatusBadge status={card.status} />
           {card.explore && <Badge tone="accent">{card.experiment_id ? "Experiment" : "Exploring"}</Badge>}
+          {card.kind === "studio" && <Badge tone="accent">From the Studio</Badge>}
           {pendingCard && <Badge tone="neutral">Syncing</Badge>}
           <FlagIcons card={card} />
         </div>
@@ -448,6 +454,7 @@ function CardView({ card }: { card: Card }) {
                 <HashtagsBar platform={card.platform} suggested={suggestedTags} chosen={chosenTags} onChange={setTags} />
               )}
               {card.draft?.first_comment && <FirstComment platform={card.platform} text={card.draft.first_comment} />}
+              {!!card.attachments?.length && <Attachments items={card.attachments} slug={fileSlug(card.title)} />}
               {(visualsOn || visual) && (
                 <VisualPanel
                   card={card}

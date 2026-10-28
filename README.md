@@ -58,7 +58,10 @@ A React PWA (installable on your phone) at `https://<you>.github.io/<this repo>/
 `desk.json` from your private data repo and writes events to `inbox/` with a fine-grained token that stays in
 your browser. Actions show instantly and work offline; the pipeline confirms them on its next run.
 
-Board · card editor (editable hooks, hashtag chips, the first comment, visuals with PNG and PDF download, live
+Board · **Studio**, a chat that writes your posts in seconds: ask anything, add pictures or a post shared from
+the LinkedIn or X app (Android share sheet), and get editable LinkedIn and X posts, threads, carousels and other
+visuals in your voice, researched with Google Search, to copy, share or save to the board (it calls Gemini from
+the browser with a key kept on the device; the pipeline exports the style it follows) · card editor (editable hooks, hashtag chips, the first comment, visuals with PNG and PDF download, live
 checks and platform tips, thread tools, rewrite, cross-post or move to the other platform, optional questions,
 dictation) · Requests (the search
 says what it understood) · Stances · Metrics (screenshot upload, review queue, check-in) · Insights (charts,
@@ -73,11 +76,11 @@ weekly reviews, then a fresh morning.
 
 | Path | What's there |
 | --- | --- |
-| `pbs/` | The pipeline: `tick.py` (orchestrator), `scout/`, `topics.py`, `rank.py`, `bandit.py`, `draft.py`, `hashtags.py`, `platform.py` (platform guide and research), `visuals.py`, `images.py` (AI images), `guardrails.py`, `learn.py`, `voice.py`, `reflect.py`, `report.py`, `metrics.py`, `llm/`, `export.py`, `contracts.py` (the desk contract) |
+| `pbs/` | The pipeline: `tick.py` (orchestrator), `scout/`, `topics.py`, `rank.py`, `bandit.py`, `draft.py`, `hashtags.py`, `platform.py` (platform guide and research), `visuals.py`, `studio.py` (the Studio kit and saved Studio posts), `images.py` (AI images), `guardrails.py`, `learn.py`, `voice.py`, `reflect.py`, `report.py`, `metrics.py`, `llm/`, `export.py`, `contracts.py` (the desk contract) |
 | `pbs/defaults/` | Default settings, sources, stances, the platform guide, voice rules, interview questions and the profile template |
 | `pbs/prompts/` | Versioned prompt templates |
 | `pbs/demo/` | Offline world (mock feeds + demo model) and the demo builder |
-| `web/` | PBS Desk (React 19, TypeScript, Vite, Tailwind); `web/src/lib/visual/` lays out, draws and exports visuals |
+| `web/` | PBS Desk (React 19, TypeScript, Vite, Tailwind); `web/src/lib/visual/` lays out, draws and exports visuals; `web/src/lib/studio/` is the Studio's Gemini client, reply parser and on-device chats |
 | `scripts/` | Data checkout/push for Actions, schedule keep-alive |
 | `tests/`, `web/src/**/*.test.ts`, `web/tests/` | Python tests, desk unit tests, end-to-end tests |
 

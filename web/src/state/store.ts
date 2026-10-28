@@ -76,7 +76,9 @@ export type DeskStore = {
   flush: () => Promise<void>;
   requestRun: (reason?: string) => void;
   dispatchNow: () => Promise<void>;
-  uploadBlob: (path: string, bytes: Uint8Array) => Promise<void>;
+  uploadBlob: (path: string, bytes: Uint8Array, message?: string) => Promise<void>;
+  /** Show a picture this device already has (a Studio upload) before the data repo can serve it. */
+  primeMedia: (path: string, dataUrl: string) => void;
   /** An AI image from the data repo (or the demo), as a data URL the visual can embed; null if it can't load. */
   loadMedia: (path: string) => Promise<string | null>;
   loadArchive: (month: string) => Promise<Card[]>;
@@ -435,10 +437,15 @@ export const useDesk = create<DeskStore>()((set, get) => {
       return url;
     },
 
-    uploadBlob: async (path, bytes) => {
+    uploadBlob: async (path, bytes, message = "desk: analytics screenshot") => {
       const conn = get().connection;
       if (!conn || conn.mode === "demo") return;
-      await new GitHub(conn).createFile(path, bytesToBase64(bytes), "desk: analytics screenshot");
+      await new GitHub(conn).createFile(path, bytesToBase64(bytes), message);
+    },
+
+    primeMedia: (path, dataUrl) => {
+      const conn = get().connection;
+      if (conn) mediaCache.set(`${repoKey(conn)}:${path}`, Promise.resolve(dataUrl));
     },
 
     loadArchive: async (month) => {

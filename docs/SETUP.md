@@ -123,6 +123,18 @@ a day with FLUX.2 [klein]; PBS stops at 20 a day by default (**Settings → AI i
 - `XAI_API_KEY`: Grok Imagine from [console.x.ai](https://console.x.ai) with prepaid credits (about US$0.02 an
   image).
 
+## Studio (optional, free, two minutes per device)
+
+The desk's **Studio** chats with Gemini straight from your phone or computer, so it needs a Gemini key on that
+device (it never goes to GitHub).
+
+1. At [aistudio.google.com/apikey](https://aistudio.google.com/apikey), **Create API key** → **Create API key in
+   new project** (a separate project from the pipeline's key, so chatting never uses the morning's free quota) →
+   copy it.
+2. On the desk, **Settings → Studio** → paste it → **Check and save**. Do this once on each device you use.
+3. On Android, install the desk (Chrome → **⋮ → Add to Home screen** or **Install app**) so **PBS Desk** shows up
+   when you **Share** a post or a screenshot from the LinkedIn or X app.
+
 ## What runs when (Melbourne time)
 
 | Run | Time |

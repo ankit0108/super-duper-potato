@@ -47,7 +47,7 @@ describe("outbox", () => {
     }
     expect(new Set(waiting)).toEqual(new Set(["card.rewrite", "card.crosspost", "card.visual", "card.answers", "card.draft_now"]));
     // Every event type is classified (the Record type enforces it; this guards the runtime map too).
-    expect(Object.keys(STARTS_RUN)).toHaveLength(28);
+    expect(Object.keys(STARTS_RUN)).toHaveLength(29);
   });
 
   it("writes batches under inbox/ with a safe device name", () => {

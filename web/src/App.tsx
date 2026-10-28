@@ -15,11 +15,13 @@ import { Requests } from "@/pages/Requests";
 import { Settings } from "@/pages/Settings";
 import { Sources } from "@/pages/Sources";
 import { Stances } from "@/pages/Stances";
+import { Studio } from "@/pages/Studio";
 import { System } from "@/pages/System";
 
 const TITLES: Record<string, string> = {
   "": "Board",
   card: "Card",
+  studio: "Studio",
   requests: "Requests",
   stances: "Stances",
   metrics: "Metrics",
@@ -37,6 +39,8 @@ function Page({ parts }: { parts: string[] }) {
       return <Board />;
     case "card":
       return parts[1] ? <CardPage id={decodeURIComponent(parts[1])} /> : <Board />;
+    case "studio":
+      return <Studio />;
     case "requests":
       return <Requests />;
     case "stances":

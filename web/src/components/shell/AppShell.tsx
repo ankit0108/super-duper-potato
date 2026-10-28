@@ -15,6 +15,7 @@ import {
   Settings,
   Sparkles,
   TriangleAlert,
+  WandSparkles,
 } from "lucide-react";
 import { Link, useRoute } from "@/lib/router";
 import { relative } from "@/lib/time";
@@ -41,6 +42,7 @@ function useNavItems(): NavItem[] {
     const errors = (view?.warnings ?? []).filter((w) => w.level === "error").length;
     return [
       { to: "/", label: "Board", icon: <LayoutGrid className="size-5" />, match: (p) => p === "/" || p.startsWith("/card"), count: needs + todays, mobile: true },
+      { to: "/studio", label: "Studio", icon: <WandSparkles className="size-5" />, match: (p) => p.startsWith("/studio"), mobile: true },
       { to: "/requests", label: "Requests", icon: <Search className="size-5" />, match: (p) => p.startsWith("/requests"), mobile: true },
       { to: "/metrics", label: "Metrics", icon: <BarChart3 className="size-5" />, match: (p) => p.startsWith("/metrics"), count: review, mobile: true },
       { to: "/insights", label: "Insights", icon: <Sparkles className="size-5" />, match: (p) => p.startsWith("/insights"), count: proposals, mobile: true },
@@ -178,7 +180,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface/95 backdrop-blur safe-bottom lg:hidden">
+      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-surface/95 backdrop-blur safe-bottom lg:hidden">
         {mobileItems.map((it) => {
           const active = it.match(route.path);
           return (

@@ -80,6 +80,35 @@ or two after the run starts, the rest within a few minutes. It lands on top of T
 morning set follows it. Topics already judged this morning aren't asked about again, so a fresh set mostly spends
 its model calls on drafts.
 
+**Studio: write anything, now.** The **Studio** tab is a chat that answers in seconds. Ask it anything, add
+pictures (pick them, take a photo, paste or drag them in), share a link, or tap a quick action: *Post ideas*,
+*LinkedIn post*, *X post*, *X thread*, *Carousel*, *Funny post*, *Research it*. It searches Google when a question
+needs current facts and lists its sources under the reply. Drafts arrive as post blocks you can edit in place,
+with the character count, other openings, hashtag chips, the first comment and the same live checks as a card;
+then **Copy**, **Open LinkedIn/X** (on a phone, **Share with pictures** takes the text and your pictures to the
+app together) or **Save to board**. Carousels and other visuals are drawn on the spot: flip through them, **Edit
+text**, **Download PDF**/**PNG** or **Share**, tick **Put your photo behind it**, and **Write the post for it**.
+After a draft, the chips change to *Shorter*, *New opening*, *Funnier*, *More me*, the other platform's version
+and *Carousel*.
+- **Setup, once per device:** **Settings → Studio**: paste a free Gemini key from
+  [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and tap **Check and save**. Make it in a
+  different Google Cloud project from the pipeline's `GEMINI_API_KEY`, so chatting never uses the morning's free
+  quota. The key and your chats stay in this browser; your guard terms are replaced with "[redacted]" before
+  anything is sent. On the free tier Google may use what you send to improve its models, so don't paste anything
+  confidential.
+- **It writes like the cards.** Every run exports a *Studio kit* in `desk.json`: the system rules, the style
+  learned from your edits, the platform guide, recent posts as examples, your hashtag habits and the kinds of post
+  (`pbs/studio.py`, prompt `pbs/prompts/studio.md`). Until the first run after this update, the Studio says it
+  will write better after the next run.
+- **Save to board** makes a card in Today's picks (*From the Studio*) with the draft, its sources, your chosen
+  pictures (kept in `media/studio/` in the data repo) and the visual. Post it and tap **Posted** as usual: it's
+  learned from like any other card.
+- **Ask Studio** on any card starts a chat about it ("Make it better", ideas, a carousel, the X version).
+- **From LinkedIn or X on Android:** with the desk installed (Chrome → **Add to Home screen**), tap **Share** on a
+  post (or a screenshot) and pick **PBS Desk**. The Studio opens with it: tap **Why is it working?**, **My take**,
+  **Reply** or **Quote-post**. Screenshots work better than links: LinkedIn and X pages can't be read without
+  logging in.
+
 **Anytime.** Requests: any topic, full drafts in a few minutes. The request shows what the search understood
 ("Understood as: …"); if it's off, say what you mean in the notes and ask again. Stances: record or change a
 view; your wording shows under **Your stance** once saved.
@@ -105,6 +134,10 @@ desk is where to look first.
 | A news source keeps failing | The doctor's `Sources` line names each failing source with its reason (HTTP 403 is usually a site refusing GitHub's servers). Swap it for a Google News query for the same outlet (`site:example.com when:2d`) on the Sources page |
 | A proposal says **Couldn't apply** | Its change can't be made as written (the reason is on the card: usually a setting that doesn't exist or is out of range). Make the change yourself in Settings and **Dismiss** it, or **Try again** after fixing what it names. A proposal that only asked you to look at something is recorded as *Noted* when you tap **Got it** |
 | Fresh posts are slow, or the run log says `no answer within 50s` | A model that doesn't answer within its time limit (`llm.timeouts` in the settings: 50 s for a draft) counts as busy and the next model answers, so one stuck call no longer holds up the set. `rate limited (HTTP 429)` from Groq means its free per-minute allowance is used up: the next Groq model answers, then the run waits briefly. Cards still arrive in batches as they're drafted |
+| The Studio says the key isn't valid, or "Gemini refused the key" | Make a new key at aistudio.google.com/apikey and paste it in **Settings → Studio**. A key restricted to certain websites must allow your desk's address |
+| The Studio says the free quota is used up | Each Gemini model has a daily free allowance; the Studio moves to the next model by itself and says so when none is left. It resets daily. A key from a second Google Cloud project doubles the allowance |
+| A Studio post or carousel "didn't come through cleanly" | The model's block wasn't valid. Tap **Try again** (or **Write it again** under the reply) |
+| Share → PBS Desk isn't in Android's share sheet | Install the desk from Chrome (**Add to Home screen**), open it once, then try again. Sharing only works with the installed app |
 | A change you made "didn't stick" | **System → Rejected changes** lists anything the pipeline couldn't apply, with the reason. *Changes in flight* shows what's still waiting for a run |
 | A card is **Blocked** | It matched your blocklist. Nothing was reworded. Edit the draft by hand or skip it. If the match is a false positive, refine the term in `PBS_BLOCKLIST` |
 | No quote cards, or the run log says `quotes: 0 verified, 6 not found on Wikiquote` | The day's quotes weren't found word for word on their Wikiquote pages (a page renamed, or the quote worded differently there), so they were left out, as designed. A few not found each day is normal. If it's every quote, Wikiquote may be refusing GitHub's servers: the doctor's `Sources` line shows the source's error. Fix a quote's wording or `page` in `pbs/defaults/quote_pools.yaml` to match the page |
@@ -131,7 +164,7 @@ saved, so a crash mid-run can't lose your actions.
 
 Everything runs on free tiers: Actions minutes (unlimited on a public repo), Pages, Gemini and Groq, and free
 news sources. A normal day uses about 25–40 model calls (15 drafts, triage in two or three batches, and the editor
-pass), with a hard cap of 100 in settings; each cross-post is
+pass), with a hard cap of 100 in settings (the Studio uses its own key from your browser, so it doesn't count); each cross-post is
 one more, as is each visual, each draft the editor pass rewrites (at most 12 a run, and only when the run has
 calls to spare), and the monthly platform research one. The one upgrade worth paying for, if drafts
 stay generic after a month, is a stronger drafting model: **Settings → Models**.
