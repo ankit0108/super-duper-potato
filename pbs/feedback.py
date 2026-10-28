@@ -21,6 +21,7 @@ REASON_LABEL = {
     "already_covered": "already covered",
     "other": "another reason",
     "wrong_platform": "wrong platform",
+    "not_funny": "not funny",
 }
 # Reasons that say something about the topic itself; "wrong timing" and "already covered" don't.
 TOPIC_REASONS = ("not_interesting", "off_brand", "too_risky", "other")

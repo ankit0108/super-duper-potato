@@ -26,7 +26,9 @@ def _sounds_like_ai(req, data):
 
 
 def _ctx(make_ctx, **handlers):
-    return make_ctx(providers=fake_providers(draft=_sounds_like_ai, draft_personal=_sounds_like_ai, **handlers))
+    ctx = make_ctx(providers=fake_providers(draft=_sounds_like_ai, draft_personal=_sounds_like_ai, **handlers))
+    ctx.settings.humor.writers_room = False  # every card through the drafter (funny ones too): this is about editing
+    return ctx
 
 
 def _calls(ctx, task):
@@ -255,7 +257,8 @@ def test_a_tell_that_keeps_going_into_posts_by_hand_is_left_alone(make_ctx):
 def test_voice_examples_are_the_posts_with_fewest_tells_and_most_words_written_by_hand(make_ctx):
     ctx = make_ctx()
     deliver.morning_delivery(ctx)
-    cards = ctx.store.select("cards", "platform = 'x' AND status = 'suggested'", order="rank")[:4]
+    cards = ctx.store.select("cards", "platform = 'x' AND status = 'suggested' AND format = 'x_single'",
+                             order="rank")[:4]
     ai = _post(ctx, cards[0], "It's not about speed, it's about trust. Here's why: queues grow.",
                at="2026-09-27T20:00:00Z")
     as_drafted = _post(ctx, cards[1], cards[1]["draft"]["text"] or "\n\n".join(cards[1]["draft"]["posts"]),
@@ -277,7 +280,9 @@ def test_insights_and_the_weekly_reflection_see_the_tells(make_ctx):
     _post(ctx, card, card["draft"]["text"] + " It's not hype, it's plumbing.")
     writing = stats.compute(ctx)["writing"]
     week = writing["weekly"][-1]
-    drafted = ctx.store.count("cards", "delivered_at IS NOT NULL")
+    # Every delivered card with a draft (a life card waits for his answers before it has one).
+    drafted = sum(1 for c in ctx.store.select("cards", "delivered_at IS NOT NULL")
+                  if guardrails.draft_text(c.get("draft")).strip())
     assert week["week"] == "2026-W40" and week["drafts"] == drafted
     assert week["tells_before"] > week["tells_shown"]
     assert week["posts"] == 1 and week["tells_posted"] == 1 and week["edit_ratio_median"] > 0

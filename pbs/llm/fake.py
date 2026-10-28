@@ -59,6 +59,58 @@ class FakeProvider:
 # ---------------------------------------------------------------------------
 
 
+def _pulse(req: LLMRequest, data: Any) -> Any:
+    """Two conversations a platform, as a grounded search would find them."""
+    convs = [
+        ("linkedin", "AI agents that report work they never did",
+         "People are sharing screenshots of agents confidently saying a task is done when it isn't.",
+         "A screenshot plus a one-line caption: the evidence does the work.",
+         "https://www.linkedin.com/posts/someone_ai-agents-activity-7300000000000000001"),
+        ("linkedin", "Engineers asked to justify every AI tool cost",
+         "Managers are asking teams to show what each AI subscription saves; engineers are pushing back.",
+         "A relatable tension with a clear side to take.", ""),
+        ("x", "The model that refused to write a regex",
+         "A viral thread of a model politely declining a harmless task, and the replies trying to talk it round.",
+         "Absurd, specific and easy to quote-post.", "https://x.com/someone/status/1900000000000000001"),
+        ("x", "Founders posting their AI bill",
+         "Startup founders are sharing their monthly model bills and what they cut.",
+         "Real numbers people compare with their own.", ""),
+    ]
+    return {"conversations": [{"platform": p, "topic": t, "what_people_say": s, "why_it_works": w,
+                               "angle": f"What {t.lower()} says about how teams use AI now",
+                               "examples": [u] if u else []} for p, t, s, w, u in convs]}
+
+
+def _humor_write(req: LLMRequest, data: Any) -> Any:
+    """Six versions of a joke about the material's topic, each in a different style."""
+    topic = str(data.get("topic") or "this").rstrip(".")
+    sources = data.get("sources") or []
+    short = textutil.truncate(topic, 90)
+    x = data.get("platform") == "x"
+    versions = [
+        ("detail", f"{short}.\n\nThe press release says \u201ctransformational\u201d. The changelog says \u201cminor fixes\u201d."),
+        ("understatement", f"{short}.\n\nSo that's my afternoon's reading sorted, and possibly my career."),
+        ("escalation", f"Monday: {short}.\nTuesday: a strategy deck about it.\nWednesday: a strategy deck about the deck."),
+        ("parody", f"Thrilled to announce I have read about {short.lower()}. Humbled. Grateful. Still confused."),
+        ("misdirection", f"Everyone's asking what {short.lower()} means for the industry. I'm asking who approved the name."),
+        ("pattern", "Every big launch ends the same way: a demo that works, and a support page titled \u201cKnown issues\u201d."),
+    ]
+    if x:
+        versions = [(d, t if len(t) <= 170 else t[:167].rsplit(" ", 1)[0] + "\u2026") for d, t in versions]
+    first = f"Source: {sources[0]['url']}" if sources and sources[0].get("url") else ""
+    return {"options": [{"device": d, "text": t} for d, t in versions],
+            "hashtags": [] if x else ["#AI", "#SoftwareEngineering"], "first_comment": first}
+
+
+def _humor_judge(req: LLMRequest, data: Any) -> Any:
+    """Prefers the second version (so tests see the critic's pick win over the writers' order)."""
+    versions = data.get("versions") or []
+    scores = [{"version": v["version"], "surprise": 4 if v["version"] == 2 else 2, "specific": 3, "share": 3,
+               "cliche": False, "explains": False, "mean": False, "wrong": False} for v in versions]
+    return {"scores": scores, "best": 2 if len(versions) > 1 else 1, "runner_up": 1 if len(versions) > 1 else None,
+            "verdict": "ok", "note": "The understatement lands; the rest try too hard."}
+
+
 def _translate(req: LLMRequest, data: Any) -> Any:
     items = data if isinstance(data, list) else data.get("items", [])
     return {"items": [{"id": it.get("id"), "title_en": f"(EN) {it.get('title', '')}",
@@ -351,5 +403,8 @@ DEFAULT_HANDLERS: dict[str, Handler] = {
     "research": _research,
     "visual": _visual,
     "edit": _edit,
+    "pulse": _pulse,
+    "humor_write": _humor_write,
+    "humor_judge": _humor_judge,
     "default": _default,
 }

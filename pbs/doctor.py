@@ -124,7 +124,8 @@ def run_doctor(ctx: Ctx, probe_llm: bool = True, probe_sources: bool = True) -> 
         sync_seeds(ctx.store)
         sources = {s["id"]: s for s in ctx.store.select("sources", "active = 1")}
         local_date = ctx.local_date_str()
-        jobs = [FetchJob(key=s["id"], url=fetch_url(s, local_date)) for s in sources.values()]
+        # A source with nothing to fetch (the social pulse is a search, not a feed) isn't probed.
+        jobs = [FetchJob(key=s["id"], url=url) for s in sources.values() if (url := fetch_url(s, local_date))]
         sc = ctx.settings.scouting
         results = asyncio.run(fetch_all(jobs, user_agent=sc.user_agent, timeout=sc.timeout_seconds,
                                         concurrency=sc.concurrency, transport=ctx.transport,

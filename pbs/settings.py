@@ -112,8 +112,26 @@ class Affairs(_Strict):
 class Pools(_Strict):
     """Entries a day from the pools of material that isn't news (pbs/pools.py), ranked next to the news. The day's
     quotes are set on their source (Sources page: max items)."""
-    humor: int = Field(4, ge=0, le=12)
+    humor: int = Field(0, ge=0, le=12)
     thoughts: int = Field(2, ge=0, le=12)
+
+
+class Pulse(_Strict):
+    """The social pulse (pbs/pulse.py): once a day, a Google search of public LinkedIn and X posts on his topics for
+    the conversations taking off and why they work."""
+    enabled: bool = True
+    per_platform: int = Field(4, ge=1, le=8)
+
+
+class Humor(_Strict):
+    """Funny posts (pbs/humor.py): a writers' room writes several jokes and a critic keeps the best."""
+    writers_room: bool = True
+    options: int = Field(6, ge=3, le=10)
+    # Funny posts he likes (his own or anyone's): the examples of the humour he wants.
+    examples: list[str] = []
+    # Jokes everyone has seen: a draft that leans on one is flagged, and the critic rejects them.
+    cliches: list[str] = []
+    x_max_chars: int = Field(180, ge=80, le=280)
 
 
 class Hooks(_Strict):
@@ -129,6 +147,7 @@ class Scouting(_Strict):
     lookback_hours: dict[str, int]
     cluster_threshold: float = Field(0.32, ge=0.1, le=0.9)
     shortlist_per_platform: int = Field(12, ge=3, le=40)
+    shortlist_seats: dict[str, int] = {}
     candidates_per_scout: dict[str, int]
     per_source_cap: int = Field(8, ge=1, le=100)
     pause_after_failure_days: int = Field(7, ge=1, le=90)
@@ -289,6 +308,8 @@ class Settings(BaseModel):
     strategy: dict[str, dict[str, Pillar]]
     affairs: Affairs
     pools: Pools = Pools()
+    pulse: Pulse = Pulse()
+    humor: Humor = Humor()
     hooks: Hooks
     watchlist: dict[str, list[str]] = {}
     scouting: Scouting
@@ -462,7 +483,7 @@ def _unknown_keys(patch: dict[str, Any], reference: dict[str, Any], prefix: str 
     """Keys in patch that don't exist in the reference (open maps are allowed to grow)."""
     open_maps = {"strategy", "strategy.linkedin", "strategy.x", "llm.providers", "llm.routes",
                  "llm.temperature", "llm.timeouts", "watchlist", "formats", "rewards.linkedin", "rewards.x",
-                 "scouting.lookback_hours", "scouting.candidates_per_scout", "affairs.types",
+                 "scouting.lookback_hours", "scouting.candidates_per_scout", "scouting.shortlist_seats", "affairs.types",
                  "learning.skip_values", "ranking.timeliness_half_life_hours"}
     unknown: list[str] = []
     for key, value in patch.items():

@@ -136,12 +136,41 @@ def test_linkedin_gets_five_cards_with_at_least_one_funny_post_and_x_gets_ten(ma
     assert res["counts"] == {"linkedin": 5, "x": 10}
     cards = ctx.store.select("cards", "delivery_id = ?", (res["id"],))
     li = [c for c in cards if c["platform"] == "linkedin"]
-    assert any(c["pillar"] == "humor" and c["post_type"] in posttypes.HUMOROUS for c in li)
     funny = next(c for c in li if c["pillar"] == "humor")
-    prompts = [c.prompt for c in _calls(ctx, "draft") if "Platform: linkedin" in c.prompt or "LinkedIn" in c.prompt]
-    assert any("Post type: a relatable funny observation" in p and "work-safe and about the craft" in p
-               for p in prompts)
-    assert funny["sources"] == [] and not (funny["draft"] or {}).get("first_comment")
+    # The joke is about a real story now (the generic premises are off), with its source.
+    assert funny["post_type"] == "funny_take" and funny["sources"] and not funny["topic_id"].startswith("pool:")
+    assert not any(c["topic_id"].startswith("pool:humor") for c in cards)
+    # Written in the writers' room: six versions, the critic's pick is the draft, the next two are kept.
+    write = next(c.prompt for c in _calls(ctx, "humor_write") if funny["title"] in c.prompt)
+    assert "Write 6 different versions" in write and "work-safe and about the craft" in write
+    assert '"works on my machine"' in write and "Never punch down" in write
+    assert funny["draft"]["text"].endswith("possibly my career.")  # version 2, the critic's pick
+    assert len(funny["alternatives"]) == 2 and funny["hooks"] == []
+    assert funny["humor"] == {"options": 6, "verdict": "ok", "note": "The understatement lands; the rest try too hard.",
+                              "device": "understatement"}
+    judge = next(c for c in _calls(ctx, "humor_judge") if funny["title"] in c.prompt)
+    assert "tough comedy editor" in judge.prompt and judge.temperature == 0.2
+    assert not [c for c in _calls(ctx, "draft") if funny["title"] in c.prompt]
+
+
+def test_the_critic_sees_what_he_found_unfunny_and_cliches_are_flagged(make_ctx):
+    ctx = make_ctx()
+    ctx.settings.humor.examples = ["My code works. I have no idea why. Shipping it."]
+    res = deliver.morning_delivery(ctx)
+    funny = next(c for c in ctx.store.select("cards", "delivery_id = ?", (res["id"],)) if c["pillar"] == "humor")
+    ctx.store.update("cards", funny["id"], status="skipped", status_changed_at=funny["created_at"],
+                     skip={"reason": "not_funny", "note": None, "at": funny["created_at"]})
+    from pbs import humor
+
+    assert humor.not_funny(ctx) == [funny["draft"]["text"]]
+    # A draft leaning on a cliché is flagged on the card.
+    card = {**funny, "draft": {"text": "Deploy on Friday, they said. It works on my machine, they said.", "posts": []}}
+    check = guardrails.check_card(card, settings=ctx.settings, blocklist=[], evidence="", avoid_phrases=[],
+                                  bait_phrases=[])
+    assert check.flags["cliches"] == ["works on my machine"] or "works on my machine" in check.flags["cliches"]
+    serious = {**card, "post_type": None}
+    assert guardrails.check_card(serious, settings=ctx.settings, blocklist=[], evidence="", avoid_phrases=[],
+                                 bait_phrases=[]).flags["cliches"] == []
 
 
 def _cand(i, pillar, base, post_type=None, platform="linkedin"):

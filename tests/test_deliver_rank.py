@@ -4,7 +4,7 @@ import random
 
 from conftest import fake_providers
 
-from pbs import bandit, timeutil
+from pbs import bandit, posttypes, timeutil
 from pbs.deliver import delivery_due, morning_delivery
 from pbs.llm.base import LLMError
 from pbs.rank import Candidate, allocate, build_candidates, build_memory
@@ -25,7 +25,12 @@ def test_morning_delivery_fills_slots_with_caps(make_ctx):
     for c in cards:
         assert c["status"] in ("suggested", "needs_input", "blocked")
         if c["status"] == "suggested":
-            assert c["draft"] and len(c["hooks"]) == 3 and c["versions"]["prompt"]
+            assert c["draft"] and c["versions"]["prompt"]
+            # A funny post's alternatives are whole versions from the writers' room; any other post gets openings.
+            if c["post_type"] in posttypes.HUMOROUS:
+                assert len(c["alternatives"]) == 2 and c["hooks"] == []
+            else:
+                assert len(c["hooks"]) == 3
             assert c["expires_at"] > timeutil.now_iso()
 
 

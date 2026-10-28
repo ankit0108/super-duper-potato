@@ -11,6 +11,7 @@ import datetime as dt
 import math
 import os
 import random
+import re
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -24,6 +25,7 @@ from . import feedback, guardrails, log, pools, posttypes, prompting, textutil, 
 from .bandit import ArmState, arm_id
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest, json_rows
+from .scout.scouting import trending_terms
 from .topics import topic_text
 
 ANGLE_POTENTIAL_DEFAULT = 3
@@ -50,6 +52,10 @@ class Candidate:
     explore: bool = False
     experiment: dict[str, Any] | None = None
     score: float = 0.0
+    # Where it's trending ({"on": "x", "term": …} or the social pulse's {"on": "linkedin", "why": …}) and what kind
+    # of story triage says it is (conversation, bizarre, funny, launch, research, news).
+    trend: dict[str, Any] | None = None
+    story: str | None = None
 
     @property
     def arm(self) -> str:
@@ -74,6 +80,8 @@ class Memory:
     recent_topics: dict[str, set[str]]
     dull: list[frozenset[str]] = field(default_factory=list)  # skipped as not interesting
     other: list[frozenset[str]] = field(default_factory=list)  # skipped for another reason (his note says which)
+    # What's trending on X and Bluesky now (scouting.trending_terms), as (pattern, term, where).
+    trending: list[tuple[re.Pattern[str], str, str]] = field(default_factory=list)
 
 
 def build_memory(ctx: Ctx) -> Memory:
@@ -105,7 +113,44 @@ def build_memory(ctx: Ctx) -> Memory:
             other.append(toks)
         if (c.get("created_at") or "") >= block_since and c.get("topic_id"):
             recent.setdefault(c["platform"], set()).add(c["topic_id"])
-    return Memory(posted, covered, off_brand, risky, recent, dull, other)
+    return Memory(posted, covered, off_brand, risky, recent, dull, other,
+                  trending=_trend_patterns(trending_terms(ctx.store)))
+
+
+CALENDAR_WORDS = frozenset({"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "january",
+                            "february", "march", "april", "may", "june", "july", "august", "september", "october",
+                            "november", "december", "weekend", "today", "tonight"})
+
+
+def _trend_patterns(terms: list[dict[str, Any]]) -> list[tuple[re.Pattern[str], str, str]]:
+    """Trending words worth matching: a name or a phrase, not a number, a stop word or a two-letter tag."""
+    out: list[tuple[re.Pattern[str], str, str]] = []
+    seen: set[str] = set()
+    for t in terms:
+        term = str(t.get("term") or "").strip()
+        # "#OpenAIDevDay" -> "OpenAI Dev Day"; "#Bihar" -> "Bihar"
+        words = re.sub(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", term.lstrip("#")).replace("_", " ")
+        key = words.strip().casefold()
+        if (len(key) < 4 or key in seen or key.isdigit() or key in textutil.STOPWORDS_EN or key in CALENDAR_WORDS
+                or not re.search(r"[^\W\d_]", key)):
+            continue
+        seen.add(key)
+        pattern = re.compile(r"(?<![\w])" + r"[\s-]*".join(map(re.escape, key.split())) + r"(?![\w])")
+        out.append((pattern, term, str(t.get("where") or "x")))
+    return out
+
+
+def trend_for(topic: dict[str, Any], memory: Memory) -> dict[str, Any] | None:
+    """Where a topic is trending: the social pulse found it taking off on LinkedIn or X, or it matches a word
+    trending on X or Bluesky right now."""
+    sig = (topic.get("why_now") or {}).get("signals") or {}
+    if sig.get("trending_on"):
+        return {"on": sig["trending_on"], "term": None, "why": sig.get("why_works")}
+    text = topic_text(topic).casefold()
+    for pattern, term, where in memory.trending:
+        if pattern.search(text):
+            return {"on": where, "term": term, "why": None}
+    return None
 
 
 def _max_overlap(toks: frozenset[str], pool: list[frozenset[str]]) -> float:
@@ -153,10 +198,20 @@ def prescore(ctx: Ctx, topic: dict[str, Any], platform: str, memory: Memory) -> 
     sig = why.get("signals") or {}
     outlets = int(why.get("n_outlets") or topic.get("n_sources") or 1)
     momentum = max(1 - math.exp(-(outlets - 1) / 2.5), min(1.0, (sig.get("hn_points") or 0) / 400),
-                   min(1.0, (sig.get("hf_upvotes") or 0) / 120))
+                   min(1.0, (sig.get("hf_upvotes") or 0) / 120), discussion(sig))
+    if trend_for(topic, memory):
+        momentum = max(momentum, 0.85 if sig.get("trending_on") else 0.75)
     new = novelty(frozenset(textutil.sim_tokens(topic_text(topic))), platform, memory)
     parts, pre = _combine(ctx, fit, timeliness, momentum, new)
     return pillar, parts, pre
+
+
+def discussion(sig: dict[str, Any]) -> float:
+    """How much people are talking about it, 0 to 1: comments and votes on Hacker News and Reddit, shares on
+    Mastodon, searches on Google."""
+    return max(min(1.0, (sig.get("hn_comments") or 0) / 300), min(1.0, (sig.get("reddit_comments") or 0) / 600),
+               min(1.0, (sig.get("reddit_score") or 0) / 6000), min(1.0, (sig.get("mastodon_accounts") or 0) / 120),
+               min(1.0, (sig.get("search_traffic") or 0) / 200_000))
 
 
 def _combine(ctx: Ctx, fit: float, timeliness: float, momentum: float, new: float) -> tuple[dict[str, float], float]:
@@ -187,6 +242,8 @@ def _stance_lines(ctx: Ctx) -> str:
     return "\n".join(f"- {s['id']}: {stance_text(s)}" for s in rows)
 
 
+# What kind of story triage says a topic is (shown on the card, and used to find material for funny posts).
+STORY_KINDS = ("news", "conversation", "bizarre", "funny", "launch", "research")
 TRIAGE_BATCH = 18  # topics per call: small enough for every provider's input limit
 TRIAGE_MAX = 54
 
@@ -303,7 +360,7 @@ def build_candidates(ctx: Ctx, topics: list[dict[str, Any]], memory: Memory,
             if res:
                 scored.append((t, res))
         scored.sort(key=lambda tr: -tr[1][2])
-        for t, res in scored[: ctx.settings.scouting.shortlist_per_platform]:
+        for t, res in shortlist(ctx, scored):
             pre[platform][t["id"]] = res
     shortlist_ids = list(dict.fromkeys([*pre["linkedin"], *pre["x"]]))
     by_id = {t["id"]: t for t in news}
@@ -318,10 +375,62 @@ def build_candidates(ctx: Ctx, topics: list[dict[str, Any]], memory: Memory,
                                    memory)
             if cand is not None:
                 out[platform].append(cand)
+        out[platform].extend(funny_candidates(ctx, platform, news, tri, out[platform], memory))
         out[platform].extend(quote_candidates(ctx, platform, quotes, memory))
         out[platform].extend(pool_candidates(ctx, platform, memory))
         out[platform].extend(bank_candidates(ctx, platform))
     return out
+
+
+FUNNY_STORIES = ("funny", "bizarre", "conversation")
+
+
+def funny_candidates(ctx: Ctx, platform: str, topics: list[dict[str, Any]], tri: dict[str, dict[str, Any]],
+                     have: list[Candidate], memory: Memory, n: int = 3) -> list[Candidate]:
+    """Material for a pillar that keeps a funny post a day when triage put nothing in it: the stories people are
+    laughing at, arguing about or finding bizarre first, then the ones that best fit the pillar. A real story makes
+    a better joke than a premise from a list."""
+    out: list[Candidate] = []
+    for key, spec in ctx.settings.pillars(platform).items():
+        if (spec.min_per_day <= 0 or spec.mode != "external" or not set(spec.post_types) & posttypes.HUMOROUS
+                or any(c.pillar == key for c in have)):
+            continue
+
+        def fit(t: dict[str, Any], key: str = key) -> float:
+            return ((t.get("fit") or {}).get(platform) or {}).get(key, 0.0)
+
+        def appeal(t: dict[str, Any]) -> tuple[bool, float, float]:
+            story = (tri.get(t["id"]) or {}).get("story")
+            return story in FUNNY_STORIES, fit(t), discussion(_signals(t))
+
+        pool = [t for t in topics if fit(t) >= 0.4 and t["id"] not in memory.recent_topics.get(platform, set())]
+        for t in sorted(pool, key=appeal, reverse=True):
+            if len([c for c in out if c.pillar == key]) >= n:
+                break
+            res = prescore(ctx, t, platform, memory)
+            if res is None:
+                continue
+            _, parts, base = res
+            lane = {"pillar" if platform == "linkedin" else "lane": key, "post_type": "funny_take",
+                    "angle_potential": 3}
+            cand = _news_candidate(ctx, platform, t, {**(tri.get(t["id"]) or {}), platform: lane}, True, key, parts,
+                                   base, memory)
+            if cand is not None and cand.pillar == key:  # a sensitive story never becomes a joke
+                out.append(cand)
+    return out
+
+
+def shortlist(ctx: Ctx, scored: list[tuple[dict[str, Any], Any]]) -> list[tuple[dict[str, Any], Any]]:
+    """The best topics for triage, keeping a few seats for scouts that would otherwise be crowded out by the
+    news (scouting.shortlist_seats: what people are talking about)."""
+    sc = ctx.settings.scouting
+    n = sc.shortlist_per_platform
+    picked = scored[:n]
+    for scout, seats in sc.shortlist_seats.items():
+        have = sum(1 for t, _ in picked if t.get("scout") == scout)
+        extra = [tr for tr in scored[n:] if tr[0].get("scout") == scout][:max(0, seats - have)]
+        picked += extra
+    return picked
 
 
 def _signals(topic: dict[str, Any]) -> dict[str, Any]:
@@ -395,12 +504,13 @@ def _news_candidate(ctx: Ctx, platform: str, topic: dict[str, Any], t: dict[str,
     if mode == "interview":
         kind = "interview"
     factor = 0.55 + 0.15 * ap
+    story = t.get("story") if t.get("story") in STORY_KINDS else None
     return Candidate(
         topic=topic, platform=platform, pillar=pillar, fmt=fmt, mode=mode,
         base=round(base * factor, 4), parts={**parts, "angle_potential": ap}, kind=kind,
         angle=(p.get("angle") or None), affairs_type=affairs_type, post_type=post_type, issue_key=issue_key,
         sensitive=sensitive, sensitive_reason=t.get("sensitive_reason") or det_reason,
-        format_note=p.get("format_note") or None,
+        format_note=p.get("format_note") or None, trend=trend_for(topic, memory), story=story,
     )
 
 
@@ -527,7 +637,12 @@ def target_shares(ctx: Ctx, platform: str, arms: dict[str, ArmState]) -> dict[st
 
 
 def allocate(ctx: Ctx, platform: str, cands: list[Candidate], arms: dict[str, ArmState],
-             rng: random.Random, taken_elsewhere: set[str] | None = None, slots: int | None = None) -> list[Candidate]:
+             rng: random.Random, taken_elsewhere: set[str] | None = None, slots: int | None = None,
+             exclude: set[str] | None = None) -> list[Candidate]:
+    """The set for a platform. `taken_elsewhere`: topics the other platform's set has (allowed, a little less
+    likely); `exclude`: topics that mustn't come again (the sets already delivered today, for a fresh set)."""
+    if exclude:
+        cands = [c for c in cands if c.topic_key not in exclude]
     pconf = getattr(ctx.settings.platforms, platform)
     n = slots or pconf.slots
     reply_slots = getattr(pconf, "reply_slots", 0)  # X only

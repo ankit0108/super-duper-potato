@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import calendar
 import datetime as dt
+import html
 import json
 import re
 from typing import Any
@@ -23,14 +24,29 @@ _OTD_KEYWORDS = {
 }
 
 
+# Sources that bring trending words, not stories (trends24 for X, Bluesky): they lift matching topics instead of
+# becoming items of their own (scouting.save_terms, rank.prescore).
+TERM_KINDS = ("trends24", "bsky_trends")
+
+
 def parse(source: dict[str, Any], content: bytes, local_date: str | None = None) -> list[RawItem]:
     kind = source.get("kind")
     if kind in ("rss", "gnews", "arxiv", "reddit"):
         return _parse_feed(source, content)
     if kind == "hf_papers":
         return _parse_hf(content)
-    if kind in ("hn_front", "hn_show"):
+    if kind in ("hn_front", "hn_show", "hn_ask"):
         return _parse_hn(source, content)
+    if kind == "reddit_json":
+        return _parse_reddit(source, content)
+    if kind == "mastodon_links":
+        return _parse_mastodon_links(content)
+    if kind == "gtrends":
+        return _parse_gtrends(source, content)
+    if kind == "trends24":
+        return _parse_trends24(content)
+    if kind == "bsky_trends":
+        return _parse_bsky_trends(content)
     if kind == "wikipedia_otd":
         return _parse_otd(content, local_date)
     if kind == "wikipedia_pool":
@@ -121,7 +137,7 @@ def _parse_hn(source: dict[str, Any], content: bytes) -> list[RawItem]:
     except json.JSONDecodeError:
         return []
     # The front page and Show HN keep only stories people noticed; a search keeps anything on topic.
-    min_points = {"hn_front": 60, "hn_show": 30}.get(source.get("kind") or "", 5)
+    min_points = {"hn_front": 60, "hn_show": 30, "hn_ask": 40}.get(source.get("kind") or "", 5)
     items: list[RawItem] = []
     for hit in data.get("hits", []):
         title = textutil.normalize_ws(hit.get("title") or hit.get("story_title"))
@@ -139,6 +155,135 @@ def _parse_hn(source: dict[str, Any], content: bytes) -> list[RawItem]:
             "signals": {"hn_points": points, "hn_comments": int(hit.get("num_comments") or 0), "hn_url": hn_url},
         })
     return items
+
+
+def _json(content: bytes) -> Any:
+    try:
+        return json.loads(content)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+
+
+_PICTURE_HOSTS = ("i.redd.it", "v.redd.it", "i.imgur.com", "imgur.com", "reddit.com/gallery")
+
+
+def _parse_reddit(source: dict[str, Any], content: bytes) -> list[RawItem]:
+    """A subreddit's top posts of the day (`/top.json?t=day`), with the score and the comment count, so what
+    people are actually talking about ranks higher. Picture posts keep only a title we can't see behind, so
+    they're kept only when the title says enough on its own."""
+    data = _json(content)
+    children = ((data or {}).get("data") or {}).get("children") if isinstance(data, dict) else None
+    min_score = int((source.get("extra") or {}).get("min_score") or 100)
+    sub = ""
+    items: list[RawItem] = []
+    for child in children or []:
+        d = (child or {}).get("data") or {}
+        title = textutil.normalize_ws(d.get("title"))
+        score = int(d.get("score") or 0)
+        if not title or d.get("over_18") or d.get("stickied") or score < min_score:
+            continue
+        sub = d.get("subreddit_name_prefixed") or sub
+        thread = f"https://www.reddit.com{d.get('permalink') or ''}"
+        link = str(d.get("url_overridden_by_dest") or d.get("url") or "")
+        picture = d.get("post_hint") in ("image", "hosted:video") or any(h in link for h in _PICTURE_HOSTS)
+        if picture and len(title.split()) < 6:
+            continue
+        external = bool(link) and not d.get("is_self") and not picture and "reddit.com" not in link
+        body = textutil.strip_html(d.get("selftext") or "")
+        if picture:
+            body = f"A picture post on {sub}; only its title is known: {title}"
+        created = d.get("created_utc")
+        published = timeutil.iso(dt.datetime.fromtimestamp(float(created), tz=dt.UTC)) if created else None
+        items.append({
+            "url": link if external else thread,
+            "title": title,
+            "summary": textutil.truncate(body, 700),
+            "published_at": published,
+            "lang": "en",
+            "publisher": (textutil.url_host(link) if external else None) or sub or source.get("name"),
+            "signals": {"reddit_score": score, "reddit_comments": int(d.get("num_comments") or 0),
+                        "discussion_url": thread},
+        })
+    return items
+
+
+def _parse_mastodon_links(content: bytes) -> list[RawItem]:
+    """Links people are sharing most on Mastodon (`/api/v1/trends/links`), with how many accounts shared each
+    over the last two days."""
+    data = _json(content)
+    items: list[RawItem] = []
+    for row in data if isinstance(data, list) else []:
+        if not isinstance(row, dict) or not row.get("url") or not row.get("title"):
+            continue
+        history = [h for h in (row.get("history") or []) if isinstance(h, dict)][:2]
+        accounts = sum(int(h.get("accounts") or 0) for h in history)
+        published = timeutil.iso(timeutil.parse(row.get("published_at"))) if row.get("published_at") else None
+        items.append({
+            "url": row["url"],
+            "title": textutil.normalize_ws(textutil.strip_html(row["title"])),
+            "summary": textutil.truncate(textutil.strip_html(row.get("description") or ""), 600),
+            "published_at": published,
+            "lang": row.get("language") if row.get("language") in ("en", "hi") else "en",
+            "publisher": row.get("provider_name") or textutil.url_host(row["url"]),
+            "signals": {"mastodon_accounts": accounts},
+        })
+    return items
+
+
+def _tag(block: str, name: str) -> str:
+    m = re.search(rf"<{name}>(.*?)</{name}>", block, re.S)
+    if not m:
+        return ""
+    raw = m.group(1).strip()
+    if raw.startswith("<![CDATA["):
+        raw = raw[9:].removesuffix("]]>")
+    return textutil.normalize_ws(html.unescape(textutil.strip_html(raw)))
+
+
+def _parse_gtrends(source: dict[str, Any], content: bytes) -> list[RawItem]:
+    """Google Trends' daily searches (`trends.google.com/trending/rss?geo=…`): each trending search with the
+    news story behind it, so a search spike arrives as the story people are looking up."""
+    text = content.decode("utf-8", "replace")
+    geo = (source.get("extra") or {}).get("geo") or source.get("gl") or ""
+    items: list[RawItem] = []
+    for block in re.findall(r"<item>(.*?)</item>", text, re.S):
+        term = _tag(block, "title")
+        news = re.search(r"<ht:news_item>(.*?)</ht:news_item>", block, re.S)
+        story = news.group(1) if news else ""
+        url = _tag(story, "ht:news_item_url")
+        if not term or not url.startswith(("http://", "https://")):
+            continue
+        traffic = int(re.sub(r"\D", "", _tag(block, "ht:approx_traffic")) or 0)
+        published = timeutil.iso(timeutil.parse(_tag(block, "pubDate"))) if _tag(block, "pubDate") else None
+        items.append({
+            "url": url,
+            "title": _tag(story, "ht:news_item_title") or term,
+            "summary": textutil.truncate(f"Trending on Google Search{f' in {geo}' if geo else ''}: \u201c{term}\u201d"
+                                         f"{f' ({traffic:,}+ searches)' if traffic else ''}. "
+                                         f"{_tag(story, 'ht:news_item_snippet')}", 600),
+            "published_at": published,
+            "lang": "en",
+            "publisher": _tag(story, "ht:news_item_source") or "Google Trends",
+            "signals": {"search_traffic": traffic, "trend_term": term},
+        })
+    return items
+
+
+def _parse_trends24(content: bytes) -> list[RawItem]:
+    """The latest hour's trending topics on X for a country, from trends24.in (best effort: it's a web page)."""
+    text = content.decode("utf-8", "replace")
+    start = text.find("trend-card__list")
+    block = text[start:text.find("</ol>", start)] if start >= 0 else ""
+    terms = [html.unescape(t).strip() for t in re.findall(r'class="trend-link"[^>]*>([^<]+)<', block)]
+    return [{"term": t, "where": "x"} for t in dict.fromkeys(terms) if t][:30]
+
+
+def _parse_bsky_trends(content: bytes) -> list[RawItem]:
+    """Bluesky's trending topics (`app.bsky.unspecced.getTrendingTopics`)."""
+    data = _json(content)
+    rows = (data or {}).get("topics") if isinstance(data, dict) else None
+    terms = [textutil.normalize_ws(r.get("displayName") or r.get("topic")) for r in rows or [] if isinstance(r, dict)]
+    return [{"term": t, "where": "bluesky"} for t in dict.fromkeys(terms) if t][:30]
 
 
 def _parse_otd(content: bytes, local_date: str | None) -> list[RawItem]:
