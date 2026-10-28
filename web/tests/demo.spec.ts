@@ -634,3 +634,16 @@ test("what's working on LinkedIn and X: the week's conversations in Insights", a
   await page.getByRole("tab", { name: /^Buzz/ }).click();
   await expect(page.getByText("Social pulse: what's working on LinkedIn and X").filter({ visible: true }).first()).toBeVisible();
 });
+
+test("the Studio's key is checked with Gemini straight from the browser (the page may call it)", async ({ page }) => {
+  // The desk's content security policy must let it reach Gemini: a blocked call is "Couldn't reach Gemini".
+  const models = { models: ["gemini-2.5-flash", "gemini-2.5-flash-lite"].map((m) => ({ name: `models/${m}`, supportedGenerationMethods: ["generateContent"] })) };
+  await page.route("https://generativelanguage.googleapis.com/**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*" }, body: JSON.stringify(models) }),
+  );
+  await page.goto("/#/settings");
+  await page.getByLabel("Gemini API key").fill("AIza-test-key");
+  await page.getByRole("button", { name: "Check and save" }).click();
+  await expect(page.getByText("Studio is ready (gemini-2.5-flash).")).toBeVisible();
+  await expect(page.getByText(/Gemini key …-key saved on this device/)).toBeVisible();
+});
