@@ -22,8 +22,9 @@ def _frozen_clock(monkeypatch):
     timeutil.freeze("2026-09-27T19:45:00Z")
     ids.seed(7)
     for var in ("PBS_BLOCKLIST", "GEMINI_API_KEY", "GROQ_API_KEY", "OPENROUTER_API_KEY", "PBS_NTFY_TOPIC",
-                "PBS_TELEGRAM_BOT_TOKEN"):
+                "PBS_TELEGRAM_BOT_TOKEN", "PBS_CHECKPOINT"):
         monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("PBS_SERIAL", "1")  # drafts one at a time: a fixed order (tests of parallel drafting unset it)
     yield
     timeutil.freeze(None)
 

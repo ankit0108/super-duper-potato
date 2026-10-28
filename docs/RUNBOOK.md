@@ -66,15 +66,19 @@ answers plus the sources. A card with no recent sources waits for your answers.
 
 **Sunday (15 minutes).** Metrics: upload the week's LinkedIn and X analytics screenshots, confirm anything the
 review queue flags, do the follower check-in. Then **System → Run weekly review**. Monday morning, look at
-**Insights → Proposals** and approve or reject each one; the rest of the learning needs nothing from you.
+**Insights → Proposals** and approve or reject each one (a proposal that only asks you to look at something has
+**Got it** instead); the rest of the learning needs nothing from you.
 
 **Once a month (5 minutes).** The first run of the month reads recent coverage of how LinkedIn and X show posts
 and proposes changes to the platform guide the drafts follow, each citing its articles. Approve or reject them
 under **Insights → Proposals**; **Insights → Playbook** shows the current guide and has **Research now**.
 
 **Want more posts today?** **Get fresh posts** at the top of the board (also on System): pick the platforms and
-how many, and a new set is scouted, ranked against what you've already seen today and drafted, in two to four
-minutes. It lands on top of Today's picks as a *Fresh set*; the morning set follows it.
+how many, and a new set is scouted, ranked against what you've already seen today and drafted. Cards are drafted
+three at a time and reach the board in batches as they're ready ("Drafting: 4 of 10 ready"): the first in a minute
+or two after the run starts, the rest within a few minutes. It lands on top of Today's picks as a *Fresh set*; the
+morning set follows it. Topics already judged this morning aren't asked about again, so a fresh set mostly spends
+its model calls on drafts.
 
 **Anytime.** Requests: any topic, full drafts in a few minutes. The request shows what the search understood
 ("Understood as: …"); if it's off, say what you mean in the notes and ask again. Stances: record or change a
@@ -99,6 +103,8 @@ desk is where to look first.
 | "Your data repo is public" | Make `pbs-data` private again (its Settings → General → Change visibility). The pipeline works the same with a private repo; it never needs it public |
 | Every LinkedIn take turns into a point about automation | Takes now fit each story: the technology, the business, the market, the people or the policy, with automation only when the story is about it. Check **Settings → Profile**: if your profile still says it "explains research for people automating real work", change that line, since the drafter reads it as a fact about you. **Insights → Playbook** shows the rules drafts follow; remove any that pushes every post toward automation |
 | A news source keeps failing | The doctor's `Sources` line names each failing source with its reason (HTTP 403 is usually a site refusing GitHub's servers). Swap it for a Google News query for the same outlet (`site:example.com when:2d`) on the Sources page |
+| A proposal says **Couldn't apply** | Its change can't be made as written (the reason is on the card: usually a setting that doesn't exist or is out of range). Make the change yourself in Settings and **Dismiss** it, or **Try again** after fixing what it names. A proposal that only asked you to look at something is recorded as *Noted* when you tap **Got it** |
+| Fresh posts are slow, or the run log says `no answer within 50s` | A model that doesn't answer within its time limit (`llm.timeouts` in the settings: 50 s for a draft) counts as busy and the next model answers, so one stuck call no longer holds up the set. `rate limited (HTTP 429)` from Groq means its free per-minute allowance is used up: the next Groq model answers, then the run waits briefly. Cards still arrive in batches as they're drafted |
 | A change you made "didn't stick" | **System → Rejected changes** lists anything the pipeline couldn't apply, with the reason. *Changes in flight* shows what's still waiting for a run |
 | A card is **Blocked** | It matched your blocklist. Nothing was reworded. Edit the draft by hand or skip it. If the match is a false positive, refine the term in `PBS_BLOCKLIST` |
 | No quote cards, or the run log says `quotes: 0 verified, 6 not found on Wikiquote` | The day's quotes weren't found word for word on their Wikiquote pages (a page renamed, or the quote worded differently there), so they were left out, as designed. A few not found each day is normal. If it's every quote, Wikiquote may be refusing GitHub's servers: the doctor's `Sources` line shows the source's error. Fix a quote's wording or `page` in `pbs/defaults/quote_pools.yaml` to match the page |

@@ -596,16 +596,18 @@ def _proposal_decide(ctx: Ctx, ev: C.ProposalDecideEvent) -> None:
     row = ctx.store.get("proposals", ev.proposal_id)
     if row is None:
         raise Reject(f"unknown proposal {ev.proposal_id}")
-    if row["status"] != "pending":
+    if row["status"] not in ("pending", "failed"):  # a failed one can be tried again or dismissed
         raise Reject(f"proposal is already {row['status']}")
     at = _event_time(ev)
     if ev.decision == "reject":
-        ctx.store.update("proposals", row["id"], status="rejected", decided_at=at, decision_note=ev.note)
+        ctx.store.update("proposals", row["id"], status="rejected", decided_at=at, decision_note=ev.note, error=None)
         return
-    error = playbook.apply_proposal(ctx, row)
+    # Approving never bounces: a proposal that only asked him to look is noted, and one whose change can't be made
+    # says why on its card (and can be tried again or dismissed).
+    status, error = playbook.apply_proposal(ctx, row)
+    ctx.store.update("proposals", row["id"], status=status, decided_at=at, decision_note=ev.note, error=error)
     if error:
-        raise Reject(error)
-    ctx.store.update("proposals", row["id"], status="applied", decided_at=at, decision_note=ev.note)
+        ctx.run.note(f"A proposal couldn't be applied: {error}")
 
 
 def _playbook_rule(ctx: Ctx, ev: C.PlaybookRuleEvent) -> None:

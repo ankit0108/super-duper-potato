@@ -305,7 +305,12 @@ def test_approved_guide_changes_apply_in_order(make_ctx):
                                        "sources": ["https://example.com/a"]}) is None
     assert platform.apply_update(ctx, {"op": "modify", "rule_id": "li-tags", "text": "Two or three hashtags."}) is None
     assert platform.apply_update(ctx, {"op": "remove", "rule_id": "x-small"}) is None
-    assert platform.apply_update(ctx, {"op": "remove", "rule_id": "x-small"}) is not None  # already gone
+    n = len(ctx.store.get_setting(platform.UPDATES, []))
+    assert platform.apply_update(ctx, {"op": "remove", "rule_id": "x-small"}) is None  # already gone: nothing to do
+    assert len(ctx.store.get_setting(platform.UPDATES, [])) == n
+    # A change to a rule that has gone since it was proposed adds it as a new rule instead of failing.
+    assert platform.apply_update(ctx, {"op": "modify", "rule_id": "x-small", "platform": "x",
+                                       "text": "Short posts travel further."}) is None
     assert platform.apply_update(ctx, {"op": "add", "platform": "x", "text": "  "}) is not None
     rules = {r["id"]: r for r in platform.current_rules(ctx)}
     added = [r for r in rules.values() if r["text"] == "Answer replies in the first hour."][0]

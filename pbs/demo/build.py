@@ -116,13 +116,15 @@ def _demo_environment() -> Iterator[None]:
     keep = {k: os.environ.get(k) for k in ("PBS_BLOCKLIST", "GEMINI_API_KEY", "GROQ_API_KEY", "PBS_NTFY_TOPIC",
                                            "PBS_TELEGRAM_BOT_TOKEN", "PBS_TELEGRAM_CHAT_ID", "PBS_PUBLIC_LOGS",
                                            "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "GEMINI_IMAGE_API_KEY",
-                                           "XAI_API_KEY")}
+                                           "XAI_API_KEY", "PBS_SERIAL", "PBS_CHECKPOINT")}
     # The demo's image service is the mock web's Cloudflare (web.py): small generated pictures, no network.
     os.environ.update({"PBS_BLOCKLIST": BLOCKLIST, "GEMINI_API_KEY": "demo", "GROQ_API_KEY": "demo",
                        "CLOUDFLARE_ACCOUNT_ID": "demo", "CLOUDFLARE_API_TOKEN": "demo"})
     for k in ("PBS_NTFY_TOPIC", "PBS_TELEGRAM_BOT_TOKEN", "PBS_TELEGRAM_CHAT_ID", "GEMINI_IMAGE_API_KEY", "XAI_API_KEY"):
         os.environ.pop(k, None)
     os.environ["PBS_PUBLIC_LOGS"] = "1"
+    os.environ["PBS_SERIAL"] = "1"  # the same demo every build: drafts one at a time
+    os.environ.pop("PBS_CHECKPOINT", None)
     ids.seed(2609)
     try:
         yield

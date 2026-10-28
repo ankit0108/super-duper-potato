@@ -79,7 +79,10 @@ def apply_update(ctx: Ctx, change: dict[str, Any]) -> str | None:
         return f"unknown change {op!r}"
     known = {r["id"] for r in current_rules(ctx)}
     if op in ("modify", "remove") and change.get("rule_id") not in known:
-        return f"the rule {change.get('rule_id')} is no longer in the guide"
+        if op == "remove":
+            return None  # already gone: nothing left to do
+        change = {**change, "op": "add", "rule_id": None}  # the rule it rewords has gone since: add it as new
+        op = "add"
     if op in ("add", "modify") and not (change.get("text") or "").strip():
         return "the change has no text"
     updates = list(ctx.store.get_setting(UPDATES, []) or [])

@@ -37,7 +37,7 @@ function useNavItems(): NavItem[] {
     const needs = cards.filter((c) => c.status === "needs_input" || c.status === "blocked").length;
     const todays = cards.filter((c) => c.status === "suggested" && localDateKey(c.delivered_at ?? c.created_at, tz) === today).length;
     const review = (view?.metrics ?? []).filter((m) => m.status === "needs_review").length;
-    const proposals = (view?.proposals ?? []).filter((p) => p.status === "pending").length;
+    const proposals = (view?.proposals ?? []).filter((p) => p.status === "pending" || p.status === "failed").length;
     const errors = (view?.warnings ?? []).filter((w) => w.level === "error").length;
     return [
       { to: "/", label: "Board", icon: <LayoutGrid className="size-5" />, match: (p) => p === "/" || p.startsWith("/card"), count: needs + todays, mobile: true },

@@ -1,5 +1,5 @@
 import { card, desk } from "@/test/fixtures";
-import { boardSections, todaySets } from "./selectors";
+import { boardSections, draftingProgress, todaySets } from "./selectors";
 
 const today = "2026-09-29";
 const tz = "Australia/Melbourne";
@@ -53,5 +53,21 @@ describe("boardSections", () => {
     const x = boardSections(desk({ cards }), today, tz, "x");
     expect(x.today.linkedin).toEqual([]);
     expect(x.today.x.map((c) => c.id)).toEqual(["x1"]);
+  });
+});
+
+
+describe("draftingProgress", () => {
+  it("says how far along today's newest set is while its cards are being drafted", () => {
+    const cards = [
+      card({ id: "a", delivery_id: "dly_2026-10-28", status: "suggested" }),
+      card({ id: "b", delivery_id: "dly_2026-10-28_2", status: "suggested" }),
+      card({ id: "c", delivery_id: "dly_2026-10-28_2", status: "drafting" }),
+      card({ id: "d", delivery_id: "dly_2026-10-28_2", status: "drafting" }),
+    ];
+    expect(draftingProgress(cards, "2026-10-28")).toEqual({ done: 1, total: 3 });
+    expect(draftingProgress(cards.slice(0, 2), "2026-10-28")).toBeNull();
+    // A card redrafting on request isn't a set being delivered.
+    expect(draftingProgress([card({ id: "e", delivery_id: "dly_2026-10-28", status: "drafting", work: { kind: "rewrite" } as never })], "2026-10-28")).toBeNull();
   });
 });

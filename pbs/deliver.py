@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import datetime as dt
+import os
 import random
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 from . import bandit, draft, ids, log, prompting, textutil, timeutil
@@ -101,6 +103,39 @@ def fill_card(ctx: Ctx, card: dict[str, Any], cand: Candidate | None = None) -> 
         return draft.make_brief(ctx, card, "Drafting failed. Tap 'Draft this' to retry.")
 
 
+# The desk gets the first cards after this many are drafted, then after every CHECKPOINT_EVERY more.
+FIRST_CHECKPOINT = 3
+CHECKPOINT_EVERY = 5
+
+
+def fill_cards(ctx: Ctx, jobs: list[tuple[dict[str, Any], Candidate | None]]) -> list[dict[str, Any]]:
+    """Draft cards `drafting.parallel` at a time (one at a time with PBS_SERIAL set: tests and the demo keep a
+    fixed order). Returns them in the order given. Saves a checkpoint for the desk as they finish."""
+    workers = 1 if os.environ.get("PBS_SERIAL") else max(1, ctx.settings.drafting.parallel)
+    out: list[dict[str, Any] | None] = [None] * len(jobs)
+    done = 0
+    next_checkpoint = FIRST_CHECKPOINT
+
+    def finished() -> None:
+        nonlocal done, next_checkpoint
+        done += 1
+        if done >= next_checkpoint and done < len(jobs):
+            ctx.checkpoint(f"{done} of {len(jobs)} cards drafted")
+            next_checkpoint += CHECKPOINT_EVERY
+
+    if workers == 1 or len(jobs) < 2:
+        for i, (card, cand) in enumerate(jobs):
+            out[i] = fill_card(ctx, card, cand)
+            finished()
+    else:
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="draft") as pool:
+            futures = {pool.submit(fill_card, ctx, card, cand): i for i, (card, cand) in enumerate(jobs)}
+            for fut in as_completed(futures):
+                out[futures[fut]] = fut.result()  # fill_card never raises: a failure becomes a brief card
+                finished()
+    return [c for c in out if c is not None]
+
+
 def morning_delivery(ctx: Ctx, scout: bool = True, dlv_id: str | None = None, platforms: list[str] | None = None,
                      per_platform: int | None = None) -> dict[str, Any] | None:
     """The day's set (or, from "Get fresh posts", another one): scout, rank, allocate slots and draft. `platforms`
@@ -151,15 +186,19 @@ def deliver_plan(ctx: Ctx, plan: dict[str, list[Candidate]], dlv_id: str) -> dic
 
     counts: dict[str, int] = {}
     card_ids: list[str] = []
-    for platform, cs in plan.items():
-        for rank, cand in enumerate(cs, 1):
-            card = card_from_candidate(ctx, cand, dlv_id, rank)
-            card = fill_card(ctx, card, cand)
-            card_ids.append(card["id"])
-            counts[platform] = counts.get(platform, 0) + 1
-            if cand.topic.get("id") and not str(cand.topic["id"]).startswith(("bank:", "pool:")):
-                ctx.store.update("topics", cand.topic["id"], status="carded")
-            draft.log_interaction(ctx, "delivered", card, rank=rank, explore=cand.explore)
+    # Every card is created first (it shows on the desk as "Drafting…"), then drafted, the top of each platform's
+    # list first: several at once, and the desk gets them in batches as they're ready.
+    jobs = [(card_from_candidate(ctx, cand, dlv_id, rank), cand, rank)
+            for platform, cs in plan.items() for rank, cand in enumerate(cs, 1)]
+    jobs.sort(key=lambda j: j[2])
+    filled = fill_cards(ctx, [(card, cand) for card, cand, _ in jobs])
+    for (_, cand, rank), card in zip(jobs, filled, strict=True):
+        platform = cand.platform
+        card_ids.append(card["id"])
+        counts[platform] = counts.get(platform, 0) + 1
+        if cand.topic.get("id") and not str(cand.topic["id"]).startswith(("bank:", "pool:")):
+            ctx.store.update("topics", cand.topic["id"], status="carded")
+        draft.log_interaction(ctx, "delivered", card, rank=rank, explore=cand.explore)
     needs_input = ctx.store.count("cards", "delivery_id = ? AND status = 'needs_input'", (dlv_id,))
     ctx.store.upsert("deliveries", {
         "id": dlv_id, "local_date": local_date, "delivered_at": timeutil.now_iso(), "counts": counts,

@@ -146,7 +146,7 @@ test("get fresh posts: a new set lands on top of today's picks", async ({ page }
   await dialog.getByRole("radio", { name: "X", exact: true }).click();
   await dialog.getByRole("radio", { name: "2", exact: true }).click();
   await dialog.getByRole("button", { name: "Get 2 fresh posts" }).click();
-  await expect(page.getByText("Getting 2 fresh posts. They land on top of Today's picks, usually within 2–4 minutes.")).toBeVisible();
+  await expect(page.getByText("Getting 2 fresh posts. They land on top of Today's picks as they're drafted: the first in a minute or two.")).toBeVisible();
   await expect(page.getByText("2 new posts are ready on the board.")).toBeVisible();
   await expect(todaySection(page).getByText(/^Fresh set/)).toBeVisible();
   const xTiles = todaySection(page).getByRole("article", { name: /^X card:/ });
@@ -377,7 +377,7 @@ test("the platform guide drafts follow, and researched changes wait for approval
   await expect(proposal.getByRole("link", { name: /What creators are seeing in LinkedIn's feed/ })).toBeVisible();
   await noSidewaysScroll(page);
   await proposal.getByRole("button", { name: "Approve" }).click();
-  await expect(page.getByText("Approved. It applies on the next run.")).toBeVisible();
+  await expect(page.getByText("Approved: it applies on the next run.")).toBeVisible();
 });
 
 test("a card's carousel: flip through it, download the PDF and a slide", async ({ page }) => {

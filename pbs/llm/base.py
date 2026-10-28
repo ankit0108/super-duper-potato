@@ -22,6 +22,8 @@ class LLMRequest:
     grounding: bool = False
     personal: bool = False
     prompt_version: str | None = None
+    # Seconds to wait for an answer before the model counts as busy and the next one is asked (settings.llm.timeouts).
+    timeout: float | None = None
 
     def estimated_input_tokens(self) -> int:
         chars = len(self.system) + len(self.prompt)
@@ -179,6 +181,12 @@ class ModelCycle:
         if last is not None:
             raise last
         raise LLMError("no model left to try", code="no_model", fatal_for_provider=True, model_gone=True)
+
+
+def timeout_error(exc: Exception, seconds: float | None) -> LLMError:
+    """A call that got no answer in time: treated like a busy model (HTTP 504), so the next one is asked."""
+    return LLMError(f"no answer within {int(seconds or 0)}s ({type(exc).__name__})", status=504, code="timeout",
+                    retryable=True)
 
 
 class BudgetExhausted(Exception):

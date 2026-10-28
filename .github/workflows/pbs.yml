@@ -81,6 +81,9 @@ jobs:
           PBS_TELEGRAM_BOT_TOKEN: ${{ secrets.PBS_TELEGRAM_BOT_TOKEN }}
           PBS_TELEGRAM_CHAT_ID: ${{ secrets.PBS_TELEGRAM_CHAT_ID }}
           PBS_DESK_URL: ${{ vars.PBS_DESK_URL }}
+          # Mid-run saves: cards reach the desk in batches as they're drafted (same script as "Save data").
+          PBS_CHECKPOINT: scripts/data-push.sh
+          PBS_DATA_REPO: ${{ vars.PBS_DATA_REPO }}
           EVENT: ${{ github.event_name }}
           SCHEDULE: ${{ github.event.schedule }}
           INPUT_HINT: ${{ inputs.hint }}

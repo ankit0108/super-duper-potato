@@ -7,7 +7,11 @@ What you may change directly (drafting guidance only): add, modify or remove pla
 
 Medium- and high-confidence changes apply automatically. Low-confidence ideas become experiments, tried in exploration slots.
 
-What you may only propose, for {{display_name}} to decide: pillar or lane weights, reward weights, guardrails and new sources. Put these under "proposals", with a settings "patch" when you can express one (for example {"strategy": {"x": {"affairs": {"weight": 0.25}}}}).
+What you may only propose, for {{display_name}} to decide: pillar or lane weights, reward weights, guardrails and new sources. Put these under "proposals", with a settings "patch" when you can express one. A patch may only use these settings, with these exact keys (anything else can't be applied, so leave "patch" empty and say what to change in "detail"):
+- a pillar or lane weight from 0 to 1: {"strategy": {"x": {"affairs": {"weight": 0.25}}}} (pillar keys: {{pillar_keys}});
+- cards a morning: {"platforms": {"linkedin": {"slots": 5}}} (LinkedIn 1 to 6, X 1 to 10);
+- reward weights: {"rewards": {"linkedin": {"comments": 0.3}}};
+- how many hashtags: {"hashtags": {"x": {"max": 1}}}.
 
 Be conservative:
 - With fewer than five posts in the week, prefer no changes or low-confidence experiments.

@@ -4023,6 +4023,19 @@
      "default": null,
      "title": "Detail"
     },
+    "error": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Why approving it couldn't change anything (status failed)",
+     "title": "Error"
+    },
     "evidence": {
      "default": [],
      "items": {
@@ -4059,11 +4072,14 @@
     },
     "status": {
      "default": "pending",
+     "description": "noted: approved, with nothing to change automatically; failed: its change couldn't be made (see error), and it can be approved again or dismissed",
      "enum": [
       "pending",
       "approved",
       "rejected",
-      "applied"
+      "applied",
+      "noted",
+      "failed"
      ],
      "title": "Status",
      "type": "string"

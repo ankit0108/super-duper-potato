@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import datetime as dt
 import math
+import os
 import random
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from functools import cache
 from importlib import resources
@@ -193,16 +195,34 @@ def triage(ctx: Ctx, topics: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """LLM triage of the shortlist, in batches. Returns {topic_id: triage}; topics a batch couldn't triage are
     left out (they get the deterministic triage). Empty dict if the model is unavailable."""
     out: dict[str, dict[str, Any]] = {}
-    batches = [topics[i:i + TRIAGE_BATCH] for i in range(0, min(len(topics), TRIAGE_MAX), TRIAGE_BATCH)]
-    for n, batch in enumerate(batches):
+    # Topics triaged in the last few hours keep that triage: a fresh set asks only about what's new.
+    hours = ctx.settings.ranking.triage_reuse_hours
+    since = timeutil.iso(timeutil.now() - dt.timedelta(hours=hours))
+    fresh = []
+    for t in topics:
+        cached = t.get("triage") or {}
+        if hours > 0 and cached.get("at") and cached["at"] >= since:
+            out[t["id"]] = cached
+        else:
+            fresh.append(t)
+    batches = [fresh[i:i + TRIAGE_BATCH] for i in range(0, min(len(fresh), TRIAGE_MAX), TRIAGE_BATCH)]
+
+    def one(n: int, batch: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
         try:
-            out.update(_triage_batch(ctx, batch))
+            return _triage_batch(ctx, batch)
         except (BudgetExhausted, ValueError) as exc:
             log.info(f"rank: triage batch {n + 1}/{len(batches)} unavailable ({type(exc).__name__}); "
                      "using deterministic triage for it")
-            if isinstance(exc, BudgetExhausted):
-                break
-    if batches and not out:
+            return {}
+
+    if len(batches) > 1 and not os.environ.get("PBS_SERIAL"):
+        with ThreadPoolExecutor(max_workers=min(len(batches), ctx.settings.drafting.parallel)) as pool:
+            for result in pool.map(lambda nb: one(*nb), enumerate(batches)):
+                out.update(result)
+    else:
+        for n, batch in enumerate(batches):
+            out.update(one(n, batch))
+    if batches and len(out) == len(topics) - len(fresh):
         ctx.run.note("Triage used the deterministic fallback (model unavailable)")
     return out
 
@@ -227,9 +247,11 @@ def _triage_batch(ctx: Ctx, topics: list[dict[str, Any]]) -> dict[str, dict[str,
                      prompt_version=prompting.version("triage"))
     data, _ = ctx.llm.call_json(req)
     out: dict[str, dict[str, Any]] = {}
+    at = timeutil.now_iso()
     for row in json_rows(data, "topics"):
         t = ref.get(str(row.get("id")))
         if t is not None:
+            row = {**row, "at": at}
             out[t["id"]] = row
             ctx.store.update("topics", t["id"], triage=row)
     return out

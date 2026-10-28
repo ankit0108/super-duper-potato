@@ -139,6 +139,9 @@ class Scouting(_Strict):
 class Ranking(_Strict):
     novelty_window_days: int = 30
     resuggest_block_days: int = 3
+    # A topic triaged this recently keeps that triage (a fresh set after the morning one asks the model again
+    # only about new topics).
+    triage_reuse_hours: float = Field(6, ge=0, le=48)
     diversity_arm_penalty: float = Field(0.7, ge=0.1, le=1.0)
     weights: dict[str, float]
     timeliness_half_life_hours: dict[str, float]
@@ -205,6 +208,8 @@ class Drafting(_Strict):
     # Model calls kept for drafts: at or below this many left, the pass is skipped, so it never costs a run's later
     # drafts their calls (12 is more than the most drafts one run makes).
     editor_reserve: int = Field(12, ge=0, le=50)
+    # Cards drafted at the same time (each provider still keeps its own pace). 1 drafts one after another.
+    parallel: int = Field(3, ge=1, le=6)
 
 
 class Expiry(_Strict):
@@ -248,6 +253,8 @@ class LLM(_Strict):
     providers: dict[str, ProviderSpec]
     routes: dict[str, list[str]]
     temperature: dict[str, float] = {}
+    # Seconds a call may take before that model counts as busy and the next one is asked ("default" for the rest).
+    timeouts: dict[str, float] = {}
 
     @model_validator(mode="after")
     def _routes_exist(self) -> LLM:
@@ -454,7 +461,7 @@ def migrate_overrides(overrides: dict[str, Any], done: list[str]) -> tuple[dict[
 def _unknown_keys(patch: dict[str, Any], reference: dict[str, Any], prefix: str = "") -> list[str]:
     """Keys in patch that don't exist in the reference (open maps are allowed to grow)."""
     open_maps = {"strategy", "strategy.linkedin", "strategy.x", "llm.providers", "llm.routes",
-                 "llm.temperature", "watchlist", "formats", "rewards.linkedin", "rewards.x",
+                 "llm.temperature", "llm.timeouts", "watchlist", "formats", "rewards.linkedin", "rewards.x",
                  "scouting.lookback_hours", "scouting.candidates_per_scout", "affairs.types",
                  "learning.skip_values", "ranking.timeliness_half_life_hours"}
     unknown: list[str] = []

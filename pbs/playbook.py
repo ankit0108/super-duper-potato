@@ -139,14 +139,26 @@ def create_proposal(ctx: Ctx, *, kind: str, title: str, detail: str | None, payl
     return pid
 
 
-def apply_proposal(ctx: Ctx, proposal: dict[str, Any]) -> str | None:
-    """Apply an approved proposal. Returns an error message, or None on success."""
+CHANGE_KEYS = ("patch", "rule", "source", "guide_change")
+
+
+def has_change(proposal: dict[str, Any]) -> bool:
+    """Whether approving the proposal changes something by itself (a setting, a rule, a source or the guide)."""
     payload = proposal.get("payload") or {}
+    return any(payload.get(k) for k in CHANGE_KEYS)
+
+
+def apply_proposal(ctx: Ctx, proposal: dict[str, Any]) -> tuple[str, str | None]:
+    """Apply an approved proposal. Returns (status, reason): ("applied", None); ("noted", None) for one that only
+    asked him to look at something; or ("failed", why) when its change can't be made."""
+    payload = proposal.get("payload") or {}
+    if not has_change(proposal):
+        return "noted", None
     if payload.get("patch"):
         current = dict(ctx.store.get_setting("overrides", {}) or {})
         new, error = settings.validate_patch(current, payload["patch"])
         if error:
-            return f"can't apply: {error}"
+            return "failed", f"the setting change isn't valid ({error})"
         ctx.store.set_setting("overrides", new)
         ctx.reload_settings()
     if payload.get("rule"):
@@ -164,7 +176,5 @@ def apply_proposal(ctx: Ctx, proposal: dict[str, Any]) -> str | None:
 
         error = platform.apply_update(ctx, payload["guide_change"])
         if error:
-            return f"can't apply: {error}"
-    if not (payload.get("patch") or payload.get("rule") or payload.get("source") or payload.get("guide_change")):
-        return "this proposal has nothing to apply automatically; make the change in Settings"
-    return None
+            return "failed", error
+    return "applied", None

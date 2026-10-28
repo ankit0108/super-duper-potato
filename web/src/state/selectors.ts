@@ -93,3 +93,16 @@ export function evidenceFor(card: Card): string {
   for (const a of card.answers ?? []) parts.push(a.answer);
   return parts.filter(Boolean).join("\n");
 }
+
+
+/** Today's newest set while its cards are still being drafted: how many are ready. Null when nothing is drafting. */
+export function draftingProgress(cards: ReadonlyArray<Card>, today: string): { done: number; total: number } | null {
+  const sets = new Map<string, Card[]>();
+  for (const c of cards) {
+    if (c.delivery_id && c.delivery_id.startsWith(`dly_${today}`)) sets.set(c.delivery_id, [...(sets.get(c.delivery_id) ?? []), c]);
+  }
+  const busy = [...sets.entries()].filter(([, cs]) => cs.some((c) => c.status === "drafting" && !c.work));
+  if (!busy.length) return null;
+  const [, cs] = busy.sort(([a], [b]) => b.localeCompare(a, undefined, { numeric: true }))[0];
+  return { done: cs.filter((c) => c.status !== "drafting").length, total: cs.length };
+}

@@ -232,6 +232,8 @@ scouting:
 ranking:
   novelty_window_days: 30
   resuggest_block_days: 3
+  # A topic triaged within this many hours keeps that triage, so "Get fresh posts" only asks about new topics.
+  triage_reuse_hours: 6
   diversity_arm_penalty: 0.7
   weights: {fit: 1.0, timeliness: 1.0, momentum: 0.8, novelty: 1.0}
   timeliness_half_life_hours: {tech: 30, affairs: 20, startups: 36, life: 168, research: 96, humor: 168, ideas: 168}
@@ -302,6 +304,8 @@ drafting:
   editor_pass: true
   editor_max_per_run: 12
   editor_reserve: 12  # skipped when this few model calls are left, so drafts always come first
+  # Cards drafted at the same time; each model provider still keeps its own pace (requests a minute).
+  parallel: 3
   # How far back a search for sources may reach when a card has none (interview-bank and Saturday cards).
   source_search_days: 30
 
@@ -349,7 +353,8 @@ llm:
       kind: openai
       base_url: https://api.groq.com/openai/v1
       model: openai/gpt-oss-120b
-      fallback_models: [openai/gpt-oss-20b]
+      # Each model has its own per-minute token limit on the free tier: when one is busy, the next answers.
+      fallback_models: [openai/gpt-oss-20b, meta-llama/llama-4-scout-17b-16e-instruct, llama-3.3-70b-versatile]
       quota_per_model: true
       api_key_env: GROQ_API_KEY
       daily_limit: 500
@@ -384,6 +389,10 @@ llm:
     visual: [gemini, groq, gemini_lite, openrouter]
     stances: [gemini, groq, gemini_lite]
     evergreen: [gemini, groq, gemini_lite, openrouter]
+  # Seconds a call may take before that model counts as busy and the next one answers: a stalled call once cost
+  # minutes. Search with grounding and the weekly review get longer.
+  timeouts: {default: 90, draft: 50, draft_personal: 50, edit: 40, triage: 75, translate: 45, questions: 45,
+             visual: 60, search_plan: 40, search_rerank: 40}
   temperature:
     translate: 0.1
     triage: 0.2
