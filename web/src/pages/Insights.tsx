@@ -851,7 +851,41 @@ function LearningTab({ view }: { view: DeskState }) {
   );
 }
 
-type Tab = "overview" | "playbook" | "proposals" | "report" | "voice" | "learning";
+type Tab = "overview" | "playbook" | "proposals" | "report" | "voice" | "learning" | "working";
+
+/** What the social pulse found taking off on LinkedIn and X this week, and why (pbs/pulse.py). */
+function WorkingTab({ view }: { view: NonNullable<ReturnType<typeof useDesk.getState>["view"]> }) {
+  const rows = view.pulse?.conversations ?? [];
+  if (!rows.length)
+    return (
+      <Empty title="Nothing yet">
+        Once a day the pipeline searches public LinkedIn and X posts on your topics for the conversations taking off and why they work. They show here, and the best reach your board marked “Trending”.
+      </Empty>
+    );
+  return (
+    <Panel title="What's working on LinkedIn and X" description="Conversations taking off on your topics this week, from a daily Google search of public posts. The best of them reach your board marked “Trending”.">
+      <ul className="divide-y divide-border">
+        {rows.map((c, i) => (
+          <li key={`${c.date}-${i}`} className="space-y-1 py-3 first:pt-0 last:pb-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={c.platform === "linkedin" ? "linkedin" : "x"}>{c.platform === "linkedin" ? "LinkedIn" : "X"}</Badge>
+              <span className="text-[14px] font-medium">{c.topic}</span>
+              <span className="text-xs text-muted">{c.date}</span>
+            </div>
+            {c.said && <p className="text-[13px]">{c.said}</p>}
+            {c.why && <p className="text-[13px] text-muted">Why it works: {c.why}</p>}
+            {c.angle && <p className="text-[13px] text-muted">Your angle: {c.angle}</p>}
+            {safeUrl(c.url) && (
+              <a href={safeUrl(c.url)} target="_blank" rel="noreferrer" className="text-[13px] text-accent hover:underline">
+                See it
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Panel>
+  );
+}
 
 export function Insights() {
   const view = useDesk((s) => s.view);
@@ -872,6 +906,7 @@ export function Insights() {
         onChange={setTab}
         items={[
           { value: "overview", label: "Overview" },
+          { value: "working", label: "What's working" },
           { value: "playbook", label: "Playbook" },
           { value: "proposals", label: "Proposals", count: pendingProps },
           { value: "report", label: "Weekly report" },
@@ -880,6 +915,7 @@ export function Insights() {
         ]}
       />
       {tab === "overview" && <Overview view={view} />}
+      {tab === "working" && <WorkingTab view={view} />}
       {tab === "playbook" && <PlaybookTab view={view} />}
       {tab === "proposals" && <ProposalsTab view={view} />}
       {tab === "report" && <ReportTab view={view} />}

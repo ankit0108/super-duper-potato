@@ -1,7 +1,7 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import { Bot, Compass, FlaskConical, Loader2, MessageCircleQuestion, OctagonAlert, Quote, ShieldAlert, Sigma, UserRound, HeartHandshake, Ruler } from "lucide-react";
 import type { Card } from "@/types";
-import { FORMAT_LABEL, MENU_SKIP_REASONS, PLATFORM_LABEL, draftText, postTypeLabel } from "@/lib/format";
+import { FORMAT_LABEL, MENU_SKIP_REASONS, PLATFORM_LABEL, STORY_LABEL, TREND_PLACE, draftText, postTypeLabel } from "@/lib/format";
 import { tellSummary } from "@/lib/guard";
 import { navigate } from "@/lib/router";
 import { useDesk } from "@/state/store";
@@ -136,6 +136,12 @@ export function CardTile({ card, pending }: { card: Card; pending?: boolean }) {
         <Badge tone="neutral">{pillar(card.platform, card.pillar)}</Badge>
         <Badge tone="neutral">{FORMAT_LABEL[card.format]}</Badge>
         {card.post_type && <Badge tone="info">{postTypeLabel(card.post_type)}</Badge>}
+        {card.trending && (
+          <Badge tone="accent" title={card.trending.why ?? (card.trending.term ? `“${card.trending.term}” is trending` : undefined)}>
+            Trending on {TREND_PLACE[card.trending.on] ?? card.trending.on}
+          </Badge>
+        )}
+        {card.story && STORY_LABEL[card.story] && !card.trending && <Badge tone="neutral">{STORY_LABEL[card.story]}</Badge>}
         {card.kind && card.kind !== "news" && (
           <Badge tone="info" title={card.crosspost_of ? "Made from a card for the other platform" : undefined}>
             {card.kind === "adapt" ? (card.crosspost_of ? "Cross-post" : "Adapted") : card.kind[0].toUpperCase() + card.kind.slice(1)}

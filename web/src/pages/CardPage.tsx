@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowLeftRight, ChevronDown, Copy, ExternalLink, GitCompare, Loader2, MessageCircleQuestion, RotateCcw, Send, Sparkle, Undo2, WandSparkles } from "lucide-react";
 import type { Card, EventInput } from "@/types";
-import { FORMAT_LABEL, PLATFORM_LABEL, SKIP_REASONS, draftText, pct } from "@/lib/format";
+import { FORMAT_LABEL, PLATFORM_LABEL, SKIP_REASONS, STORY_LABEL, TREND_PLACE, draftText, pct } from "@/lib/format";
 import { copyText, linkedInComposeUrl, linkedInViaShareSheet, safeUrl, shareText, xComposeUrl } from "@/lib/compose";
 import { liveFlags, parseTerms } from "@/lib/guard";
 import { withHashtags, withoutHashtags } from "@/lib/hashtags";
@@ -363,11 +363,23 @@ function CardView({ card }: { card: Card }) {
           <StatusBadge status={card.status} />
           {card.explore && <Badge tone="accent">{card.experiment_id ? "Experiment" : "Exploring"}</Badge>}
           {card.kind === "studio" && <Badge tone="accent">From the Studio</Badge>}
+          {card.trending && <Badge tone="accent">Trending on {TREND_PLACE[card.trending.on] ?? card.trending.on}</Badge>}
+          {card.story && STORY_LABEL[card.story] && <Badge tone="neutral">{STORY_LABEL[card.story]}</Badge>}
           {pendingCard && <Badge tone="neutral">Syncing</Badge>}
           <FlagIcons card={card} />
         </div>
         <h1 className="mt-2 text-xl leading-snug font-semibold tracking-tight">{card.title}</h1>
         <CrosspostLinks card={card} />
+        {(card.trending?.why || card.trending?.term || safeUrl(card.discussion_url)) && (
+          <p className="mt-1.5 text-[13px] text-muted">
+            {card.trending?.why ? `Why posts about it are working on ${TREND_PLACE[card.trending.on] ?? card.trending.on}: ${card.trending.why} ` : card.trending?.term ? `“${card.trending.term}” is trending on ${TREND_PLACE[card.trending.on] ?? card.trending.on}. ` : ""}
+            {safeUrl(card.discussion_url) && (
+              <a href={safeUrl(card.discussion_url)} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                Read what people are saying
+              </a>
+            )}
+          </p>
+        )}
       </header>
 
       {work && (
@@ -452,6 +464,25 @@ function CardView({ card }: { card: Card }) {
               )}
               {(suggestedTags.length > 0 || chosenTags.length > 0 || (tagsOn && card.format !== "x_reply")) && (
                 <HashtagsBar platform={card.platform} suggested={suggestedTags} chosen={chosenTags} onChange={setTags} />
+              )}
+              {(card.humor?.note || (card.alternatives?.length ?? 0) > 0) && (
+                <section aria-label="Writers' room" className="space-y-2 rounded-2xl border border-border bg-surface p-3">
+                  <h3 className="text-[13px] font-semibold">Writers' room</h3>
+                  {card.humor?.note && (
+                    <p className={cx("text-[13px]", card.humor.verdict === "weak" ? "text-warn" : "text-muted")}>
+                      {card.humor.verdict === "weak" ? "The critic didn't find a strong joke today: try another version, rewrite it or skip it. " : `Critic's verdict: ${card.humor.verdict ?? "ok"}. `}
+                      {card.humor.note}
+                    </p>
+                  )}
+                  {(card.alternatives ?? []).map((alt, i) => (
+                    <div key={i} className="flex items-start gap-2 rounded-xl border border-border p-2.5">
+                      <p className="draft-text min-w-0 flex-1 text-[13.5px]">{alt}</p>
+                      <Button size="sm" variant="secondary" onClick={() => setText(alt)} aria-label={`Use version ${i + 2}`}>
+                        Use
+                      </Button>
+                    </div>
+                  ))}
+                </section>
               )}
               {card.draft?.first_comment && <FirstComment platform={card.platform} text={card.draft.first_comment} />}
               {!!card.attachments?.length && <Attachments items={card.attachments} slug={fileSlug(card.title)} />}
