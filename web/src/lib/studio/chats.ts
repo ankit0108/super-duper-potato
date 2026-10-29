@@ -22,6 +22,8 @@ export type StudioMessage = {
   error_kind?: string;
   /** You stopped the reply before it finished. */
   stopped?: boolean;
+  /** Answered without Google Search (its own free quota ran out, or the model doesn't take it). */
+  no_search?: boolean;
   /** Your edits to the blocks in this reply, by block index. */
   posts?: Record<number, StudioPost>;
   visuals?: Record<number, StudioVisual>;
