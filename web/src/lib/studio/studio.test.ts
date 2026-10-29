@@ -4,7 +4,7 @@ import { boardSections } from "@/state/selectors";
 import { parseReply, postText } from "./blocks";
 import type { StudioChat, StudioMessage } from "./chats";
 import { demoReply, demoStream } from "./demo";
-import { pickModels, stream, streamWithFallback, StudioError } from "./gemini";
+import { pickGemma, pickModels, stream, streamWithFallback, StudioError } from "./gemini";
 import { contentsFor, evidenceOf, quickActions, redact, systemFor } from "./prompt";
 import { sharedContext } from "./shared";
 
@@ -222,5 +222,83 @@ describe("saving a Studio post to the board", () => {
     const out = boardSections(desk({ cards: [studio] }), "2026-09-29", "Australia/Melbourne", "all");
     expect(out.today.linkedin.map((c) => c.id)).toEqual(["s1"]);
     expect(out.thisWeek).toHaveLength(0);
+  });
+});
+
+
+describe("free quotas", () => {
+  const quota429 = (perDay: boolean, retry = "7s") =>
+    new Response(
+      JSON.stringify({
+        error: {
+          message: "You exceeded your current quota, please check your plan and billing details.",
+          details: [
+            { "@type": "type.googleapis.com/google.rpc.QuotaFailure", violations: [{ quotaId: perDay ? "GenerateRequestsPerDayPerProjectPerModel-FreeTier" : "GenerateRequestsPerMinutePerProjectPerModel-FreeTier" }] },
+            { "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay: retry },
+          ],
+        },
+      }),
+      { status: 429 },
+    );
+  const ok = (text: string) => sse([{ candidates: [{ content: { parts: [{ text }] }, finishReason: "STOP" }] }])("");
+  type Call = { model: string; body: { tools?: unknown; systemInstruction?: unknown; contents: Array<{ parts: Array<{ text?: string }> }> } };
+  const recorder = (answer: (c: Call, n: number) => Response | Promise<Response>) => {
+    const calls: Call[] = [];
+    const fetcher = (async (url: string, init: RequestInit) => {
+      const call = { model: /models\/([^:]+):/.exec(String(url))![1], body: JSON.parse(String(init.body)) };
+      calls.push(call);
+      return answer(call, calls.length);
+    }) as unknown as typeof fetch;
+    return { calls, fetcher };
+  };
+  const base = { key: "k", system: "RULES", contents: [{ role: "user" as const, parts: [{ text: "hi" }] }], onText: () => {} };
+
+  it("tells a day's quota from a per-minute limit (every 429 says \"quota\")", async () => {
+    const run = (res: Response) => stream({ ...base, model: "m", search: false, fetcher: (async () => res) as unknown as typeof fetch });
+    await expect(run(quota429(true))).rejects.toMatchObject({ kind: "quota" });
+    await expect(run(quota429(false, "12s"))).rejects.toMatchObject({ kind: "rate", retryAfter: 12 });
+  });
+
+  it("answers without Google Search when search's own quota is gone, and says so", async () => {
+    const { calls, fetcher } = recorder((c) => (c.body.tools ? quota429(true) : ok("Done without search.")));
+    const out = await streamWithFallback({ ...base, models: ["gemini-2.5-flash", "gemini-2.5-flash-lite"], search: true, fetcher });
+    expect(out).toMatchObject({ text: "Done without search.", model: "gemini-2.5-flash", noSearch: true });
+    expect(calls.map((c) => [c.model, !!c.body.tools])).toEqual([["gemini-2.5-flash", true], ["gemini-2.5-flash", false]]);
+  });
+
+  it("waits out a short per-minute limit once, and remembers a model whose day is used up", async () => {
+    const waits: number[] = [];
+    const spent: string[] = [];
+    const { calls, fetcher } = recorder((c, n) => (c.model === "a" ? quota429(true) : n === 2 ? quota429(false, "3s") : ok("From b.")));
+    const out = await streamWithFallback({ ...base, models: ["a", "b"], search: false, fetcher, onExhausted: (m) => spent.push(m), wait: async (ms) => void waits.push(ms) });
+    expect(out.text).toBe("From b.") ;
+    expect(spent).toEqual(["a"]);
+    expect(waits).toEqual([4000]);
+    expect(calls.map((c) => c.model)).toEqual(["a", "b", "b"]);
+  });
+
+  it("falls back to Gemma, which takes the instructions in the conversation and no tools", async () => {
+    const { calls, fetcher } = recorder((c) => (c.model.startsWith("gemma") ? ok("From Gemma.") : quota429(true)));
+    const out = await streamWithFallback({ ...base, models: ["gemini-2.5-flash", "gemma-3-27b-it"], search: true, fetcher });
+    expect(out).toMatchObject({ model: "gemma-3-27b-it", text: "From Gemma." });
+    const gemma = calls.at(-1)!.body;
+    expect(gemma.systemInstruction).toBeUndefined();
+    expect(gemma.tools).toBeUndefined();
+    expect(gemma.contents[0].parts[0].text).toContain("RULES");
+    expect(gemma.contents.at(-1)!.parts[0].text).toBe("hi");
+  });
+
+  it("skips models already out of today's quota, and says when they all are", async () => {
+    const { calls, fetcher } = recorder(() => ok("From b."));
+    await streamWithFallback({ ...base, models: ["a", "b"], search: false, fetcher, skip: (m) => m === "a" });
+    expect(calls.map((c) => c.model)).toEqual(["b"]);
+    await expect(streamWithFallback({ ...base, models: ["a"], search: false, fetcher, skip: () => true })).rejects.toMatchObject({ kind: "quota" });
+    const tired = recorder(() => quota429(true));
+    await expect(streamWithFallback({ ...base, models: ["a", "b"], search: false, fetcher: tired.fetcher })).rejects.toThrow("tried a, b");
+  });
+
+  it("picks the biggest of the newest Gemma models", () => {
+    const listing = ["gemma-3-12b-it", "gemma-3-27b-it", "gemma-2-27b-it", "gemma-3n-e4b-it", "gemma-3-27b-pt"].map((n) => ({ name: `models/${n}`, supportedGenerationMethods: ["generateContent"] }));
+    expect(pickGemma(listing)).toEqual(["gemma-3-27b-it"]);
   });
 });

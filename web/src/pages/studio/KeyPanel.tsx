@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { KeyRound, Trash2 } from "lucide-react";
 import { listModels, StudioError } from "@/lib/studio/gemini";
-import { clearStudioKey, getStudioKey, keyHint, setStudioKey } from "@/lib/studio/settings";
+import { cachedModels, clearStudioKey, getStudioKey, keyHint, setStudioKey, spentModels } from "@/lib/studio/settings";
 import { useDesk } from "@/state/store";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
@@ -35,8 +35,15 @@ export function StudioKeyPanel({ onReady, compact }: { onReady?: (models: string
     <div className="space-y-3">
       {saved ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-[13.5px]">
-          <span className="flex items-center gap-1.5">
-            <KeyRound className="size-4 text-ok" aria-hidden /> Gemini key {keyHint(saved)} saved on this device.
+          <span className="min-w-0">
+            <span className="flex items-center gap-1.5">
+              <KeyRound className="size-4 text-ok" aria-hidden /> Gemini key {keyHint(saved)} saved on this device.
+            </span>
+            {(cachedModels(saved) ?? []).length > 0 && (
+              <span className="mt-0.5 block text-xs text-muted">
+                Models, tried in order: {(cachedModels(saved) ?? []).map((m) => (spentModels().includes(m) ? `${m} (out of today's quota)` : m)).join(", ")}
+              </span>
+            )}
           </span>
           <Button
             size="sm"

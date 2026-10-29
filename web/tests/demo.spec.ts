@@ -637,7 +637,7 @@ test("what's working on LinkedIn and X: the week's conversations in Insights", a
 
 test("the Studio's key is checked with Gemini straight from the browser (the page may call it)", async ({ page }) => {
   // The desk's content security policy must let it reach Gemini: a blocked call is "Couldn't reach Gemini".
-  const models = { models: ["gemini-2.5-flash", "gemini-2.5-flash-lite"].map((m) => ({ name: `models/${m}`, supportedGenerationMethods: ["generateContent"] })) };
+  const models = { models: ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemma-3-12b-it", "gemma-3-27b-it"].map((m) => ({ name: `models/${m}`, supportedGenerationMethods: ["generateContent"] })) };
   await page.route("https://generativelanguage.googleapis.com/**", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*" }, body: JSON.stringify(models) }),
   );
@@ -646,4 +646,6 @@ test("the Studio's key is checked with Gemini straight from the browser (the pag
   await page.getByRole("button", { name: "Check and save" }).click();
   await expect(page.getByText("Studio is ready (gemini-2.5-flash).")).toBeVisible();
   await expect(page.getByText(/Gemini key …-key saved on this device/)).toBeVisible();
+  // When a model's free quota runs out the next answers; Gemma, with far larger free limits, comes last.
+  await expect(page.getByText("Models, tried in order: gemini-2.5-flash, gemini-2.5-flash-lite, gemma-3-27b-it")).toBeVisible();
 });

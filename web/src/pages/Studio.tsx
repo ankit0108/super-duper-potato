@@ -6,14 +6,14 @@ import { deleteChat, getChat, listChats, saveChat, titleFrom, type StudioChat, t
 import { demoStream } from "@/lib/studio/demo";
 import { listModels, StudioError, streamWithFallback } from "@/lib/studio/gemini";
 import { contentsFor, evidenceOf, quickActions, systemFor, STARTERS, type QuickAction } from "@/lib/studio/prompt";
-import { cachedModels, getStudioKey, setStudioKey } from "@/lib/studio/settings";
+import { cachedModels, getStudioKey, markSpent, quotaResetsAt, setStudioKey, spentModels } from "@/lib/studio/settings";
 import { sharedContext, takeShared } from "@/lib/studio/shared";
 import { prepImage, MAX_IMAGES } from "@/lib/studio/images";
 import { copyText } from "@/lib/compose";
 import { draftText, PLATFORM_LABEL, FORMAT_LABEL } from "@/lib/format";
 import { Link, navigate, useRoute } from "@/lib/router";
 import { newId } from "@/lib/storage";
-import { relative } from "@/lib/time";
+import { formatTime, relative } from "@/lib/time";
 import { useDesk } from "@/state/store";
 import { useNow } from "@/state/hooks";
 import { Markdown } from "@/components/Markdown";
@@ -176,8 +176,10 @@ export function Studio() {
             signal: ctrl.signal,
             onText,
             onModel: (m) => setStreaming({ id: reply.id, model: m }),
+            skip: (m) => spentModels().includes(m),
+            onExhausted: (m) => markSpent(m),
           });
-      finish({ text: result.text, model: result.model, sources: result.sources, searched: result.searched });
+      finish({ text: result.text, model: result.model, sources: result.sources, searched: result.searched, no_search: result.noSearch || undefined });
     } catch (e) {
       if ((e as Error)?.name === "AbortError") finish({ stopped: true });
       else {
@@ -571,7 +573,15 @@ function AssistantMessage({
               .
             </p>
           )}
-          {message.error_kind === "quota" && <p className="text-[12.5px] text-muted">The free quota resets daily. A key from a second Google Cloud project doubles it (Settings → Studio).</p>}
+          {message.error_kind === "quota" && (
+            <p className="text-[12.5px] text-muted">
+              Gemini's free quotas reset at midnight US Pacific time, about {formatTime(quotaResetsAt().toISOString(), env.tz)} your time. If this key is the pipeline's own (its morning run uses the same quota) or comes from the same Google Cloud project, make one in a new project:{" "}
+              <Link to="/settings" className="text-accent hover:underline">
+                Settings → Studio
+              </Link>
+              .
+            </p>
+          )}
           {last && (
             <Button size="sm" icon={<RotateCcw className="size-4" />} onClick={onRetry} disabled={busy}>
               Try again
@@ -596,7 +606,7 @@ function AssistantMessage({
                 <Search className="size-3 shrink-0" aria-hidden /> Searched: {message.searched.slice(0, 2).join(" · ")}
               </span>
             )}
-            {message.model && message.model !== "demo" && <span className="mr-auto truncate">{message.model}</span>}
+            {message.model && message.model !== "demo" && <span className="mr-auto truncate">{message.model}{message.no_search ? " · without Google Search (its free quota is used up)" : ""}</span>}
             <IconButton size="sm" label="Copy reply" icon={<Copy className="size-3.5" />} onClick={() => void copyReply()} className="ml-auto" />
             {last && <IconButton size="sm" label="Write it again" icon={<RotateCcw className="size-3.5" />} onClick={onRetry} disabled={busy} />}
           </div>
