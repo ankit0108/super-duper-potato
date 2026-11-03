@@ -21,8 +21,9 @@ CardStatus = Literal["drafting", "suggested", "needs_input", "editing", "posted"
 CardKind = Literal["news", "evergreen", "interview", "request", "adapt", "studio"]
 FormatName = Literal["li_text", "x_single", "x_thread", "x_quote", "x_reply"]
 VisualKind = Literal["carousel", "flow", "compare", "list", "stat", "quote", "image"]
+# "poorly_written": the topic was fine, the draft wasn't (not his voice): the drafter learns, the ranking doesn't.
 SkipReason = Literal["not_interesting", "off_brand", "wrong_timing", "too_risky", "already_covered", "other",
-                     "wrong_platform", "not_funny"]
+                     "wrong_platform", "not_funny", "poorly_written"]
 Tier = Literal["world", "india", "bihar", "other"]
 
 
@@ -652,6 +653,10 @@ class PerformanceInfo(_Out):
     caveats: list[str] = []
     status: Literal["ok", "waiting", "failed", "too_little"] = "ok"
     error: str | None = None
+    passed_over: list[dict[str, str]] = Field([], description="Stronger models tried first: [{provider, why: "
+                                                               "quota|busy|error}]")
+    retry: bool = Field(False, description="A stronger model was only busy: the next run tries again")
+    retried: str | None = None
 
 
 class PulseInfo(_Out):

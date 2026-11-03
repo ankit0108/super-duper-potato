@@ -24,8 +24,16 @@ export const STATUS_LABEL: Record<CardStatus, string> = {
 
 /** Skip reasons: `learns` is what the ranking does with each one (shown after a skip). `menu: false` is set by an
  * action elsewhere (moving a card to the other platform), not picked from the Skip menu. */
-export const SKIP_REASONS: Array<{ value: SkipReason; label: string; help: string; learns: string; needsNote?: boolean; menu?: boolean }> = [
+// needsNote: can't be sent without a reason. asksNote: opens the "why" box straight away, but the reason is optional.
+export const SKIP_REASONS: Array<{ value: SkipReason; label: string; help: string; learns: string; needsNote?: boolean; asksNote?: boolean; menu?: boolean }> = [
   { value: "not_interesting", label: "Not interesting", help: "Fewer topics like this", learns: "Similar topics will rank lower." },
+  {
+    value: "poorly_written",
+    label: "Not written well",
+    help: "Good topic, but the draft isn't me",
+    learns: "The topic isn't marked down. The drafter learns from what you said was off.",
+    asksNote: true,
+  },
   { value: "off_brand", label: "Off-brand", help: "Doesn't fit this platform", learns: "Similar topics will rank lower on this platform." },
   { value: "wrong_timing", label: "Wrong timing", help: "Fine idea, not today (no penalty)", learns: "No penalty: it was only the timing." },
   { value: "too_risky", label: "Too risky", help: "Flag similar topics as sensitive", learns: "Similar topics will be flagged as sensitive." },

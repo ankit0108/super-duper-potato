@@ -69,6 +69,9 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
         done = s["stats"]["done"]
         if done and send_notifications and ctx.settings.notify.on_request_done:
             notify.send(ctx, "Request drafted", f"{done} request(s) drafted and waiting on your desk.", tags="mag")
+    if metrics.rematch_due(ctx):
+        with ctx.run.step("rematch") as s:
+            s["stats"] = metrics.rematch(ctx)
     if "metrics" in ctx.hints or ctx.store.count("metric_uploads", "status = 'pending'"):
         with ctx.run.step("metrics") as s:
             s["stats"] = metrics.process_uploads(ctx)

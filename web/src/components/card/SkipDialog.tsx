@@ -28,6 +28,7 @@ export function SkipDialogHost() {
 
   const info = SKIP_REASONS.find((r) => r.value === reason);
   const needsNote = !!info?.needsNote;
+  const writing = reason === "poorly_written";
   const ready = !needsNote || note.trim().length > 0;
   const confirm = () => {
     if (!prompt || !ready) return;
@@ -71,9 +72,13 @@ export function SkipDialogHost() {
           ))}
         </div>
         <Field
-          label={needsNote ? "What's wrong with this suggestion?" : "Anything to add? (optional)"}
+          label={needsNote ? "What's wrong with this suggestion?" : writing ? "What was off about the writing? (optional, but it's how the drafter learns)" : "Anything to add? (optional)"}
           htmlFor="skip-note"
-          hint="For example: “industrial automation, not my focus: I mean automating business processes”."
+          hint={
+            writing
+              ? "For example: “too formal, sounds like a press release”, “I'd never say ‘leverage’”, “too long, get to the point”."
+              : "For example: “industrial automation, not my focus: I mean automating business processes”."
+          }
         >
           <Textarea id="skip-note" value={note} onChange={(e) => setNote(e.target.value)} minRows={3} maxLength={1000} autoFocus />
         </Field>

@@ -6,8 +6,11 @@
 draft (swap or edit an opening, trim, use the thread tools), keep or drop the suggested hashtags, tap **Copy**,
 then **Open LinkedIn/X**, post it, and post the **First comment** (the source link) right after it. Come back and
 tap **Posted**. The hashtags you keep are added at the end of what you copy, and they don't count as edits. Skip
-what you won't use, with a reason: it's the most useful signal you can give the ranker. "Other" asks you to say
-why in a line, and any skip can get a reason afterwards (**Add why** on the toast). The next morning's ranking
+what you won't use, with a reason: it's the most useful signal you can give the ranker. **Not interesting**
+means fewer topics like this. **Not written well** means the topic was fine but the draft wasn't (not your
+voice): the topic isn't marked down, and what you say was off ("too formal", "I'd never say leverage") goes to
+the drafter's style rules and the weekly voice update instead. "Other" asks you to say why in a line, and any skip
+can get a reason afterwards (**Add why** on the toast). The next morning's ranking
 reads your reasons; **Insights → Learning** lists the ones in use. Cards you don't touch expire when the next
 morning's set arrives, and that's fine.
 
@@ -130,18 +133,27 @@ view; your wording shows under **Your stance** once saved.
   **Metrics → Upload analytics**; screenshots still work.
 - **How they're read.** Exports are read by code (`pbs/analytics_files.py`), cell by cell, so the numbers are
   exact; no model guesses them. Screenshots are read by the vision model and can need a check.
-- **What happens to each post.** A post PBS drafted is matched by the id in its link, its text or (with only a
-  date) by being PBS's one post that day; its numbers feed the learner like numbers typed in by hand. Posts you
-  made before PBS, or without it, are kept as *history*: they count in the review, not in the learner's rewards.
-  A row that might be one of PBS's posts but isn't certain waits in the review queue: pick the post, or **Not a
-  PBS post**. Uploading the same export again the same day updates the numbers rather than adding them twice.
+- **What happens to each post.** A post PBS drafted is matched, most certain first, by the id in its link (when
+  you saved the link on **Posted**), by the words LinkedIn puts in the link (the post's hashtags or its opening
+  words, as in `…/posts/you_ai-airegulation-techgovernance-share-…`), by its text, or with only a date by being
+  PBS's one post that day (not when the link's words say it's another post). Its numbers feed the learner like
+  numbers typed in by hand, and a certain match saves the link on PBS's post, so the next export matches it at
+  once. Two exported posts never share one PBS post: the most certain match keeps it. Posts you made before PBS,
+  or without it, are kept as *history*: they count in the review, not in the learner's rewards. A row that might
+  be one of PBS's posts but isn't certain waits in the review queue: pick the post, or **Not a PBS post**. Your
+  choice there stands on later exports unless the post's own link says otherwise. Each exported post is one row,
+  updated by newer exports, and exports already uploaded are matched again when matching improves.
 - **The review.** After an upload with new numbers, the run works out the medians, engagement rates, best and
   weakest posts, days of the week, hours, formats and topics, and the strongest model the keys allow writes
   **What your numbers say**: findings with the numbers behind them, what to keep, what to change, and experiments
   for the next two weeks. That model is Gemini Pro (`gemini_pro` in **Settings → Models**, `auto:pro`, thinking
-  set high) when the free key has it, otherwise Gemini Flash, then Groq and the rest. The review names the model
-  that wrote it. **Analyse again** asks for a new one. It uses one model call, and the numbers go to Gemini like
-  the rest of the pipeline's work.
+  set high) when the key has it, otherwise Gemini Flash, then Groq and the rest. Google's free tier usually has
+  no Pro allowance at all (the run log says `gemini_pro: daily quota reached` with no Pro calls made that day);
+  turning on billing for the key's Google Cloud project makes Pro available, and a review is a single call. The
+  review names the model that wrote it and why the stronger ones didn't (no quota, or busy); when Gemini Flash was
+  only busy, the next run tries again (once a day). It reads the export's own period, and marks posts published
+  before it (LinkedIn lists older posts that were still seen). **Analyse again** asks for a new one. The numbers
+  go to Gemini like the rest of the pipeline's work.
 
 ## When something's wrong
 

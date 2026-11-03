@@ -302,3 +302,166 @@ def test_a_pbs_post_with_a_different_link_isnt_a_candidate(make_ctx):
     _upload(ctx, "upl_d_1.xlsx", "upl_d")
     (row,) = ctx.store.select("metrics")
     assert row["status"] == "history"  # same day, but PBS's post links to another post
+
+
+SLUG = "https://www.linkedin.com/posts/ankit-singh-808521149_{}-share-{}-AbCd"
+
+
+def _li_post(ctx, card, text, tags, when, url=None):
+    post = learn.record_post(ctx, card, text=text, posts=None, post_url=url, posted_at=when, editing_seconds=None,
+                             hook_index=None)
+    ctx.store.update("posts", post["id"], hashtags=tags)
+    return post
+
+
+def test_the_words_in_linkedins_links_tell_same_day_posts_apart(make_ctx):
+    """His real export: links carry the post's hashtags (or opening words), several posts a day, none of PBS's
+    posts with a link saved. Each exported post goes to the right PBS post, none to two, and links are saved."""
+    ctx = make_ctx()
+    morning_delivery(ctx)
+    cards = ctx.store.select("cards", "platform = 'linkedin' AND status = 'suggested'", order="rank")
+    day = "2026-09-28T00:30:00Z"  # Monday morning in Melbourne
+    reg = _li_post(ctx, cards[0], "Regulators want logs of every agent action.", ["#AI", "#AIRegulation", "#TechGovernance"], day)
+    fin = _li_post(ctx, cards[1], "Banks are letting agents draft advice.", ["#AI", "#EnterpriseAutomation", "#FinancialAdvice"], day)
+    paper = _li_post(ctx, cards[2], "A new paper released on Hugging Face breaks down LLM foundations.", ["#AI"], day)
+    blobs = ctx.data_root / "inbox" / "blobs"
+    blobs.mkdir(parents=True, exist_ok=True)
+    book = openpyxl.Workbook()
+    top = book.active
+    top.title = "TOP POSTS"
+    top.append(["Post URL", "Post Publish Date", "Engagements", "", "Post URL", "Post Publish Date", "Impressions"])
+    rows = [("ai-enterpriseautomation-financialadvice", "7521000000000000001", "9/28/2026", 3, 85),
+            ("ai-airegulation-techgovernance", "7521000000000000002", "9/28/2026", 2, 318),
+            ("a-new-paper-released-on-hugging-face-breaks", "7521000000000000003", "9/27/2026", 5, 151),  # a day off
+            ("finally-made-it-guys-linkedin-has-decided", "7521000000000000004", "9/28/2026", 1, 281),  # his own
+            ("excited-to-share-that-im-starting-a-new", "7249000000000000005", "10/8/2024", 0, 1)]  # old, still seen
+    for slug, pid, d, e, i in rows:
+        url = SLUG.format(slug, pid)
+        top.append([url, d, e, "", url, d, i])
+    disc = book.create_sheet("DISCOVERY")
+    disc.append(["Overall Performance", "9/1/2026 - 9/28/2026"])
+    disc.append(["Impressions", "6213"])
+    book.save(blobs / "upl_s_1.xlsx")
+    _upload(ctx, "upl_s_1.xlsx", "upl_s")
+    by_post = {m["post_id"]: m for m in ctx.store.select("metrics", "status = 'confirmed'")}
+    assert by_post[reg["id"]]["impressions"] == 318 and by_post[fin["id"]]["impressions"] == 85
+    assert by_post[paper["id"]]["impressions"] == 151
+    assert ctx.store.count("metrics", "status = 'history'") == 2 and ctx.store.count("metrics", "status = 'needs_review'") == 0
+    assert ctx.store.get("posts", reg["id"])["post_url"].endswith("7521000000000000002-AbCd")  # the link is kept
+    file = ctx.store.get("metric_uploads", "upl_s")["results"]["files"][0]
+    assert file["matched"] == 3 and file["links_saved"] == 3
+
+    # The review knows the export's own period, and which posts were published before it.
+    data = performance.gather(ctx)
+    old = [p for p in data["posts"] if p.get("date") == "2024-10-08"]
+    assert old and old[0]["published_before_period"]
+    assert performance.run(ctx)["status"] == "ok"
+    assert performance.latest(ctx)["period"] == "9/1/2026 - 9/28/2026"
+
+
+def test_a_wrong_guess_is_corrected_by_the_link_and_his_choices_stand_otherwise(make_ctx):
+    ctx = make_ctx()
+    morning_delivery(ctx)
+    cards = ctx.store.select("cards", "platform = 'linkedin' AND status = 'suggested'", order="rank")
+    meta = _li_post(ctx, cards[0], "Meta's new models read raw bytes.", ["#GenerativeAI", "#AI", "#MachineLearning"],
+                    "2026-09-28T00:30:00Z")
+    blobs = ctx.data_root / "inbox" / "blobs"
+    blobs.mkdir(parents=True, exist_ok=True)
+
+    def export(name, rows):
+        book = openpyxl.Workbook()
+        top = book.active
+        top.append(["Post URL", "Post Publish Date", "Impressions"])
+        for url, imp in rows:
+            top.append([url, "9/28/2026", imp])
+        book.save(blobs / name)
+
+    # Links without words, two posts that day and one of PBS's: only a guess, which he confirms (wrongly).
+    feed = "https://www.linkedin.com/feed/update/urn:li:activity:{}/"
+    export("upl_w_1.xlsx", [(feed.format("7519944248188903001"), 168), (feed.format("7519940078022901761"), 361)])
+    _upload(ctx, "upl_w_1.xlsx", "upl_w")
+    (guess,) = ctx.store.select("metrics", "status = 'needs_review'")
+    assert guess["post_id"] == meta["id"] and ctx.store.count("metrics") == 2
+    write_inbox(ctx.data_root, [{"id": "c1", "type": "metrics.review", "metric_id": guess["id"], "action": "confirm",
+                                 "post_id": meta["id"]}], name="confirm")
+    inbox.ingest(ctx)
+    assert ctx.store.get("metrics", guess["id"])["raw"]["reviewed"] == "confirmed"
+
+    # A later export links to the posts with their words: PBS's post is certain, his guess gives way.
+    posts = "https://www.linkedin.com/posts/ankit_{}-activity-{}-AbCd"
+    export("upl_w_2.xlsx", [(posts.format("aiagents-multimodalai", "7519944248188903001"), 170),
+                            (posts.format("generativeai-ai-machinelearning", "7519940078022901761"), 380)])
+    _upload(ctx, "upl_w_2.xlsx", "upl_w2")
+    rows = {m["raw"]["key"]: m for m in ctx.store.select("metrics")}
+    assert ctx.store.count("metrics") == 2  # one row per exported post, updated, not added again
+    assert rows["7519940078022901761"]["post_id"] == meta["id"] and rows["7519940078022901761"]["status"] == "confirmed"
+    assert rows["7519940078022901761"]["impressions"] == 380
+    assert rows["7519944248188903001"]["post_id"] is None and rows["7519944248188903001"]["status"] == "history"
+
+
+def test_his_choice_stands_when_nothing_certain_says_otherwise(make_ctx):
+    ctx = make_ctx()
+    morning_delivery(ctx)
+    cards = ctx.store.select("cards", "platform = 'x' AND status = 'suggested'", order="rank")
+    for i, card in enumerate(cards[:2]):
+        learn.record_post(ctx, card, text=f"Something else entirely {i}", posts=None, post_url=None,
+                          posted_at="2026-09-25T02:00:00Z", editing_seconds=None, hook_index=None)
+    blobs = ctx.data_root / "inbox" / "blobs"
+    blobs.mkdir(parents=True, exist_ok=True)
+    (blobs / "upl_h_1.csv").write_text(X_NEW, encoding="utf-8")
+    _upload(ctx, "upl_h_1.csv", "upl_h")
+    queued = ctx.store.select("metrics", "status = 'needs_review'")[0]
+    chosen = ctx.store.select("posts", "platform = 'x'", order="posted_at")[0]["id"]
+    write_inbox(ctx.data_root, [{"id": "c2", "type": "metrics.review", "metric_id": queued["id"], "action": "confirm",
+                                 "post_id": chosen}], name="choose")
+    inbox.ingest(ctx)
+    (blobs / "upl_h_2.csv").write_text(X_NEW, encoding="utf-8")
+    _upload(ctx, "upl_h_2.csv", "upl_h2")
+    again = ctx.store.get("metrics", queued["id"])
+    assert again["status"] == "confirmed" and again["post_id"] == chosen
+
+
+def test_the_week_is_only_ever_a_week(make_ctx):
+    ctx = make_ctx()
+    blobs = ctx.data_root / "inbox" / "blobs"
+    blobs.mkdir(parents=True, exist_ok=True)
+    (blobs / "upl_k_1.csv").write_text(X_NEW, encoding="utf-8")
+    write_inbox(ctx.data_root, [{"id": "u1", "type": "metrics.upload", "upload_id": "upl_k",
+                                 "paths": ["inbox/blobs/upl_k_1.csv"], "week": "../../Last 28 days"}])
+    inbox.ingest(ctx)
+    assert ctx.store.get("metric_uploads", "upl_k")["week"] is None
+    metrics.process_uploads(ctx)
+    assert (ctx.data_root / "media" / "metrics" / timeutil.iso_week(ctx.local_date()) / "upl_k_1.csv").exists()
+
+
+def test_exports_already_uploaded_are_matched_again_once(make_ctx):
+    ctx = make_ctx()
+    folder = ctx.data_root / "media" / "metrics" / "Last 28 days"
+    folder.mkdir(parents=True)
+    linkedin_export(folder / "upl_old_1.xlsx", [(7370000000000000001, "9/22/2026", 80, 4100)])
+    assert metrics.rematch_due(ctx)
+    stats = metrics.rematch(ctx)
+    assert stats["files"] == 1 and not metrics.rematch_due(ctx) and "analysis" in ctx.hints
+    assert ctx.store.count("metrics") == 1
+
+
+def test_the_review_says_which_stronger_models_were_passed_over_and_retries_a_busy_one(make_ctx):
+    from pbs.llm.base import LLMError
+
+    busy = LLMError("server error 503", status=503, code="UNAVAILABLE", retryable=True)
+    quota = LLMError("daily quota reached", status=429, code="RESOURCE_EXHAUSTED", quota=True)
+    providers = {**fake_providers(), "gemini_pro": FakeProvider("gemini_pro", fail_with=quota),
+                 "gemini": FakeProvider("gemini", fail_with=busy)}
+    ctx = make_ctx(providers=providers)
+    for i in range(3):
+        ctx.store.insert("metrics", {"id": f"met_b{i}", "platform": "linkedin", "impressions": 100 + i,
+                                     "reactions": 2, "status": "history", "source": "file",
+                                     "captured_at": timeutil.now_iso(), "created_at": timeutil.now_iso(),
+                                     "raw": {"url": LI.format(7370000000000000200 + i), "posted_date": "2026-09-2" + str(i)}})
+    performance.run(ctx)
+    review = performance.latest(ctx)
+    assert review["provider"] not in ("gemini_pro", "gemini")
+    assert review["passed_over"][:2] == [{"provider": "gemini_pro", "why": "quota"}, {"provider": "gemini", "why": "busy"}]
+    assert review["retry"] and performance.due(ctx)
+    performance.run(ctx)  # still busy: no more tries today
+    assert not performance.due(ctx)

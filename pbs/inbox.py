@@ -412,7 +412,8 @@ def _metrics_upload(ctx: Ctx, ev: C.MetricsUploadEvent) -> None:
             raise Reject("uploads must live under inbox/blobs/")
         if not p.lower().endswith(metrics.SUFFIXES):
             raise Reject("upload screenshots (.png, .jpg, .webp) or analytics exports (.xlsx, .csv)")
-    ctx.store.upsert("metric_uploads", {"id": ev.upload_id, "paths": ev.paths, "week": ev.week, "note": ev.note,
+    week = ev.week if ev.week and metrics.WEEK.match(ev.week) else None  # a folder name: only "2026-W45"
+    ctx.store.upsert("metric_uploads", {"id": ev.upload_id, "paths": ev.paths, "week": week, "note": ev.note,
                                         "status": "pending", "created_at": _event_time(ev)})
     ctx.hints.add("metrics")
 
@@ -439,6 +440,9 @@ def _metrics_review(ctx: Ctx, ev: C.MetricsReviewEvent) -> None:
             patch.update(ev.values.model_dump(exclude_none=True))
         if not (patch.get("post_id") or row.get("post_id")):
             raise Reject("choose which post these numbers belong to")
+    if row.get("source") == "file":
+        # Marked as his decision, so a newer export of the same post doesn't undo it.
+        patch["raw"] = {**(row.get("raw") or {}), "reviewed": patch["status"]}
     ctx.store.update("metrics", ev.metric_id, **patch)
     ctx.hints.add("rewards")
 

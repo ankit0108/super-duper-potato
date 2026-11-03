@@ -62,6 +62,10 @@ def style_for(ctx: Ctx, platform: str, pillar: str, fmt: str) -> Style:
             if rule.get("pillar") not in (None, pillar):
                 continue
             st.rules.append(rule["text"])
+    # What he said was off in drafts he skipped as not his voice: recent and explicit, so early in the list.
+    from .feedback import writing_rules
+
+    st.rules.extend(writing_rules(ctx, platform))
     voice = latest_voice(ctx)
     voice_avoid: list[str] = []
     if voice:

@@ -59,7 +59,8 @@ export type Reason =
   | "already_covered"
   | "other"
   | "wrong_platform"
-  | "not_funny";
+  | "not_funny"
+  | "poorly_written";
 export type Type4 = "card.skip";
 export type At4 = string;
 export type CardId4 = string;
@@ -527,7 +528,8 @@ export type Reason2 =
   | "already_covered"
   | "other"
   | "wrong_platform"
-  | "not_funny";
+  | "not_funny"
+  | "poorly_written";
 export type Lang1 = string;
 export type OrigTitle = string | null;
 export type PublishedAt = string | null;
@@ -689,10 +691,21 @@ export type Headline = string;
  * The model that wrote it
  */
 export type Model3 = string | null;
+/**
+ * Stronger models tried first: [{provider, why: quota|busy|error}]
+ */
+export type PassedOver = {
+  [k: string]: string;
+}[];
 export type Period = string | null;
 export type Platforms2 = string[];
 export type Posts6 = number;
 export type Provider3 = string | null;
+export type Retried = string | null;
+/**
+ * A stronger model was only busy: the next run tries again
+ */
+export type Retry = boolean;
 export type Status6 = "ok" | "waiting" | "failed" | "too_little";
 export type TryNext = string[];
 export type WhatDoesnt = string[];
@@ -1915,10 +1928,13 @@ export interface PerformanceInfo {
   findings?: Findings;
   headline?: Headline;
   model?: Model3;
+  passed_over?: PassedOver;
   period?: Period;
   platforms?: Platforms2;
   posts?: Posts6;
   provider?: Provider3;
+  retried?: Retried;
+  retry?: Retry;
   status?: Status6;
   try_next?: TryNext;
   what_doesnt?: WhatDoesnt;

@@ -114,7 +114,7 @@ def compute(ctx: Ctx) -> dict[str, Any]:
     return {"weekly": list(weeks.values()), "daily": daily, "pillar_mix": mix, "followers": followers,
             "streak": _streak(daily), "gates": _gates(ctx, daily, weeks),
             # What the ranking learns from tomorrow (Insights shows it, so he can see his reasons being used).
-            "feedback": feedback.recent_feedback(ctx, days=30, limit=15),
+            "feedback": feedback.recent_feedback(ctx, days=30, limit=15, writing=True),
             "crossposts": _crossposts(ctx),
             "visuals": _visuals(ctx),
             "writing": _writing(ctx, cards, posts, list(weeks), lday)}

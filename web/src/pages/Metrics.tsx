@@ -123,7 +123,7 @@ export function isExport(file: { name: string }): boolean {
   return EXPORT.test(file.name);
 }
 
-type FileResult = { path?: string; kind?: string; platform?: string | null; metrics?: number; matched?: number; history?: number; needs_review?: number; days?: number; audience?: number; followers?: number | null; error?: string };
+type FileResult = { path?: string; kind?: string; platform?: string | null; metrics?: number; matched?: number; history?: number; needs_review?: number; links_saved?: number; days?: number; audience?: number; followers?: number | null; error?: string };
 
 /** What an upload's files gave, in a line each ("LinkedIn export: 24 posts, 3 yours, 21 earlier"). */
 export function uploadSummary(u: MetricUpload): string[] {
@@ -138,6 +138,7 @@ export function uploadSummary(u: MetricUpload): string[] {
         f.matched ? `${f.matched} matched to PBS posts` : null,
         f.history ? `${f.history} earlier` : null,
         f.needs_review ? `${f.needs_review} to check` : null,
+        f.links_saved ? `links saved to ${f.links_saved} post${f.links_saved === 1 ? "" : "s"}` : null,
         f.days ? `${f.days} days of totals` : null,
         f.followers != null ? `${num(f.followers)} followers` : null,
         f.audience ? "audience" : null,
@@ -156,7 +157,6 @@ function Uploads() {
   const uploads = useDesk((s) => s.view?.uploads) ?? NONE;
   const tz = useTz();
   const [files, setFiles] = useState<File[]>([]);
-  const [week, setWeek] = useState(isoWeek(new Date()));
   const [busy, setBusy] = useState(false);
   const [showHow, setShowHow] = useState(false);
   const exports = files.filter(isExport).length;
@@ -181,7 +181,8 @@ function Uploads() {
       }
       const note = exports ? `${exports} export${exports === 1 ? "" : "s"}${files.length > exports ? ` and ${files.length - exports} screenshot(s)` : ""}` : null;
       act(
-        { type: "metrics.upload", upload_id: uploadId, paths, week, note },
+        // The week only names the folder the files are kept in; an export says its own period.
+        { type: "metrics.upload", upload_id: uploadId, paths, week: isoWeek(new Date()), note },
         { toast: mode === "demo" ? "Demo: upload simulated." : "Uploaded. The numbers and a fresh review appear after the next run (a few minutes)." },
       );
       setFiles([]);
@@ -202,9 +203,6 @@ function Uploads() {
           <span>{files.length ? `${files.length} file${files.length === 1 ? "" : "s"} selected` : "Choose .xlsx, .csv or screenshots"}</span>
           <input type="file" accept={ACCEPT} multiple className="sr-only" aria-label="Analytics files" onChange={(e) => choose(Array.from(e.target.files ?? []))} />
         </label>
-        <Field label="Week" htmlFor="up-week">
-          <Input id="up-week" value={week} onChange={(e) => setWeek(e.target.value)} className="w-32" />
-        </Field>
         <Button variant="primary" onClick={() => void send()} loading={busy} disabled={!files.length}>
           Upload
         </Button>
@@ -241,7 +239,7 @@ function Uploads() {
             <li key={u.id} className="py-2">
               <div className="flex items-center justify-between gap-2">
                 <span>
-                  {u.week ?? "–"} · {u.paths?.length ?? 0} file(s) · {formatDate(u.created_at, tz)}
+                  {u.paths?.length ?? 0} file{u.paths?.length === 1 ? "" : "s"} · {formatDate(u.created_at, tz)}
                 </span>
                 {u.status === "pending" ? (
                   <Badge tone="info" icon={<Loader2 className="size-3 animate-spin" />}>
@@ -268,12 +266,16 @@ function Uploads() {
 }
 
 const PRO = "gemini_pro";
+const PROVIDER_NAME: Record<string, string> = { gemini_pro: "Gemini Pro", gemini: "Gemini Flash", gemini_lite: "Gemini Flash-Lite", groq: "Groq", openrouter: "OpenRouter" };
+const WHY: Record<string, string> = { quota: "no free quota left on your key", busy: "busy (server overloaded)", error: "an error" };
 
-/** Who wrote the review, in words: the model's name, and why when it wasn't the strongest one. */
-export function reviewAuthor(p: { model?: string | null; provider?: string | null }): { model: string; note: string | null } {
+/** Who wrote the review, in words: the model's name, and why the stronger ones didn't when it wasn't Gemini Pro. */
+export function reviewAuthor(p: { model?: string | null; provider?: string | null; passed_over?: Array<Record<string, string>> | null; retry?: boolean | null }): { model: string; note: string | null } {
   const model = p.model ?? "a model";
   if (p.provider === PRO) return { model, note: null };
-  return { model, note: "Gemini Pro (the strongest free model) wasn't available on the key today, so the next best one wrote it." };
+  const passed = (p.passed_over ?? []).map((x) => `${PROVIDER_NAME[x.provider] ?? x.provider}: ${WHY[x.why] ?? x.why}`);
+  const why = passed.length ? `Passed over: ${passed.join("; ")}.` : "Gemini Pro (the strongest free model) wasn't available on the key today, so the next best one wrote it.";
+  return { model, note: p.retry ? `${why} A stronger model tries again on the next run.` : why };
 }
 
 function List({ title, items, tone }: { title: string; items?: string[] | null; tone: "ok" | "bad" | "info" }) {
