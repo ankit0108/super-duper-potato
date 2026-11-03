@@ -42,7 +42,9 @@ def test_upsert_updates_only_given_columns(store):
 def test_settings_defaults_are_valid(settings):
     assert settings.slots("linkedin") == 5 and settings.slots("x") == 10
     assert settings.platforms.linkedin.min_slots == 3 and settings.platforms.x.min_slots == 6
-    assert settings.pillar("linkedin", "humor").min_per_day == 1
+    assert settings.pillar("linkedin", "humor").min_per_day == 0  # no funny post forced in (his analytics)
+    assert settings.posting.linkedin.window == "14:00-16:00" and settings.posting.linkedin.hours() == (14, 15)
+    assert "#SoftwareEngineering" in settings.hashtags.readers["linkedin"]
     assert {"humor", "ideas"} <= set(settings.pillars("x"))
     assert not any(p.min_per_day for p in settings.pillars("x").values())
     assert abs(sum(settings.normalized_weights("x").values()) - 1) < 1e-9

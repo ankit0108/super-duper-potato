@@ -155,6 +155,27 @@ view; your wording shows under **Your stance** once saved.
   before it (LinkedIn lists older posts that were still seen). **Analyse again** asks for a new one. The numbers
   go to Gemini like the rest of the pipeline's work.
 
+### What the first analytics changed (Nov 2026)
+
+His first LinkedIn export (7 Oct to 3 Nov) showed news about the big AI labs getting the most views, one post
+opening with a number and his own take getting almost a quarter of the month's engagement, nearly every post
+opening the same way, the funny posts doing worst, and readers who are mostly software, AI and data engineers.
+So, each of these can be changed back:
+
+- **A playbook rule** (Insights → Playbook, marked *From your analytics*): LinkedIn news posts open with the most
+  specific number in the material or his own sharp claim, then the news, and end on what it means for the people
+  building and running AI and automation. Remove it there and it stays removed.
+- **Openings by results:** the drafter is told which opening types do best by his numbers, not by habit, and when
+  his last four posts on a platform opened the same way, the next one is asked to open differently.
+- **Engineers as well as AI and automation:** the profile says who reads (engineers alongside people in
+  automation and enterprise IT) and to write for both; one tag engineers follow goes alongside the post's AI and
+  automation tags, never instead of them (Settings → Hashtags, *tags your readers follow*).
+- **No funny post forced in:** LinkedIn's *Tech humour* lane no longer reserves a card every morning
+  (`strategy.linkedin.humor.min_per_day: 1` brings it back); the lane weights decide.
+- **When to post:** LinkedIn cards say *Best time to post: 2–4pm* (Melbourne's afternoon is Delhi's morning), and
+  the performance review compares posts inside the window with the rest. Settings → When to post changes or clears
+  it.
+
 ## When something's wrong
 
 The desk's banners say what happened; **System** shows every run, its steps and errors, provider usage and the
@@ -185,7 +206,7 @@ desk is where to look first.
 | A change you made "didn't stick" | **System → Rejected changes** lists anything the pipeline couldn't apply, with the reason. *Changes in flight* shows what's still waiting for a run |
 | A card is **Blocked** | It matched your blocklist. Nothing was reworded. Edit the draft by hand or skip it. If the match is a false positive, refine the term in `PBS_BLOCKLIST` |
 | No quote cards, or the run log says `quotes: 0 verified, 6 not found on Wikiquote` | The day's quotes weren't found word for word on their Wikiquote pages (a page renamed, or the quote worded differently there), so they were left out, as designed. A few not found each day is normal. If it's every quote, Wikiquote may be refusing GitHub's servers: the doctor's `Sources` line shows the source's error. Fix a quote's wording or `page` in `pbs/defaults/quote_pools.yaml` to match the page |
-| Too many or too few funny posts | **Settings → Strategy** sets each lane's share (LinkedIn's *Tech humour* keeps one card a day regardless: `strategy.linkedin.humor.min_per_day` in the settings, 0 to stop that). Skipping funny cards teaches the ranking to show fewer; posting them, more |
+| Too many or too few funny posts | **Settings → Strategy** sets each lane's share. LinkedIn's *Tech humour* no longer keeps a card every day; `strategy.linkedin.humor.min_per_day: 1` in the settings brings one back. Skipping funny cards teaches the ranking to show fewer; posting them, more |
 | Drafts sound like AI | **Insights → Voice** shows AI tells per draft as the model wrote it and as shown to you, week by week, and which ones come up most. The run log has a line per draft, such as `edit: polished a linkedin draft (tells 2→0)` or `edit: kept the original draft of a linkedin card (added a figure the sources don't have)`: the editor never keeps a version that adds or drops a figure, claims an experience, or rewrites more than half the post. `edit: skipped … (budget)` means the run was short on model calls, and drafts come first. Taking the pattern out when you edit teaches the drafter; **Settings → Writing** turns the editor pass off or caps it |
 | Drafts suddenly need more editing | **Insights → Weekly report** shows edit ratio by prompt and playbook version. Remove the playbook rule that made things worse (**Insights → Playbook**), or **Settings → Learning → Freeze learning** while you review |
 | Want another set today | **Get fresh posts** on the board |

@@ -564,6 +564,20 @@ test("upload LinkedIn's Excel export and read what the numbers say, with the mod
   await expect(page.getByText("Asked for a fresh review. It appears after the run.")).toBeVisible();
 });
 
+test("what the analytics changed: when to post, the readers' tags, and the rule in the playbook", async ({ page }) => {
+  await page.getByRole("article", { name: /^LinkedIn card:/ }).first().getByRole("button", { name: "Open" }).click();
+  await expect(page.getByText("Best time to post:")).toBeVisible();
+  await expect(page.getByText("2–4pm", { exact: true })).toBeVisible();
+  await page.goto("/#/settings");
+  await expect(page.getByLabel("LinkedIn: post between")).toHaveValue("14:00-16:00");
+  await expect(page.getByLabel("LinkedIn: tags your readers follow")).toHaveValue(/#SoftwareEngineering/);
+  await page.getByLabel("LinkedIn: post between").fill("2pm");
+  await expect(page.getByText("Use hh:mm-hh:mm, like 14:00-16:00")).toBeVisible();
+  await page.goto("/#/insights?tab=playbook");
+  await expect(page.getByText(/open with the most specific number in the material/).first()).toBeVisible();
+  await expect(page.getByText("From your analytics").first()).toBeVisible();
+});
+
 test("every page renders, with no sideways scrolling", async ({ page }) => {
   for (const [path, heading] of PAGES) {
     await page.goto(`/#${path}`);

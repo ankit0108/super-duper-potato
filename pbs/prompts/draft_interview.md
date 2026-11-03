@@ -17,7 +17,7 @@ What works on {{platform_label}} now (follow it unless his style guide says othe
 {{platform_guide}}
 Target length: {{length_target}}
 Never use: {{avoid}}
-Hook types he keeps most on {{platform_label}}: {{hook_prefs}}
+Hook types that work best for him on {{platform_label}} (by results, then by what he keeps): {{hook_prefs}}
 
 Recent posts he actually published (match the voice, never reuse the content):
 {{examples}}

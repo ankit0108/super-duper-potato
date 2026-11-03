@@ -46,3 +46,18 @@ describe("analytics uploads", () => {
     expect(lite.note).toBe("Passed over: Gemini Pro: no free quota left on your key; Gemini Flash: busy (server overloaded). A stronger model tries again on the next run.");
   });
 });
+
+describe("when to post", () => {
+  it("reads a window the way people say it", async () => {
+    const { postingWindow } = await import("@/lib/format");
+    expect(postingWindow("14:00-16:00")).toBe("2–4pm");
+    expect(postingWindow("09:30-11:00")).toBe("9:30–11am");
+    expect(postingWindow("11:00-13:00")).toBe("11am–1pm");
+    expect(postingWindow("")).toBe("");
+  });
+
+  it("turns typed reader tags into hashtags", async () => {
+    const { readerTags } = await import("./Settings");
+    expect(readerTags("#SoftwareEngineering, MachineLearning  #LLM, , x")).toEqual(["#SoftwareEngineering", "#MachineLearning", "#LLM"]);
+  });
+});

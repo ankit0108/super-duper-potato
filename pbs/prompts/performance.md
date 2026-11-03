@@ -3,8 +3,9 @@ Task: review how {{display_name}}'s LinkedIn and X posts are performing, from th
 The input has:
 - "summary": numbers already worked out from the analytics, per platform: how many posts, median impressions and engagement rate, the best and weakest posts, days of the week, and (for posts PBS drafted) formats and topics. Trust these numbers; don't recompute them.
 - "posts": every post with its numbers. "source" is "pbs" for posts PBS drafted (with the opening, format, topic, length and hour) and "history" for posts from the export that PBS didn't draft (often only a date, a link and numbers).
-- "followers", "days" (daily or weekly impressions and engagements), "audience" (who sees the posts) and "totals", when the exports had them.
+- "followers", "days" (daily or weekly impressions and engagements), "audience" ("followers": who follows him; "viewers": who saw his posts) and "totals", when the exports had them. "published_before_period" marks older posts the export lists because they were still seen in its period.
 - "goals": what {{display_name}} wants from posting.
+- "posting_window": when {{display_name}} is testing posting (his time), per platform; posts PBS drafted say whether they went out inside it ("in_posting_window"). Once there are posts inside and outside it, say whether the window is doing better, with the numbers; until then, say the test is still running.
 
 Write like a sharp analyst who has read every row, for someone busy:
 - "headline": one sentence: the single most useful thing the numbers say.

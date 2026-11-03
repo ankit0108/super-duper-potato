@@ -31,6 +31,40 @@ UPDATED_SEED_RULES = {
 }
 
 
+# Rules added to an existing playbook once, when the evidence for them arrived. Each has a key; once added (or
+# found already there) it's never added again, so a rule he removes stays removed.
+ADDED_RULES: dict[str, dict[str, Any]] = {
+    # His first LinkedIn export (Oct 2026): news about the big AI labs got the most views; the one post that
+    # opened with a number and his own take got almost a quarter of the month's engagement.
+    "2026-11-linkedin-news-openings": {
+        "text": "On LinkedIn news posts, open with the most specific number in the material or his own sharp claim "
+                "about it, then the news; never with \"X announced Y\". End on what it means for the people "
+                "building and running AI and automation.",
+        "platform": "linkedin",
+        "reversal": "News posts that open this way don't get more engagement than his other news posts.",
+        "summary": "From your LinkedIn analytics: news gets the views, a number and your take get the engagement.",
+    },
+}
+ADDITIONS_KEY = "playbook_additions"
+
+
+def ensure_additions(ctx: Ctx) -> dict[str, Any] | None:
+    """Add the rules in ADDED_RULES not yet added (each once). Returns the new version, if any."""
+    done = list(ctx.store.get_setting(ADDITIONS_KEY, []) or [])
+    todo = [k for k in ADDED_RULES if k not in done]
+    if not todo:
+        return None
+    version = None
+    for key in todo:
+        spec = ADDED_RULES[key]
+        version = apply_changes(ctx, [{"op": "add", "text": spec["text"], "platform": spec.get("platform"),
+                                       "pillar": spec.get("pillar"), "confidence": "high",
+                                       "reversal": spec.get("reversal")}],
+                                source="analytics", summary=spec.get("summary")) or version
+    ctx.store.set_setting(ADDITIONS_KEY, sorted({*done, *todo}))
+    return version
+
+
 def active(ctx: Ctx) -> dict[str, Any] | None:
     rows = ctx.store.select("playbook_versions", "status = 'active'", order="version DESC", limit=1)
     return rows[0] if rows else None

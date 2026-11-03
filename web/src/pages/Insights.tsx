@@ -207,7 +207,7 @@ function Overview({ view }: { view: DeskState }) {
   );
 }
 
-const SOURCE_TONE: Record<string, Tone> = { seed: "neutral", reflection: "accent", user: "ok", voice: "info" };
+const SOURCE_TONE: Record<string, Tone> = { seed: "neutral", reflection: "accent", user: "ok", voice: "info", analytics: "accent" };
 
 function RuleRow({ rule, onRemove, pillar }: { rule: PlaybookRule; onRemove: () => void; pillar: (p: string, k: string) => string }) {
   return (
@@ -215,7 +215,7 @@ function RuleRow({ rule, onRemove, pillar }: { rule: PlaybookRule; onRemove: () 
       <div className="min-w-0 flex-1">
         <p className="text-[13.5px]">{rule.text}</p>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
-          <Badge tone={SOURCE_TONE[rule.source ?? "seed"]}>{rule.source === "reflection" ? "Learned" : rule.source === "user" ? "Yours" : rule.source === "voice" ? "Voice" : "Starting rule"}</Badge>
+          <Badge tone={SOURCE_TONE[rule.source ?? "seed"]}>{rule.source === "reflection" ? "Learned" : rule.source === "user" ? "Yours" : rule.source === "voice" ? "Voice" : rule.source === "analytics" ? "From your analytics" : "Starting rule"}</Badge>
           <Badge tone="neutral">{rule.platform ? NAMES[rule.platform] : "Both platforms"}</Badge>
           {rule.pillar && rule.platform && <Badge tone="neutral">{pillar(rule.platform, rule.pillar)}</Badge>}
           {rule.confidence && rule.source === "reflection" && <Badge tone="neutral">{rule.confidence} confidence</Badge>}

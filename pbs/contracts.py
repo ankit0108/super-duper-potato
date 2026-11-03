@@ -453,7 +453,7 @@ class PlaybookRule(_Out):
     confidence: Literal["low", "medium", "high"] = "medium"
     evidence: list[str] = []
     reversal: str | None = None
-    source: Literal["seed", "reflection", "user", "voice"] = "seed"
+    source: Literal["seed", "reflection", "user", "voice", "analytics"] = "seed"
     added_in: str | None = None
 
 

@@ -9,4 +9,7 @@
 - Learning track: forward-deployed engineering — evals, agents, MCP.
 - LinkedIn voice: practical, specific, grounded in real work. Writes about AI and tech broadly (research, products,
   companies, markets, policy), with automation as one subject among many, not the lens for every post.
+- LinkedIn readers (from his analytics): mostly software, AI and data engineers, alongside people in automation
+  and enterprise IT. Write for both at once: keep the AI and automation subject, and add what engineers can use
+  (how it works, what it takes to build or run, where it breaks).
 - X voice: open and personal; tech, startups, life, and world, India and Bihar affairs.

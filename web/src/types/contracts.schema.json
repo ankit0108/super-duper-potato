@@ -3891,7 +3891,8 @@
       "seed",
       "reflection",
       "user",
-      "voice"
+      "voice",
+      "analytics"
      ],
      "title": "Source",
      "type": "string"

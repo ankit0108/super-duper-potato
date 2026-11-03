@@ -53,6 +53,7 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
         sync_seeds(ctx.store)
         stances.ensure_seeded(ctx)
         playbook.ensure_seed(ctx)
+        playbook.ensure_additions(ctx)
     with ctx.run.step("inbox") as s:
         s["stats"] = inbox.ingest(ctx)
     if "doctor" in ctx.hints:

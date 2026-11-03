@@ -247,6 +247,10 @@ class Simulation:
 
     # -- the whole run -----------------------------------------------------------------------------
     def run(self) -> None:
+        # The demo's Ankit chose one funny LinkedIn post every morning (off by default), so the writers' room shows.
+        store = self.store()
+        store.set_setting("overrides", {"strategy": {"linkedin": {"humor": {"min_per_day": 1}}}})
+        store.save()
         start = TODAY - dt.timedelta(days=DAYS)
         for i in range(DAYS):
             self.day(i, start + dt.timedelta(days=i))
