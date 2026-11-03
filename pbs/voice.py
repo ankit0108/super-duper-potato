@@ -197,10 +197,14 @@ class _VoiceOut(BaseModel):
 
 
 def llm_rules(ctx: Ctx, stats: dict[str, Any]) -> tuple[list[str], str] | None:
+    from .feedback import writing_feedback
+
     since = timeutil.iso(timeutil.now() - dt.timedelta(days=21))
     posts = ctx.store.select("posts", "posted_at >= ? AND edit_ratio IS NOT NULL", (since,), order="posted_at DESC",
                              limit=8)
-    if len(posts) < 3:
+    # Drafts he skipped as "not written well / not my voice", with what he said was off.
+    rejected = writing_feedback(ctx, days=30, limit=6)
+    if len(posts) < 3 and len(rejected) < 2:
         return None
     pairs = []
     for p in posts:
@@ -210,7 +214,7 @@ def llm_rules(ctx: Ctx, stats: dict[str, Any]) -> tuple[list[str], str] | None:
         pairs.append({"platform": p["platform"], "draft": textutil.truncate(base, 900),
                       "posted": textutil.truncate(p["final_text"], 900), "edit_ratio": p["edit_ratio"]})
     prompt = prompting.render("voice", display_name=ctx.settings.display_name,
-                              input_json={"stats": stats, "pairs": pairs})
+                              input_json={"stats": stats, "pairs": pairs, "rejected_drafts": rejected})
     req = LLMRequest(task="voice", system="You analyse writing edits precisely and briefly.", prompt=prompt,
                      max_output_tokens=1500, personal=True, prompt_version=prompting.version("voice"))
     try:

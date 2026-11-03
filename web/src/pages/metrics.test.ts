@@ -16,14 +16,14 @@ describe("analytics uploads", () => {
       status: "processed",
       results: {
         files: [
-          { path: "a.xlsx", kind: "file", platform: "linkedin", metrics: 24, matched: 3, history: 20, needs_review: 1, days: 90, followers: 3120 },
+          { path: "a.xlsx", kind: "file", platform: "linkedin", metrics: 24, matched: 3, history: 20, needs_review: 1, links_saved: 3, days: 90, followers: 3120 },
           { path: "b.jpg", metrics: 2, needs_review: 1 },
           { path: "c.csv", kind: "file", error: "No analytics found in this file" },
         ],
       },
     } as unknown as MetricUpload;
     expect(uploadSummary(upload)).toEqual([
-      "LinkedIn export: 24 posts, 3 matched to PBS posts, 20 earlier, 1 to check, 90 days of totals, 3,120 followers",
+      "LinkedIn export: 24 posts, 3 matched to PBS posts, 20 earlier, 1 to check, links saved to 3 posts, 90 days of totals, 3,120 followers",
       "Screenshot: 2 number sets, 1 to check",
       "No analytics found in this file",
     ]);
@@ -34,5 +34,15 @@ describe("analytics uploads", () => {
     const fallback = reviewAuthor({ model: "gemini-3-flash", provider: "gemini" });
     expect(fallback.model).toBe("gemini-3-flash");
     expect(fallback.note).toMatch(/Gemini Pro .* wasn't available/);
+    const lite = reviewAuthor({
+      model: "gemini-3.5-flash-lite",
+      provider: "gemini_lite",
+      passed_over: [
+        { provider: "gemini_pro", why: "quota" },
+        { provider: "gemini", why: "busy" },
+      ],
+      retry: true,
+    });
+    expect(lite.note).toBe("Passed over: Gemini Pro: no free quota left on your key; Gemini Flash: busy (server overloaded). A stronger model tries again on the next run.");
   });
 });

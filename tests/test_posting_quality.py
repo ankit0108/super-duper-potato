@@ -371,3 +371,52 @@ def test_the_desk_gets_the_guide_and_research_summary(make_ctx):
     guide = export.build(ctx)["platform_guide"]
     assert guide["reviewed"] and len(guide["rules"]) == len(platform.current_rules(ctx))
     assert guide["research"]["month"] == "2026-09"
+
+
+def test_a_skip_for_the_writing_teaches_the_drafter_not_the_ranking(make_ctx):
+    from pbs.rank import build_memory
+
+    ctx = make_ctx()
+    deliver.morning_delivery(ctx)
+    card = _card(ctx, "linkedin")
+    note = "Too formal, sounds like a press release"
+    write_inbox(ctx.data_root, [{"id": "pw1", "type": "card.skip", "card_id": card["id"],
+                                 "reason": "poorly_written", "note": note}])
+    inbox.ingest(ctx)
+    skipped = ctx.store.get("cards", card["id"])
+    assert skipped["status"] == "skipped" and skipped["skip"]["reason"] == "poorly_written"
+
+    # The topic isn't marked down: no observation for the lane, not a dull topic, not in the ranking's feedback.
+    assert bandit.observation_value(skipped, None, ctx.settings, set(), {}) is None
+    memory = build_memory(ctx)
+    assert not memory.dull and not memory.other
+    assert all(r["card_id"] != card["id"] for r in feedback.recent_feedback(ctx, notes_first=True))
+
+    # The drafter learns what was off, on that platform only, and the desk lists it.
+    rules = style_for(ctx, "linkedin", card["pillar"], "li_text").rules
+    assert any(note in r for r in rules)
+    assert not any(note in r for r in style_for(ctx, "x", "tech", "x_single").rules)
+    (row,) = feedback.writing_feedback(ctx)
+    assert row["note"] == note and row["draft"]
+    listed = [r for r in stats.compute(ctx)["feedback"] if r["card_id"] == card["id"]]
+    assert listed and listed[0]["reason"] == "poorly_written"
+
+
+def test_the_weekly_voice_update_reads_drafts_skipped_as_not_his_voice(make_ctx):
+    ctx = make_ctx()
+    deliver.morning_delivery(ctx)
+    for i, card in enumerate(ctx.store.select("cards", "status = 'suggested' AND draft IS NOT NULL", order="rank")[:2]):
+        write_inbox(ctx.data_root, [{"id": f"pw{i}", "type": "card.skip", "card_id": card["id"],
+                                     "reason": "poorly_written", "note": f"Too stiff {i}"}], name=f"b{i}")
+        inbox.ingest(ctx)
+    calls = []
+    real = ctx.llm.call_json
+
+    def spy(req, schema=None, repair=True):
+        calls.append(req)
+        return real(req, schema, repair)
+
+    ctx.llm.call_json = spy
+    voice.llm_rules(ctx, voice.compute_stats(ctx))  # no posts yet: the rejected drafts are enough to learn from
+    (req,) = [r for r in calls if r.task == "voice"]
+    assert '"rejected_drafts"' in req.prompt and "Too stiff 1" in req.prompt

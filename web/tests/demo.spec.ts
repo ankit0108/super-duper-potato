@@ -124,6 +124,27 @@ test("skipping for another reason asks why, and the reason shows in what the ran
   await expect(page.getByText(`“${why}”`)).toBeVisible();
 });
 
+test("“Not written well” asks what was off, and says the topic isn't marked down", async ({ page }) => {
+  const tile = todaySection(page).locator("[data-tile]").nth(2);
+  const title = (await tile.locator("h3").textContent())!;
+  await tile.getByRole("button", { name: "Skip" }).click();
+  await expect(page.getByRole("menuitem", { name: /^Not interesting.*Fewer topics like this/ })).toBeVisible();
+  await page.getByRole("menuitem", { name: /^Not written well….*the draft isn't me/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Why skip it?" });
+  await expect(dialog.getByRole("radio", { name: "Not written well" })).toHaveAttribute("aria-checked", "true");
+  await expect(dialog.getByText("What was off about the writing?", { exact: false })).toBeVisible();
+  const confirm = dialog.getByRole("button", { name: "Skip with this reason" });
+  await expect(confirm).toBeEnabled(); // the note helps, but isn't required
+  const why = "Too formal, sounds like a press release";
+  await dialog.getByRole("textbox").fill(why);
+  await confirm.click();
+  await expect(page.getByText("Skipped. The topic isn't marked down. The drafter learns from what you said was off.")).toBeVisible();
+  await expect(todaySection(page).getByText(title, { exact: true })).toHaveCount(0);
+  await page.goto("/#/insights?tab=learning");
+  const row = page.getByRole("listitem").filter({ hasText: why });
+  await expect(row.getByText("Not written well")).toBeVisible();
+});
+
 test("“Other…” asks why on a tap, from the card page too", async ({ page }, testInfo) => {
   const press = (l: ReturnType<Page["locator"]>) => (testInfo.project.name === "mobile" ? l.tap() : l.click());
   await press(todaySection(page).locator("[data-tile]").nth(1).locator("h3"));

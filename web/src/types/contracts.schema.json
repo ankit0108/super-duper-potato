@@ -1538,7 +1538,8 @@
       "already_covered",
       "other",
       "wrong_platform",
-      "not_funny"
+      "not_funny",
+      "poorly_written"
      ],
      "title": "Reason",
      "type": "string"
@@ -3618,6 +3619,18 @@
      "description": "The model that wrote it",
      "title": "Model"
     },
+    "passed_over": {
+     "default": [],
+     "description": "Stronger models tried first: [{provider, why: quota|busy|error}]",
+     "items": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object"
+     },
+     "title": "Passed Over",
+     "type": "array"
+    },
     "period": {
      "anyOf": [
       {
@@ -3654,6 +3667,24 @@
      ],
      "default": null,
      "title": "Provider"
+    },
+    "retried": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Retried"
+    },
+    "retry": {
+     "default": false,
+     "description": "A stronger model was only busy: the next run tries again",
+     "title": "Retry",
+     "type": "boolean"
     },
     "status": {
      "default": "ok",
@@ -5382,7 +5413,8 @@
       "already_covered",
       "other",
       "wrong_platform",
-      "not_funny"
+      "not_funny",
+      "poorly_written"
      ],
      "title": "Reason",
      "type": "string"

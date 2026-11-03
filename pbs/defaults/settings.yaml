@@ -291,6 +291,9 @@ learning:
     wrong_platform: 0.3
     # A joke that didn't land: the critic learns from it; the lane isn't punished as hard as a dull topic.
     not_funny: 0.15
+    # Good topic, badly written (not his voice): says nothing about the topic, so no observation; the drafter
+    # learns from it instead (style rules, the weekly voice update).
+    poorly_written: null
   edit_ratio_review_weeks: 4
 
 rewards:

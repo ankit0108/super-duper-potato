@@ -685,7 +685,8 @@ type FeedbackRow = {
   to?: Platform | null;
   note?: string | null;
 };
-const TOPIC_REASONS = new Set(["not_interesting", "off_brand", "too_risky", "other"]);
+// Reasons worth listing even without a note: about the topic, or (not written well) about the draft.
+const TOPIC_REASONS = new Set(["not_interesting", "off_brand", "too_risky", "other", "poorly_written"]);
 const rowKey = (r: FeedbackRow) => `${r.kind ?? "skip"}:${r.card_id}`;
 
 /** What the ranking learns from: the pipeline's list plus skips and cross-posts made on this device since the last run. */
@@ -731,7 +732,7 @@ function FeedbackPanel({ view }: { view: DeskState }) {
   return (
     <Panel
       title="Your recent feedback"
-      description="Skips with a reason, and cards you moved or copied to the other platform, from the last 30 days. The next morning's ranking reads them (your own words count most): similar topics rank lower, a move says the topic was right but the platform wasn't, and the weekly review uses them to adjust the playbook."
+      description="Skips with a reason, and cards you moved or copied to the other platform, from the last 30 days. The next morning's ranking reads them (your own words count most): similar topics rank lower, a move says the topic was right but the platform wasn't, and the weekly review uses them to adjust the playbook. “Not written well” never marks a topic down: what you said was off goes to the drafter instead."
     >
       {rows.length === 0 ? (
         <p className="text-sm text-muted">No feedback yet. When you skip a card, pick a reason; for "Other", say why. To move a card to the other platform, use Skip → Move to… on the card.</p>

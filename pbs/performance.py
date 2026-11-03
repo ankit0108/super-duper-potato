@@ -194,15 +194,40 @@ def _days(ctx: Ctx) -> dict[str, Any]:
     return out
 
 
+def _audience(rows: list[dict[str, Any]]) -> dict[str, dict[str, list[str]]]:
+    """Who follows him and who saw his posts, each by category: the top five with their share."""
+    out: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
+    for a in rows:
+        group = out[a.get("group") or "followers"][a.get("category") or "Other"]
+        if len(group) < 5:
+            share = a.get("share")
+            group.append(f"{a.get('value')} ({share:g}%)" if isinstance(share, (int, float)) else str(a.get("value")))
+    return {g: dict(c) for g, c in out.items()}
+
+
+def _period_start(totals: dict[str, Any]) -> str | None:
+    """The first day of the export's own period ("10/7/2026 - 11/3/2026")."""
+    from .analytics_files import date
+
+    starts = [d for t in totals.values() if (d := date(str(t.get("period") or "").split(" - ")[0]))]
+    return min(starts) if starts else None
+
+
 def gather(ctx: Ctx) -> dict[str, Any]:
     from .draft import profile_text
     from .metrics import AUDIENCE_KEY, TOTALS_KEY
 
     rows = _post_rows(ctx)
-    audience = {p: [a for a in (v.get("rows") or [])][:24]
-                for p, v in (ctx.store.get_setting(AUDIENCE_KEY, {}) or {}).items()}
+    totals = ctx.store.get_setting(TOTALS_KEY, {}) or {}
+    start = _period_start(totals)
+    if start:
+        # The export lists older posts that were still seen in its period: say so, so they aren't compared as new.
+        for r in rows:
+            if r.get("date") and r["date"] < start:
+                r["published_before_period"] = True
+    audience = {p: _audience(v.get("rows") or []) for p, v in (ctx.store.get_setting(AUDIENCE_KEY, {}) or {}).items()}
     return {"summary": summarise(rows), "posts": rows, "followers": _followers(ctx), "days": _days(ctx),
-            "audience": audience, "totals": ctx.store.get_setting(TOTALS_KEY, {}) or {},
+            "audience": audience, "totals": totals,
             "goals": textutil.truncate(profile_text(ctx.settings.profile), 1200)}
 
 
@@ -211,8 +236,9 @@ def run(ctx: Ctx) -> dict[str, Any]:
     data = gather(ctx)
     rows = data["posts"]
     platforms = sorted(data["summary"])
+    periods = [t.get("period") for t in data["totals"].values() if t.get("period")]
     base: dict[str, Any] = {"at": timeutil.now_iso(), "posts": len(rows), "platforms": platforms,
-                            "period": _period(rows)}
+                            "period": periods[0] if len(periods) == 1 else _period(rows)}
     if len(rows) < MIN_POSTS and not (data["days"] or data["totals"]):
         review = {**base, "status": "too_little",
                   "headline": f"Only {len(rows)} post{'s' if len(rows) != 1 else ''} with numbers so far: "
@@ -229,6 +255,7 @@ def run(ctx: Ctx) -> dict[str, Any]:
     old = latest(ctx) or {}
     kept = old.get("status") == "ok"  # a good review stays up, with a note, when a new one can't be written
     ctx.store.set_setting(DUE_KEY, False)
+    errors_before = len(ctx.llm.usage.errors)
     try:
         out, resp = ctx.llm.call_json(req, _Review)
     except BudgetExhausted as exc:
@@ -242,12 +269,43 @@ def run(ctx: Ctx) -> dict[str, Any]:
                               else {**base, "status": "failed", "error": "No model could write the review"})
         log.info(f"performance: failed ({type(exc).__name__})")
         return {"status": "failed", "posts": len(rows)}
-    review = {**base, "status": "ok", "model": resp.model, "provider": resp.provider,
+    passed = _passed_over(ctx.llm.usage.errors[errors_before:], resp.provider)
+    review = {**base, "status": "ok", "model": resp.model, "provider": resp.provider, "passed_over": passed,
               **out.model_dump()}
     review["findings"] = review["findings"][:6]
+    today = ctx.local_date_str()
+    if resp.provider not in STRONG and any(p["provider"] in STRONG and p["why"] == "busy" for p in passed) \
+            and old.get("retried") != today:
+        # A stronger model was only busy: try again on the next run (once a day), keeping this one meanwhile.
+        review["retried"] = today
+        review["retry"] = True
+        ctx.store.set_setting(DUE_KEY, True)
+    elif old.get("retried") == today:
+        review["retried"] = today
     ctx.store.set_setting(KEY, review)
     log.info(f"performance: review written from {len(rows)} posts ({len(review['findings'])} findings)")
     return {"status": "ok", "posts": len(rows), "findings": len(review["findings"])}
+
+
+STRONG = ("gemini_pro", "gemini")
+
+
+def _passed_over(errors: list[str], answered: str) -> list[dict[str, str]]:
+    """The models tried before the one that wrote the review, and why each didn't (from the run's error log:
+    "analysis/<provider>: <error>")."""
+    out: list[dict[str, str]] = []
+    for e in errors:
+        if not e.startswith("analysis/"):
+            continue
+        provider, _, text = e.removeprefix("analysis/").partition(": ")
+        if provider == answered or any(p["provider"] == provider for p in out):
+            continue
+        low = text.lower()
+        why = "quota" if "quota" in low or "429" in low else \
+            "busy" if any(w in low for w in ("503", "overload", "server error", "no answer within", "unavailable")) \
+            else "error"
+        out.append({"provider": provider, "why": why})
+    return out
 
 
 def _period(rows: list[dict[str, Any]]) -> str | None:

@@ -18,9 +18,11 @@ import datetime as dt
 import io
 import itertools
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 from . import textutil
 
@@ -141,6 +143,29 @@ def post_key(url: str | None) -> str | None:
         return None
     m = re.search(r"(?:activity|share|ugcPost)[:\-](\d{15,22})", url) or re.search(r"/status(?:es)?/(\d{6,22})", url)
     return m.group(1) if m else None
+
+
+_SLUG = re.compile(r"linkedin\.com/posts/[^/_?]+_(.+?)-(?:activity|share|ugcpost)-\d", re.I)
+
+
+def _words(text: str) -> list[str]:
+    return [w for w in re.split(r"[^a-z0-9]+", unicodedata.normalize("NFKC", text).lower()) if len(w) > 1]
+
+
+def slug_words(url: str | None) -> list[str]:
+    """The words LinkedIn puts in a post's link: its hashtags, or its opening words
+    (linkedin.com/posts/name_enterpriseautomation-aiagents-share-…, …/name_most-automation-demos-look-share-…)."""
+    m = _SLUG.search(url or "")
+    return _words(unquote(m.group(1))) if m else []
+
+
+def slug_score(words: list[str], text: str, hashtags: list[str]) -> float:
+    """How much of a link's words a post has: in its hashtags, or among its opening words (0 to 1)."""
+    if not words:
+        return 0.0
+    tags = {t.lstrip("#").lower() for t in hashtags} | {t.lower() for t in re.findall(r"#(\w+)", text)}
+    have = tags | set(_words(text[:400]))
+    return sum(1 for w in words if w in have) / len(words)
 
 
 def platform_of(url: str | None) -> str | None:
@@ -356,6 +381,9 @@ def _followers(rows: list[list[Any]], out: Parsed) -> None:
 
 def _audience(name: str, rows: list[list[Any]], out: Parsed) -> bool:
     """LinkedIn's demographics: rows of category, value and share."""
+    sheet = name.lower()
+    # LinkedIn has two: who follows him ("Audience demographics") and who saw his posts ("Content demographics").
+    group = "viewers" if "content" in sheet else "followers" if "audience" in sheet or "follower" in sheet else None
     for i, r in enumerate(rows[:5]):
         heads = [_norm(c) for c in r]
         if any("demographic" in h for h in heads) and any("percent" in h for h in heads):
@@ -368,6 +396,7 @@ def _audience(name: str, rows: list[list[Any]], out: Parsed) -> bool:
                     except ValueError:
                         share = None
                     out.audience.append({"category": textutil.normalize_ws(str(row[cat]))[:60],
-                                         "value": textutil.normalize_ws(str(row[val]))[:80], "share": share})
+                                         "value": textutil.normalize_ws(str(row[val]))[:80], "share": share,
+                                         **({"group": group} if group else {})})
             return True
     return False

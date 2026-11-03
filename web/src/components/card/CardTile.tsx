@@ -77,8 +77,9 @@ export function SkipMenu({ card, size = "sm", side = "bottom" }: { card: Card; s
   const toast = useDesk((s) => s.toast);
   const askWhy = useDesk((s) => s.askSkipReason);
   const skip = (r: (typeof MENU_SKIP_REASONS)[number]) => {
-    // "Other" says nothing without the reason, so it asks first; the rest skip in one tap and can add a reason.
-    if (r.needsNote) return askWhy(card.id, r.value);
+    // "Other" says nothing without the reason, and "Not written well" teaches most with one, so they ask first;
+    // the rest skip in one tap and can add a reason.
+    if (r.needsNote || r.asksNote) return askWhy(card.id, r.value);
     act({ type: "card.skip", card_id: card.id, reason: r.value });
     toast("ok", `Skipped. ${r.learns}`, { label: "Add why", onAction: () => askWhy(card.id, r.value) });
   };
@@ -99,7 +100,7 @@ export function SkipMenu({ card, size = "sm", side = "bottom" }: { card: Card; s
         </Button>
       )}
       items={[
-        ...MENU_SKIP_REASONS.map((r) => ({ label: r.needsNote ? `${r.label}…` : r.label, hint: r.help, onSelect: () => skip(r) })),
+        ...MENU_SKIP_REASONS.map((r) => ({ label: r.needsNote || r.asksNote ? `${r.label}…` : r.label, hint: r.help, onSelect: () => skip(r) })),
         { label: `Move to ${PLATFORM_LABEL[other]} instead`, hint: "Right topic, wrong platform", onSelect: move },
       ]}
     />
