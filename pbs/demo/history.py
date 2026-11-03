@@ -712,7 +712,7 @@ def _line_after(prompt: str, prefix: str) -> str:
 
 def parse_style(prompt: str) -> PromptStyle:
     avoid = {p.strip().casefold() for p in _line_after(prompt, "Never use:").split(",") if p.strip()}
-    prefs_line = _line_after(prompt, "Hook types he keeps most on")
+    prefs_line = _line_after(prompt, "Hook types that work best for him on")
     prefs = [p.strip() for p in prefs_line.split(":", 1)[-1].split(",") if p.strip()] if prefs_line else []
     rules: list[str] = []
     m = re.search(r"Style guide learned from his edits \(follow it\):\n(.*?)\n(?:What works on|Target length:)", prompt,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowLeftRight, ChevronDown, Copy, ExternalLink, GitCompare, Loader2, MessageCircleQuestion, RotateCcw, Send, Sparkle, Undo2, WandSparkles } from "lucide-react";
 import type { Card, EventInput } from "@/types";
-import { FORMAT_LABEL, PLATFORM_LABEL, SKIP_REASONS, STORY_LABEL, TREND_PLACE, draftText, pct } from "@/lib/format";
+import { FORMAT_LABEL, PLATFORM_LABEL, SKIP_REASONS, STORY_LABEL, TREND_PLACE, draftText, pct, postingWindow } from "@/lib/format";
 import { copyText, linkedInComposeUrl, linkedInViaShareSheet, safeUrl, shareText, xComposeUrl } from "@/lib/compose";
 import { liveFlags, parseTerms } from "@/lib/guard";
 import { withHashtags, withoutHashtags } from "@/lib/hashtags";
@@ -71,6 +71,8 @@ function CardView({ card }: { card: Card }) {
   const act = useDesk((s) => s.act);
   const toast = useDesk((s) => s.toast);
   const view = useDesk((s) => s.view);
+  // When to post on this card's platform (settings.posting), shown under the buttons; the review checks it.
+  const postWindow = card ? ((view?.settings as { posting?: Record<string, { window?: string; why?: string }> } | undefined)?.posting?.[card.platform] ?? null) : null;
   const guardRaw = useDesk((s) => s.guardTerms);
   const pendingCard = useDesk((s) => s.pending.cards.has(card.id));
   const tz = useTz();
@@ -550,6 +552,12 @@ function CardView({ card }: { card: Card }) {
             </span>
           </div>
           {card.format === "x_thread" && <p className="mx-auto mt-1 max-w-6xl text-xs text-muted">Open X posts the first post; add the rest as replies to it, using each post's copy button.</p>}
+          {postingWindow(postWindow?.window) && (
+            <p className="mx-auto mt-1 max-w-6xl text-xs text-muted">
+              Best time to post: <span className="font-medium text-text">{postingWindow(postWindow?.window)}</span>
+              {postWindow?.why ? `. ${postWindow.why}` : ""}
+            </p>
+          )}
         </div>
       )}
 

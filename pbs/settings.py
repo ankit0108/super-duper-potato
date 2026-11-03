@@ -191,9 +191,32 @@ class Hashtags(_Strict):
     linkedin: HashtagRange = HashtagRange(min=3, max=5)
     x: HashtagRange = HashtagRange(min=0, max=2)
     avoid: list[str] = []
+    # Tags his readers follow, per platform: one of them goes alongside the post's own subject tags (an addition,
+    # not a replacement: an AI or automation post keeps its AI and automation tags).
+    readers: dict[str, list[str]] = {}
 
     def range(self, platform: str) -> HashtagRange:
         return getattr(self, platform)
+
+
+class PostingWindow(_Strict):
+    # "14:00-16:00" in his timezone, or "" for none.
+    window: str = Field("", pattern=r"^((?:[01]\d|2[0-3]):[0-5]\d-(?:[01]\d|2[0-3]):[0-5]\d)?$")
+    why: str = Field("", max_length=200)
+
+    def hours(self) -> tuple[int, int] | None:
+        """(first hour, last hour) the window covers, e.g. (14, 15) for 14:00-16:00."""
+        if not self.window:
+            return None
+        start, end = self.window.split("-")
+        h0, h1 = int(start[:2]), int(end[:2]) - (0 if end[3:] != "00" else 1)
+        return h0, max(h0, h1)
+
+
+class Posting(_Strict):
+    """When to post: a window shown on the cards, and checked by the performance review."""
+    linkedin: PostingWindow = PostingWindow()
+    x: PostingWindow = PostingWindow()
 
 
 class Visuals(_Strict):
@@ -321,6 +344,7 @@ class Settings(BaseModel):
     expiry: Expiry = Expiry()
     drafting: Drafting = Drafting()
     hashtags: Hashtags = Hashtags()
+    posting: Posting = Posting()
     visuals: Visuals = Visuals()
     images: Images = Images()
     weekly_batch: WeeklyBatch
@@ -486,7 +510,7 @@ def _unknown_keys(patch: dict[str, Any], reference: dict[str, Any], prefix: str 
     open_maps = {"strategy", "strategy.linkedin", "strategy.x", "llm.providers", "llm.routes",
                  "llm.temperature", "llm.timeouts", "watchlist", "formats", "rewards.linkedin", "rewards.x",
                  "scouting.lookback_hours", "scouting.candidates_per_scout", "scouting.shortlist_seats", "affairs.types",
-                 "learning.skip_values", "ranking.timeliness_half_life_hours"}
+                 "learning.skip_values", "ranking.timeliness_half_life_hours", "hashtags.readers"}
     unknown: list[str] = []
     for key, value in patch.items():
         path = f"{prefix}.{key}" if prefix else key

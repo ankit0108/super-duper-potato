@@ -104,8 +104,9 @@ strategy:
       label: Tech humour
       weight: 0.20
       mode: external
-      # At least one funny post every morning.
-      min_per_day: 1
+      # No funny post is forced into the morning (his analytics: the funny posts did worst); the lane's weight
+      # decides. Set to 1 for one every day.
+      min_per_day: 0
       formats: [li_text]
       scouts: [humor, buzz]
       description: >-
@@ -307,9 +308,23 @@ hashtags:
   enabled: true
   linkedin: {min: 3, max: 5}
   x: {min: 0, max: 2}
+  # Tags his readers follow (his LinkedIn analytics: mostly software, AI and data engineers): one of them goes
+  # alongside the post's own AI and automation tags, never instead of them.
+  readers:
+    linkedin: ["#SoftwareEngineering", "#MachineLearning", "#LLM", "#AIEngineering", "#DataEngineering"]
   # Tags too broad to help anyone find a post.
   avoid: ["#Innovation", "#Motivation", "#Success", "#Business", "#Technology", "#Tech", "#Future", "#Trending",
           "#Viral", "#Inspiration", "#Leadership"]
+
+posting:
+  # When to post, in his timezone: shown on the cards, and the performance review compares posts inside the window
+  # with the rest. LinkedIn: 2-4pm in Melbourne is the working morning in Delhi, and his followers are split
+  # between the two (his analytics, Nov 2026): a test, kept or changed when the review has the numbers.
+  linkedin:
+    window: "14:00-16:00"
+    why: "Afternoon in Melbourne, morning in Delhi: most of your followers are in one or the other."
+  x:
+    window: ""
 
 visuals:
   # Carousels, flowcharts, comparisons, lists, big numbers and quote cards, written from the post and drawn by

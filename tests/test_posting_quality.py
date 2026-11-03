@@ -420,3 +420,76 @@ def test_the_weekly_voice_update_reads_drafts_skipped_as_not_his_voice(make_ctx)
     voice.llm_rules(ctx, voice.compute_stats(ctx))  # no posts yet: the rejected drafts are enough to learn from
     (req,) = [r for r in calls if r.task == "voice"]
     assert '"rejected_drafts"' in req.prompt and "Too stiff 1" in req.prompt
+
+
+def test_the_rule_from_his_analytics_is_added_once_and_stays_removed_if_he_removes_it(make_ctx):
+    from pbs import playbook
+
+    ctx = make_ctx()
+    playbook.ensure_seed(ctx)
+    version = playbook.ensure_additions(ctx)
+    assert any("most specific number" in r for r in style_for(ctx, "linkedin", "research", "li_text").rules)
+    rule = next(r for r in version["rules"] if r["source"] == "analytics")
+    assert rule["platform"] == "linkedin" and "most specific number" in rule["text"] and "AI and automation" in rule["text"]
+    assert playbook.ensure_additions(ctx) is None  # once
+    assert playbook.user_rule(ctx, "remove", rule_id=rule["id"], text=None, platform=None, pillar=None) is None
+    assert playbook.ensure_additions(ctx) is None
+    assert not any(r["source"] == "analytics" for r in playbook.active(ctx)["rules"])
+    assert not any("most specific number" in r for r in style_for(ctx, "linkedin", "research", "li_text").rules)
+
+
+def _posted(ctx, card, hook, perf, when):
+    post = learn.record_post(ctx, card, text=card["draft"]["text"], posts=None, post_url=None, posted_at=when,
+                             editing_seconds=None, hook_index=None)
+    ctx.store.update("posts", post["id"], hook_used={"type": hook}, perf=perf)
+    return post
+
+
+def test_openings_are_ranked_by_results_and_a_run_of_the_same_one_is_broken(make_ctx):
+    from pbs.style import hook_preferences
+
+    ctx = make_ctx()
+    deliver.morning_delivery(ctx)
+    cards = ctx.store.select("cards", "platform = 'linkedin' AND draft IS NOT NULL", order="rank")
+    # Four observation openings that did middling, two number openings before them that did well.
+    base = _posted(ctx, cards[0], "observation", 0.4, "2026-09-24T02:00:00Z")
+    for i, (hook, perf) in enumerate([("observation", 0.4)] * 3 + [("number", 0.7)] * 2):
+        ctx.store.insert("posts", {**base, "id": f"pst_h{i}", "hook_used": {"type": hook}, "perf": perf,
+                                   "posted_at": f"2026-09-{23 - i:02d}T02:00:00Z"})
+    prefs = hook_preferences(ctx, "linkedin")
+    assert prefs[0] == "number" and prefs[1] == "observation"  # results first, not habit
+    rules = style_for(ctx, "linkedin", cards[0]["pillar"], "li_text").rules
+    assert rules[0].startswith("His last 4 posts here all opened with a observation hook: open this one another way")
+    assert "number" in rules[0]
+    assert not any(r.startswith("His last") for r in style_for(ctx, "x", "tech", "x_single").rules)
+
+
+def test_his_engineering_readers_get_a_tag_alongside_the_ai_and_automation_ones(make_ctx):
+    ctx = make_ctx()
+    st = style_for(ctx, "linkedin", "research", "li_text")
+    rule = draft.hashtag_rule(ctx, "linkedin", "li_text", st)
+    assert "#SoftwareEngineering" in rule and "as well as, never instead of, the AI and automation ones" in rule
+    assert "#SoftwareEngineering" not in draft.hashtag_rule(ctx, "x", "x_single", style_for(ctx, "x", "tech", "x_single"))
+    profile = ctx.settings.profile
+    assert "software, AI and data engineers" in profile and "keep the AI and automation subject" in profile
+    assert "Practitioner in AI and automation" in profile  # still who he is
+
+
+def test_the_review_knows_which_posts_went_out_in_the_posting_window(make_ctx):
+    from pbs import performance
+
+    ctx = make_ctx()
+    deliver.morning_delivery(ctx)
+    cards = ctx.store.select("cards", "platform = 'linkedin' AND draft IS NOT NULL", order="rank")
+    inside = _posted(ctx, cards[0], "number", 0.6, "2026-09-25T04:30:00Z")  # 2:30pm in Melbourne
+    outside = _posted(ctx, cards[1], "observation", 0.4, "2026-09-24T22:00:00Z")  # 8am
+    for post in (inside, outside):
+        ctx.store.insert("metrics", {"id": f"met_{post['id']}", "post_id": post["id"], "platform": "linkedin",
+                                     "impressions": 300, "reactions": 6, "status": "confirmed", "source": "manual",
+                                     "captured_at": timeutil.now_iso(), "created_at": timeutil.now_iso()})
+    data = performance.gather(ctx)
+    assert data["posting_window"] == {"linkedin": "14:00-16:00"}
+    flags = {r["hour"]: r["in_posting_window"] for r in data["posts"]}
+    assert flags == {14: True, 8: False}
+    state = export.build(ctx)
+    assert state["settings"]["posting"]["linkedin"]["window"] == "14:00-16:00"

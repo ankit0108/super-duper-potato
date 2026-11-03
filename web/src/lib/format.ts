@@ -48,6 +48,16 @@ export const TREND_PLACE: Record<string, string> = { linkedin: "LinkedIn", x: "X
 
 export const MENU_SKIP_REASONS = SKIP_REASONS.filter((r) => r.menu !== false);
 
+/** "14:00-16:00" → "2–4pm"; "09:30-11:00" → "9:30–11am"; "" → "". */
+export function postingWindow(window: string | null | undefined): string {
+  const m = /^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/.exec(window ?? "");
+  if (!m) return "";
+  const part = (h: number, min: number) => `${h % 12 || 12}${min ? `:${String(min).padStart(2, "0")}` : ""}`;
+  const [h0, m0, h1, m1] = m.slice(1).map(Number);
+  const ap = (h: number) => (h < 12 ? "am" : "pm");
+  return ap(h0) === ap(h1) ? `${part(h0, m0)}–${part(h1, m1)}${ap(h1)}` : `${part(h0, m0)}${ap(h0)}–${part(h1, m1)}${ap(h1)}`;
+}
+
 export const REWRITE_CHIPS = [
   "Shorter",
   "Sharper hook",

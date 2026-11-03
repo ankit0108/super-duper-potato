@@ -6,6 +6,7 @@ stamped on each card so the system report can compare them.
 
 from __future__ import annotations
 
+import statistics
 from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
@@ -85,6 +86,8 @@ def style_for(ctx: Ctx, platform: str, pillar: str, fmt: str) -> Style:
     st.avoid = sorted({*ctx.settings.voice.avoid_phrases, *voice_avoid}, key=str.lower)
     st.length_target = st.length_target or DEFAULT_LENGTH.get(fmt, "")
     st.hook_prefs = hook_preferences(ctx, platform)
+    if (rule := opening_rule(ctx, platform, st.hook_prefs)) is not None:
+        st.rules.insert(0, rule)
     st.examples = recent_examples(ctx, platform, ctx.settings.voice.examples_per_prompt)
     from .platform import rules_for
 
@@ -93,14 +96,34 @@ def style_for(ctx: Ctx, platform: str, pillar: str, fmt: str) -> Style:
 
 
 def hook_preferences(ctx: Ctx, platform: str) -> list[str]:
-    """Hook types ordered by how often he keeps them (from posts), falling back to all types."""
+    """Hook types, the ones that do best first: by results (the median performance of posts that opened that way,
+    with numbers for at least two), then by how often he keeps them, then the rest. Ordering by use alone made the
+    first habit stick: every post opened the same way."""
     counts: Counter[str] = Counter()
-    for post in ctx.store.select("posts", "platform = ?", (platform,), order="posted_at DESC", limit=40):
+    perf: dict[str, list[float]] = {}
+    for post in ctx.store.select("posts", "platform = ?", (platform,), order="posted_at DESC", limit=60):
         used = (post.get("hook_used") or {}).get("type")
         if used:
             counts[used] += 1
-    ordered = [t for t, _ in counts.most_common()]
+            if post.get("perf") is not None:
+                perf.setdefault(used, []).append(float(post["perf"]))
+    scored = sorted((t for t, v in perf.items() if len(v) >= 2), key=lambda t: -statistics.median(perf[t]))
+    ordered = scored + [t for t, _ in counts.most_common() if t not in scored]
     return ordered + [t for t in ctx.settings.hooks.types if t not in ordered]
+
+
+SAME_OPENING = 4  # this many of his last posts opening the same way: the next one is asked to open differently
+
+
+def opening_rule(ctx: Ctx, platform: str, prefs: list[str]) -> str | None:
+    """A rule against the same opening again and again, when his last posts on the platform all opened alike."""
+    recent = [(p.get("hook_used") or {}).get("type") for p in
+              ctx.store.select("posts", "platform = ?", (platform,), order="posted_at DESC", limit=SAME_OPENING)]
+    if len(recent) < SAME_OPENING or len(set(recent)) != 1 or not recent[0]:
+        return None
+    others = [t for t in prefs if t != recent[0]][:2]
+    return (f"His last {SAME_OPENING} posts here all opened with a {recent[0]} hook: open this one another way "
+            f"({' or '.join(others) or 'a different type'}).")
 
 
 def _post_text(post: dict[str, Any]) -> str:

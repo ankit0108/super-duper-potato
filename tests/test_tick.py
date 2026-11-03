@@ -24,7 +24,9 @@ def test_tick_delivers_once_and_exports_a_valid_desk(tmp_path, web, monkeypatch)
     desk = json.loads((tmp_path / "data" / "desk" / "desk.json").read_text())
     DeskState.model_validate(desk)
     assert desk["meta"]["schema_version"] == 1 and desk["delivery"]["id"] == first["delivery"]["id"]
-    assert len(desk["stances"]) == 10 and desk["playbook"]["version"] == 1
+    # The starting rules, then the one from his analytics (added once).
+    assert len(desk["stances"]) == 10 and desk["playbook"]["version"] == 2
+    assert desk["playbook"]["rules"][-1]["source"] == "analytics"
     assert desk["runs"][0]["id"] == first["run_id"]
 
     second = _run(tmp_path, web, trigger="schedule")

@@ -127,6 +127,10 @@ def hashtag_rule(ctx: Ctx, platform: str, fmt: str, style: Style) -> str:
     if platform == "linkedin":
         rule = (f"{count} hashtags: one or two broad ones people follow (like #AI) and the rest specific to this post's "
                 "own subject (like #AIChips for a chip story)")
+        readers = hs.readers.get(platform) or []
+        if readers:
+            rule += (f"; include one his engineering readers follow ({', '.join(readers[:5])}) as well as, never "
+                     "instead of, the AI and automation ones the post calls for")
     else:
         rule = f"{count} hashtags, only for a topic people actually follow on X ([] is fine)"
     rule += ". CamelCase, no spaces, never inside the text"

@@ -130,8 +130,24 @@ def test_quotes_reach_x_as_quote_posts_never_linkedin(make_ctx):
 # ---------------------------------------------------------------------------
 
 
-def test_linkedin_gets_five_cards_with_at_least_one_funny_post_and_x_gets_ten(make_ctx):
+def _daily_funny(ctx):
+    """One funny LinkedIn post every morning: off by default since his analytics, still there when he wants it."""
+    ctx.settings.strategy["linkedin"]["humor"].min_per_day = 1
+    return ctx
+
+
+def test_no_funny_post_is_forced_into_the_morning_by_default(make_ctx):
     ctx = make_ctx()
+    assert ctx.settings.strategy["linkedin"]["humor"].min_per_day == 0
+    arms = bandit.compute_arms(ctx.store, ctx.settings)
+    cands = [_cand(i, ["research", "industry"][i % 2], 1.0 - i / 100) for i in range(10)]
+    cands.append(_cand(99, "humor", 0.01, "observation"))
+    picked = allocate(ctx, "linkedin", cands, arms, random.Random(3))
+    assert len(picked) == 5 and [c.pillar for c in picked].count("humor") == 0
+
+
+def test_linkedin_gets_five_cards_with_at_least_one_funny_post_and_x_gets_ten(make_ctx):
+    ctx = _daily_funny(make_ctx())
     res = deliver.morning_delivery(ctx)
     assert res["counts"] == {"linkedin": 5, "x": 10}
     cards = ctx.store.select("cards", "delivery_id = ?", (res["id"],))
@@ -154,7 +170,7 @@ def test_linkedin_gets_five_cards_with_at_least_one_funny_post_and_x_gets_ten(ma
 
 
 def test_the_critic_sees_what_he_found_unfunny_and_cliches_are_flagged(make_ctx):
-    ctx = make_ctx()
+    ctx = _daily_funny(make_ctx())
     ctx.settings.humor.examples = ["My code works. I have no idea why. Shipping it."]
     res = deliver.morning_delivery(ctx)
     funny = next(c for c in ctx.store.select("cards", "delivery_id = ?", (res["id"],)) if c["pillar"] == "humor")
@@ -179,7 +195,7 @@ def _cand(i, pillar, base, post_type=None, platform="linkedin"):
 
 
 def test_the_daily_funny_post_is_kept_even_when_it_ranks_last(make_ctx):
-    ctx = make_ctx()
+    ctx = _daily_funny(make_ctx())
     arms = bandit.compute_arms(ctx.store, ctx.settings)
     cands = [_cand(i, ["research", "industry"][i % 2], 1.0 - i / 100) for i in range(10)]
     cands.append(_cand(99, "humor", 0.01, "observation"))

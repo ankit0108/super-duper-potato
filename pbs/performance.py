@@ -226,8 +226,17 @@ def gather(ctx: Ctx) -> dict[str, Any]:
             if r.get("date") and r["date"] < start:
                 r["published_before_period"] = True
     audience = {p: _audience(v.get("rows") or []) for p, v in (ctx.store.get_setting(AUDIENCE_KEY, {}) or {}).items()}
+    windows: dict[str, Any] = {}
+    for platform in ("linkedin", "x"):
+        spec = getattr(ctx.settings.posting, platform)
+        if (span := spec.hours()) is None:
+            continue
+        windows[platform] = spec.window
+        for r in rows:
+            if r.get("platform") == platform and r.get("hour") is not None:
+                r["in_posting_window"] = span[0] <= r["hour"] <= span[1]
     return {"summary": summarise(rows), "posts": rows, "followers": _followers(ctx), "days": _days(ctx),
-            "audience": audience, "totals": totals,
+            "audience": audience, "totals": totals, "posting_window": windows,
             "goals": textutil.truncate(profile_text(ctx.settings.profile), 1200)}
 
 

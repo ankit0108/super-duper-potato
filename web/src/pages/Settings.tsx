@@ -141,6 +141,7 @@ function HashtagsSection({ settings }: { settings: S }) {
       enabled: settings.hashtags?.enabled ?? true,
       linkedin: { min: settings.hashtags?.linkedin?.min ?? 3, max: settings.hashtags?.linkedin?.max ?? 5 },
       x: { min: settings.hashtags?.x?.min ?? 0, max: settings.hashtags?.x?.max ?? 2 },
+      readers: ((settings.hashtags?.readers?.linkedin as string[] | undefined) ?? []).join(", "),
     }),
     [settings],
   );
@@ -154,6 +155,7 @@ function HashtagsSection({ settings }: { settings: S }) {
             enabled: v.enabled,
             linkedin: { min: Math.min(v.linkedin.min, v.linkedin.max), max: v.linkedin.max },
             x: { min: Math.min(v.x.min, v.x.max), max: v.x.max },
+            readers: { linkedin: readerTags(v.readers) },
           },
         },
       },
@@ -180,6 +182,54 @@ function HashtagsSection({ settings }: { settings: S }) {
             ))}
           </div>
         )}
+        {v.enabled && (
+          <Field
+            label="LinkedIn: tags your readers follow"
+            htmlFor="tags-readers"
+            hint="One of these goes on each LinkedIn post alongside its AI and automation tags, never instead of them. Comma-separated; empty for none."
+          >
+            <Input id="tags-readers" value={v.readers} onChange={(e) => setV({ ...v, readers: e.target.value })} placeholder="#SoftwareEngineering, #MachineLearning" />
+          </Field>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+/** "#a, b ,#c" → ["#a", "#b", "#c"] (at most eight). */
+export function readerTags(text: string): string[] {
+  return text
+    .split(/[,\s]+/)
+    .map((t) => t.trim().replace(/^#*/, ""))
+    .filter((t) => /^\w{2,40}$/.test(t))
+    .map((t) => `#${t}`)
+    .slice(0, 8);
+}
+
+const WINDOW = /^((?:[01]\d|2[0-3]):[0-5]\d-(?:[01]\d|2[0-3]):[0-5]\d)?$/;
+
+function PostingSection({ settings }: { settings: S }) {
+  const act = useDesk((s) => s.act);
+  const pending = useDesk((s) => s.pending.settings);
+  const initial = useMemo(() => ({ linkedin: settings.posting?.linkedin?.window ?? "", x: settings.posting?.x?.window ?? "" }), [settings]);
+  const [v, setV, dirty] = useDraft(initial);
+  const valid = WINDOW.test(v.linkedin.trim()) && WINDOW.test(v.x.trim());
+  const save = () => act({ type: "settings.update", patch: { posting: { linkedin: { window: v.linkedin.trim() }, x: { window: v.x.trim() } } } }, { toast: "Saved. The cards show it, and the review checks it." });
+  return (
+    <Section
+      id="posting"
+      title="When to post"
+      description="A window in your time, shown on each card under the buttons. The performance review compares posts that went out inside it with the rest. LinkedIn's 2–4pm is a test from your analytics: the afternoon in Melbourne is the morning in Delhi."
+      onSave={valid ? save : undefined}
+      dirty={dirty && valid}
+      pending={pending}
+    >
+      <div className="grid gap-4 md:grid-cols-2">
+        {(["linkedin", "x"] as const).map((p) => (
+          <Field key={p} label={`${NAMES[p]}: post between`} htmlFor={`window-${p}`} hint="Like 14:00-16:00; empty for none." error={WINDOW.test(v[p].trim()) ? null : "Use hh:mm-hh:mm, like 14:00-16:00"}>
+            <Input id={`window-${p}`} value={v[p]} onChange={(e) => setV({ ...v, [p]: e.target.value })} placeholder="14:00-16:00" />
+          </Field>
+        ))}
       </div>
     </Section>
   );
@@ -651,6 +701,7 @@ export function Settings() {
           <ProfileSection settings={settings} />
           <VolumeSection settings={settings} />
           <HashtagsSection settings={settings} />
+          <PostingSection settings={settings} />
           <WritingSection settings={settings} />
           <VisualsSection settings={settings} />
           <ImagesSection settings={settings} />
