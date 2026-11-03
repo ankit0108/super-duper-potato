@@ -149,7 +149,7 @@ export type Paths = string[];
 export type Type14 = "metrics.upload";
 export type UploadId = string;
 export type Week = string | null;
-export type Action = "confirm" | "reject" | "edit";
+export type Action = "confirm" | "reject" | "edit" | "history";
 export type At14 = string;
 export type Id14 = string;
 export type MetricId = string;
@@ -260,7 +260,9 @@ export type Force = boolean;
 export type Id27 = string;
 export type PerPlatform = number | null;
 export type Platforms1 = ("linkedin" | "x")[] | null;
-export type Tasks = ("morning" | "weekly_batch" | "reflection" | "doctor" | "report" | "scout" | "platform_research")[];
+export type Tasks = (
+  "morning" | "weekly_batch" | "reflection" | "doctor" | "report" | "scout" | "platform_research" | "analysis"
+)[];
 export type Type28 = "run.request";
 export type At28 = string;
 export type CardId11 = string;
@@ -651,12 +653,14 @@ export type Timezone = string;
 export type CapturedAt1 = string | null;
 export type Comments1 = number | null;
 export type CreatedAt6 = string | null;
+export type Engagements = number | null;
 export type ExtractionConfidence = number | null;
 export type FollowersGained1 = number | null;
 export type Id37 = string;
 export type Impressions1 = number | null;
 export type LinkClicks1 = number | null;
 export type MatchConfidence = number | null;
+export type MembersReached = number | null;
 export type Notes3 = string | null;
 export type Platform7 = ("linkedin" | "x") | null;
 export type PostId4 = string | null;
@@ -666,11 +670,33 @@ export type Raw = {
 } | null;
 export type Reactions1 = number | null;
 export type Reposts1 = number | null;
+export type Saves = number | null;
 export type Sends1 = number | null;
-export type Source2 = "manual" | "screenshot" | "csv";
-export type Status5 = "confirmed" | "needs_review" | "rejected";
+export type Source2 = "manual" | "screenshot" | "csv" | "file";
+export type Status5 = "confirmed" | "needs_review" | "rejected" | "history";
 export type UploadId1 = string | null;
 export type Metrics = Metric[];
+export type At31 = string;
+export type Audience = string;
+export type Caveats = string[];
+export type Error = string | null;
+export type Detail1 = string;
+export type Evidence1 = string;
+export type Title9 = string;
+export type Findings = PerformanceFinding[];
+export type Headline = string;
+/**
+ * The model that wrote it
+ */
+export type Model3 = string | null;
+export type Period = string | null;
+export type Platforms2 = string[];
+export type Posts6 = number;
+export type Provider3 = string | null;
+export type Status6 = "ok" | "waiting" | "failed" | "too_little";
+export type TryNext = string[];
+export type WhatDoesnt = string[];
+export type WhatWorks = string[];
 /**
  * What works on each platform: {reviewed, rules: [{id, platform, format, text, source, sources}], research: {month, summary, articles, proposals}}
  */
@@ -685,7 +711,7 @@ export type Experiments1 = string[];
 export type Id38 = string;
 export type AddedIn = string | null;
 export type Confidence = "low" | "medium" | "high";
-export type Evidence1 = string[];
+export type Evidence2 = string[];
 export type Id39 = string;
 export type Pillar5 = string | null;
 export type Platform8 = ("linkedin" | "x") | null;
@@ -694,7 +720,7 @@ export type Source3 = "seed" | "reflection" | "user" | "voice";
 export type Text15 = string;
 export type Rules = PlaybookRule[];
 export type Source4 = string | null;
-export type Status6 = "active" | "retired";
+export type Status7 = "active" | "retired";
 export type Summary2 = string | null;
 export type Version = number;
 export type PlaybookHistory = Playbook1[];
@@ -715,27 +741,27 @@ export type PostUrl2 = string | null;
 export type PostedAt2 = string;
 export type Reward = number | null;
 export type TimeToPostMinutes = number | null;
-export type Title9 = string | null;
-export type Posts6 = Post[];
+export type Title10 = string | null;
+export type Posts7 = Post[];
 export type ProcessedEventIds = string[];
 export type Confidence1 = "low" | "medium" | "high";
 export type CreatedAt8 = string | null;
 export type DecidedAt = string | null;
 export type DecisionNote = string | null;
-export type Detail1 = string | null;
+export type Detail2 = string | null;
 /**
  * Why approving it couldn't change anything (status failed)
  */
-export type Error = string | null;
-export type Evidence2 = string[];
+export type Error1 = string | null;
+export type Evidence3 = string[];
 export type Id41 = string;
 export type Kind10 = string;
 export type Source5 = string | null;
 /**
  * noted: approved, with nothing to change automatically; failed: its change couldn't be made (see error), and it can be approved again or dismissed
  */
-export type Status7 = "pending" | "approved" | "rejected" | "applied" | "noted" | "failed";
-export type Title10 = string;
+export type Status8 = "pending" | "approved" | "rejected" | "applied" | "noted" | "failed";
+export type Title11 = string;
 export type Proposals = Proposal[];
 export type Angle1 = string;
 export type Date2 = string;
@@ -752,14 +778,14 @@ export type ExhaustedAt = string | null;
 export type LastError2 = string | null;
 export type LastErrorAt = string | null;
 export type LastOkAt = string | null;
-export type Model3 = string | null;
-export type Provider3 = string;
+export type Model4 = string | null;
+export type Provider4 = string;
 export type Requests = number;
 export type TokensIn = number;
 export type TokensOut = number;
 export type Quota = Quota1[];
-export type At31 = string | null;
-export type Error1 = string | null;
+export type At32 = string | null;
+export type Error2 = string | null;
 export type Id42 = string;
 export type Type31 = string | null;
 export type RejectedEvents = RejectedEvent[];
@@ -776,7 +802,7 @@ export type ReportsIndex = {
 export type CardIds = string[];
 export type CompletedAt = string | null;
 export type CreatedAt10 = string | null;
-export type Error2 = string | null;
+export type Error3 = string | null;
 export type Id44 = string;
 export type Notes4 = string | null;
 export type Query2 = string;
@@ -786,11 +812,11 @@ export type Query2 = string;
 export type Search = {
   [k: string]: unknown;
 } | null;
-export type Status8 = "queued" | "running" | "done" | "partial" | "failed" | "cancelled";
+export type Status9 = "queued" | "running" | "done" | "partial" | "failed" | "cancelled";
 export type Requests1 = Request[];
 export type Degraded1 = string | null;
 export type EndedAt = string | null;
-export type At32 = string | null;
+export type At33 = string | null;
 export type Message = string | null;
 export type Type32 = string;
 export type Where = string;
@@ -798,7 +824,7 @@ export type Errors = RunError[];
 export type Id45 = string;
 export type Notes5 = string[];
 export type StartedAt = string;
-export type Status9 = "running" | "ok" | "partial" | "failed";
+export type Status10 = "running" | "ok" | "partial" | "failed";
 export type Steps = {
   [k: string]: unknown;
 }[];
@@ -836,7 +862,7 @@ export type Label1 = string;
 export type Text16 = string;
 export type Positions1 = Position[];
 export type Sources4 = SourceRef[];
-export type Status10 = "proposed" | "active" | "archived";
+export type Status11 = "proposed" | "active" | "archived";
 export type Tier4 = "world" | "india" | "bihar" | "other";
 export type UpdatedAt2 = string | null;
 export type Stances = Stance[];
@@ -847,7 +873,7 @@ export type System = string;
 export type Version1 = string;
 export type XLimit = number;
 export type CreatedAt11 = string | null;
-export type Error3 = string | null;
+export type Error4 = string | null;
 export type Id48 = string;
 export type Note9 = string | null;
 export type Paths1 = string[];
@@ -855,7 +881,7 @@ export type ProcessedAt = string | null;
 export type Results = {
   [k: string]: unknown;
 } | null;
-export type Status11 = "pending" | "processed" | "failed";
+export type Status12 = "pending" | "processed" | "failed";
 export type Week2 = string | null;
 export type Uploads = MetricUpload[];
 export type AddedPhrases = {
@@ -870,7 +896,7 @@ export type Id49 = string;
 export type Rules1 = string[];
 export type Summary3 = string | null;
 export type Version2 = number;
-export type At33 = string | null;
+export type At34 = string | null;
 export type Code = string;
 export type Level = "info" | "warn" | "error";
 export type Message1 = string;
@@ -1406,10 +1432,11 @@ export interface DeskState {
   images?: ImagesStatus | null;
   meta: DeskMeta;
   metrics?: Metrics;
+  performance?: PerformanceInfo | null;
   platform_guide?: PlatformGuide;
   playbook?: Playbook1 | null;
   playbook_history?: PlaybookHistory;
-  posts?: Posts6;
+  posts?: Posts7;
   processed_event_ids?: ProcessedEventIds;
   proposals?: Proposals;
   pulse?: PulseInfo | null;
@@ -1853,12 +1880,14 @@ export interface Metric {
   captured_at?: CapturedAt1;
   comments?: Comments1;
   created_at?: CreatedAt6;
+  engagements?: Engagements;
   extraction_confidence?: ExtractionConfidence;
   followers_gained?: FollowersGained1;
   id: Id37;
   impressions?: Impressions1;
   link_clicks?: LinkClicks1;
   match_confidence?: MatchConfidence;
+  members_reached?: MembersReached;
   notes?: Notes3;
   platform?: Platform7;
   post_id?: PostId4;
@@ -1866,10 +1895,43 @@ export interface Metric {
   raw?: Raw;
   reactions?: Reactions1;
   reposts?: Reposts1;
+  saves?: Saves;
   sends?: Sends1;
   source?: Source2;
   status?: Status5;
   upload_id?: UploadId1;
+}
+/**
+ * What the numbers say: the performance review written from the analytics exports (pbs/performance.py).
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "PerformanceInfo".
+ */
+export interface PerformanceInfo {
+  at: At31;
+  audience?: Audience;
+  caveats?: Caveats;
+  error?: Error;
+  findings?: Findings;
+  headline?: Headline;
+  model?: Model3;
+  period?: Period;
+  platforms?: Platforms2;
+  posts?: Posts6;
+  provider?: Provider3;
+  status?: Status6;
+  try_next?: TryNext;
+  what_doesnt?: WhatDoesnt;
+  what_works?: WhatWorks;
+}
+/**
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "PerformanceFinding".
+ */
+export interface PerformanceFinding {
+  detail?: Detail1;
+  evidence?: Evidence1;
+  title: Title9;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -1882,7 +1944,7 @@ export interface Playbook1 {
   id: Id38;
   rules?: Rules;
   source?: Source4;
-  status?: Status6;
+  status?: Status7;
   summary?: Summary2;
   version: Version;
 }
@@ -1893,7 +1955,7 @@ export interface Playbook1 {
 export interface PlaybookRule {
   added_in?: AddedIn;
   confidence?: Confidence;
-  evidence?: Evidence1;
+  evidence?: Evidence2;
   id: Id39;
   pillar?: Pillar5;
   platform?: Platform8;
@@ -1926,7 +1988,7 @@ export interface Post {
   reward?: Reward;
   reward_parts?: RewardParts;
   time_to_post_minutes?: TimeToPostMinutes;
-  title?: Title9;
+  title?: Title10;
 }
 export interface EditStats {
   [k: string]: unknown;
@@ -1949,15 +2011,15 @@ export interface Proposal {
   created_at?: CreatedAt8;
   decided_at?: DecidedAt;
   decision_note?: DecisionNote;
-  detail?: Detail1;
-  error?: Error;
-  evidence?: Evidence2;
+  detail?: Detail2;
+  error?: Error1;
+  evidence?: Evidence3;
   id: Id41;
   kind: Kind10;
   payload?: Payload;
   source?: Source5;
-  status?: Status7;
-  title: Title10;
+  status?: Status8;
+  title: Title11;
 }
 export interface Payload {
   [k: string]: unknown;
@@ -1996,8 +2058,8 @@ export interface Quota1 {
   last_error?: LastError2;
   last_error_at?: LastErrorAt;
   last_ok_at?: LastOkAt;
-  model?: Model3;
-  provider: Provider3;
+  model?: Model4;
+  provider: Provider4;
   requests?: Requests;
   tokens_in?: TokensIn;
   tokens_out?: TokensOut;
@@ -2007,8 +2069,8 @@ export interface Quota1 {
  * via the `definition` "RejectedEvent".
  */
 export interface RejectedEvent {
-  at?: At31;
-  error?: Error1;
+  at?: At32;
+  error?: Error2;
   id: Id42;
   type?: Type31;
 }
@@ -2020,12 +2082,12 @@ export interface SystemReport {
   actions?: Actions;
   created_at: CreatedAt9;
   id: Id43;
-  period?: Period;
+  period?: Period1;
   proposals?: Proposals1;
   sections?: Sections;
   week: Week1;
 }
-export interface Period {
+export interface Period1 {
   [k: string]: unknown;
 }
 export interface Sections {
@@ -2039,15 +2101,15 @@ export interface Request {
   card_ids?: CardIds;
   completed_at?: CompletedAt;
   created_at?: CreatedAt10;
-  error?: Error2;
+  error?: Error3;
   id: Id44;
   notes?: Notes4;
-  platforms?: Platforms2;
+  platforms?: Platforms3;
   query: Query2;
   search?: Search;
-  status?: Status8;
+  status?: Status9;
 }
-export interface Platforms2 {
+export interface Platforms3 {
   [k: string]: number;
 }
 /**
@@ -2062,7 +2124,7 @@ export interface Run {
   llm?: Llm;
   notes?: Notes5;
   started_at: StartedAt;
-  status?: Status9;
+  status?: Status10;
   steps?: Steps;
   task: Task;
   trigger?: Trigger;
@@ -2072,7 +2134,7 @@ export interface Run {
  * via the `definition` "RunError".
  */
 export interface RunError {
-  at?: At32;
+  at?: At33;
   message?: Message;
   type: Type32;
   where: Where;
@@ -2130,7 +2192,7 @@ export interface Stance {
   keywords?: Keywords1;
   positions?: Positions1;
   sources?: Sources4;
-  status?: Status10;
+  status?: Status11;
   tier?: Tier4;
   updated_at?: UpdatedAt2;
 }
@@ -2181,13 +2243,13 @@ export interface Pillars {
  */
 export interface MetricUpload {
   created_at?: CreatedAt11;
-  error?: Error3;
+  error?: Error4;
   id: Id48;
   note?: Note9;
   paths?: Paths1;
   processed_at?: ProcessedAt;
   results?: Results;
-  status?: Status11;
+  status?: Status12;
   week?: Week2;
 }
 /**
@@ -2217,7 +2279,7 @@ export interface Stats2 {
  * via the `definition` "DeskWarning".
  */
 export interface DeskWarning {
-  at?: At33;
+  at?: At34;
   code: Code;
   level?: Level;
   message: Message1;

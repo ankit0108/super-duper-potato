@@ -245,7 +245,7 @@ class WeeklyBatch(_Strict):
 
 class ProviderSpec(_Strict):
     kind: Literal["gemini", "openai", "fake"]
-    # A model ID, or for Gemini "auto:flash" / "auto:flash-lite": the newest models of that family the key
+    # A model ID, or for Gemini "auto:flash" / "auto:flash-lite" / "auto:pro": the newest models of that family the key
     # can use, found at run time, so retired and renamed models don't break the pipeline.
     model: str
     # Tried in order when the model is retired or (with quota_per_model) reaches its daily quota.
@@ -263,6 +263,8 @@ class ProviderSpec(_Strict):
     trains_on_inputs: bool = True
     vision: bool = False
     grounding: bool = False
+    # How hard Gemini 3 models think before answering: "low" keeps drafts fast; "high" for the reviews.
+    thinking: Literal["low", "high"] = "low"
 
 
 class LLM(_Strict):

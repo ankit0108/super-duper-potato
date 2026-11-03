@@ -1,7 +1,7 @@
 """The tick: every run does whatever is due, so no work depends on one particular run firing (FR-28).
 
 Order: ingest desk events → doctor if asked → expire → work Ankit is waiting on (answers, rewrites,
-'draft this', cross-posts) → requests → metrics → morning delivery if due → Saturday batch if due → reflection
+'draft this', cross-posts) → requests → metrics → performance review if there are new numbers → morning delivery if due → Saturday batch if due → reflection
 if due → monthly platform research → learning → prune → export.
 """
 
@@ -22,6 +22,7 @@ from . import (
     log,
     metrics,
     notify,
+    performance,
     platform,
     playbook,
     reflect,
@@ -35,7 +36,7 @@ from .scout.sources import sync_seeds
 from .topics import build_topics
 
 TASKS = {"morning", "weekly_batch", "reflection", "doctor", "report", "scout", "work", "requests", "metrics",
-         "stances", "rewards", "platform_research"}
+         "stances", "rewards", "platform_research", "analysis"}
 
 
 def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | None = None, force: bool = False,
@@ -71,6 +72,10 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
     if "metrics" in ctx.hints or ctx.store.count("metric_uploads", "status = 'pending'"):
         with ctx.run.step("metrics") as s:
             s["stats"] = metrics.process_uploads(ctx)
+    if "analysis" in ctx.hints:
+        # New numbers (or he asked): the performance review, by the strongest model the keys allow.
+        with ctx.run.step("analysis") as s:
+            s["result"] = performance.run(ctx)
     if "stances" in ctx.hints:
         with ctx.run.step("stances") as s:
             s["added"] = stances.propose(ctx, int(ctx.store.get_setting("stance_proposals_wanted", 3) or 3))

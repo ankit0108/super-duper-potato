@@ -24,13 +24,16 @@ API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 MAX_AUTO_MODELS = 4
 _NAME_RE = re.compile(r"^gemini-(?P<ver>\d+(?:\.\d+)*)-(?P<family>flash-lite|flash|pro)(?P<suffix>-.*)?$")
 _PLAIN_SUFFIX = re.compile(r"^(-\d{3}|-latest|-preview(-[\d-]+)?)?$")  # not -image, -tts, -live, -exp ...
-_LATEST_ALIAS = {"flash": "gemini-flash-latest", "flash-lite": "gemini-flash-lite-latest"}
+_LATEST_ALIAS = {"flash": "gemini-flash-latest", "flash-lite": "gemini-flash-lite-latest", "pro": "gemini-pro-latest"}
 
 
 def family_of(model: str) -> str:
     if model.startswith("auto:"):
         return model.split(":", 1)[1]
-    return "flash-lite" if "flash-lite" in model else "flash"
+    m = _NAME_RE.match(model)
+    if m:
+        return m["family"]
+    return "flash-lite" if "flash-lite" in model else "pro" if "-pro" in model else "flash"
 
 
 def major_version(model: str) -> int | None:
@@ -153,9 +156,9 @@ class GeminiProvider:
         major = major_version(model)
         if major is not None and major >= 3:
             # Gemini 3 is tuned for its default temperature (lower values can loop), and "low" thinking
-            # keeps drafts fast; older models take the task's temperature.
+            # keeps drafts fast ("high" for the reviews); older models take the task's temperature.
             if not self._no_thinking_config:
-                gen["thinkingConfig"] = {"thinkingLevel": "LOW"}
+                gen["thinkingConfig"] = {"thinkingLevel": self.spec.thinking.upper()}
         elif req.temperature is not None:
             gen["temperature"] = req.temperature
         body: dict[str, Any] = {"contents": [{"role": "user", "parts": parts}], "generationConfig": gen}

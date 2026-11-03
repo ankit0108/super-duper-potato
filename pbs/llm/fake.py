@@ -382,6 +382,35 @@ def _edit(req: LLMRequest, data: Any) -> Any:
     return {"text": fix(data.get("text") or ""), "posts": [fix(p) for p in data.get("posts") or []]}
 
 
+def _analysis(req: LLMRequest, data: Any) -> Any:
+    """A performance review built from the summary it was given, so its numbers are real."""
+    summary = (data or {}).get("summary") or {}
+    findings = []
+    for platform, s in summary.items():
+        name = "LinkedIn" if platform == "linkedin" else "X"
+        days = [g for g in s.get("by_weekday") or [] if g.get("median_impressions") is not None]
+        if days:
+            best = days[0]
+            findings.append({"title": f"{best['weekday']} is your strongest day on {name}",
+                             "detail": f"Posts on {best['weekday']} are seen most; put the posts you care about there.",
+                             "evidence": f"{best['posts']} post(s) on {best['weekday']}: median "
+                                         f"{best['median_impressions']:,.0f} impressions vs "
+                                         f"{s.get('median_impressions') or 0:,.0f} overall"})
+        top = (s.get("best_rate") or [None])[0]
+        if top:
+            findings.append({"title": f"Your best {name} post earned {top.get('engagement_rate')}% engagement",
+                             "detail": "Posts that make one specific point get the most replies.",
+                             "evidence": f"{top.get('date')}: {top.get('impressions', 0):,} impressions, "
+                                         f"{top.get('engagement', 0):,} engagements"})
+    return {"headline": findings[0]["title"] if findings else "Not enough numbers yet.",
+            "findings": findings,
+            "what_works": ["Specific, first-hand posts with one clear point"],
+            "what_doesnt": ["Link-only posts with no take of your own"],
+            "try_next": ["Post your strongest idea on your best day for two weeks and compare median impressions"],
+            "audience": "Mostly engineers and engineering leaders." if (data or {}).get("audience") else "",
+            "caveats": ["Exported posts PBS didn't draft have no text, so topics can't be compared for them"]}
+
+
 def _default(req: LLMRequest, data: Any) -> Any:
     return {"ok": True}
 
@@ -406,5 +435,6 @@ DEFAULT_HANDLERS: dict[str, Handler] = {
     "pulse": _pulse,
     "humor_write": _humor_write,
     "humor_judge": _humor_judge,
+    "analysis": _analysis,
     "default": _default,
 }

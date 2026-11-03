@@ -59,7 +59,11 @@ DROPPED_TAG = "#Automation"
 # Days when his LinkedIn post goes out with a visual he asked for that morning.
 VISUAL_DAYS = {15: "flow", 17: "carousel", 19: "stat"}  # too broad: he removes it from LinkedIn posts, and the drafts learn to leave it out
 # What "auto:flash" and "auto:flash-lite" resolved to when this demo was written.
-DEMO_MODELS = {"gemini": "gemini-3.6-flash", "gemini_lite": "gemini-3.5-flash-lite"}
+DEMO_MODELS = {"gemini": "gemini-3.6-flash", "gemini_lite": "gemini-3.5-flash-lite", "gemini_pro": "gemini-3.5-pro"}
+# Tweets from before PBS, in his X analytics export: kept as history for the performance review.
+X_HISTORY = [("2026-08-24", "Shipped the approval step before the agent. Boring, and the reason nothing broke.", 640, 21),
+             ("2026-08-31", "Every 'AI-first' roadmap I've seen this month is a spreadsheet with a chatbot on top.",
+              1850, 64)]
 PINNED = {7: "On this day in 1949", 8: "Engineers' Day"}  # history posts on 14 and 15 September
 
 
@@ -633,14 +637,38 @@ class Simulation:
         blob = self.root / "inbox" / "blobs" / "upl_demo_week39" / "linkedin-week.png"
         blob.parent.mkdir(parents=True, exist_ok=True)
         blob.write_bytes(json.dumps(shot).encode("utf-8"))  # the demo model 'reads' this as a screenshot
+        self.x_export(blob.parent / "x-content.csv", store)
         return [
             {"type": "metrics.upload", "upload_id": "upl_demo_week39", "week": timeutil.iso_week(day),
-             "paths": ["inbox/blobs/upl_demo_week39/linkedin-week.png"], "note": "LinkedIn analytics, last 7 days",
-             "at": t},
+             "paths": ["inbox/blobs/upl_demo_week39/linkedin-week.png", "inbox/blobs/upl_demo_week39/x-content.csv"],
+             "note": "LinkedIn screenshot and X's content export", "at": t},
             {"type": "request.create", "request_id": "req_demo_mcp", "query": "MCP servers in production",
              "platforms": {"linkedin": 1, "x": 2}, "notes": "", "at": t},
             {"type": "run.request", "tasks": ["doctor"], "at": t},
         ]
+
+    def x_export(self, path: Path, store: Store) -> None:
+        """X's content export (Analytics → Export data): his posts with their numbers, read exactly."""
+        import csv
+
+        rows = []
+        for post in store.select("posts", "platform = 'x'", order="posted_at"):
+            v = self.metric_values(post, DAYS - 1, later=1.1)
+            rows.append((timeutil.local(timeutil.parse(post["posted_at"]), TZ).date().isoformat(),  # type: ignore[arg-type]
+                         post["final_text"], v))
+        for day, text, impressions, likes in X_HISTORY:
+            rows.append((day, text, {"impressions": impressions, "reactions": likes, "comments": likes // 6,
+                                     "reposts": likes // 9, "followers_gained": 1}))
+        with path.open("w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(["Post id", "Date", "Post text", "Post Link", "Impressions", "Likes", "Engagements",
+                        "Bookmarks", "Shares", "New follows", "Replies", "Reposts", "Profile visits"])
+            for n, (day, text, v) in enumerate(rows):
+                pid = f"19700000000000{n:05d}"
+                likes, replies, reposts = v.get("reactions", 0), v.get("comments", 0), v.get("reposts", 0)
+                w.writerow([pid, day, text, f"https://x.com/demo/status/{pid}", v.get("impressions", 0), likes,
+                            likes + replies + reposts + 3, 1, 0, v.get("followers_gained", 0), replies, reposts,
+                            v.get("profile_views", 2)])
 
     # -- this morning -----------------------------------------------------------------------------
     def today(self) -> None:
