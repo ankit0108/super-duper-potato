@@ -408,7 +408,7 @@ def _analysis(req: LLMRequest, data: Any) -> Any:
             "what_doesnt": ["Link-only posts with no take of your own"],
             "try_next": ["Post your strongest idea on your best day for two weeks and compare median impressions"],
             "audience": "Mostly engineers and engineering leaders." if (data or {}).get("audience") else "",
-            "caveats": ["Exported posts PBS didn't draft have no text, so topics can't be compared for them"]}
+            "caveats": ["A few weeks of numbers: patterns that rest on two or three posts may not hold"]}
 
 
 def _default(req: LLMRequest, data: Any) -> Any:

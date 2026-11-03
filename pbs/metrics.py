@@ -259,13 +259,16 @@ class _Matcher:
         key = analytics_files.post_key(row.url)
         if key and key in self.by_key:
             return self.by_key[key], 1.0, True
-        nearby = bool(self._near(platform, row.date, 0))
+        # PBS's posts that day that could be this one: not those whose own link names a different post.
+        same_day = [p for p in self._near(platform, row.date, 0)
+                    if not (key and analytics_files.post_key(p.get("post_url")))]
+        nearby = bool(same_day)
         if row.text:
             post_id, conf = match_post(self.ctx, platform, row.text, row.date)
-            if post_id and conf >= 0.5:
+            if post_id and conf >= 0.5 and not (key and analytics_files.post_key(
+                    (self.ctx.store.get("posts", post_id) or {}).get("post_url"))):
                 return post_id, conf, True
-        same_day = self._near(platform, row.date, 0)
-        if len(same_day) == 1 and not same_day[0].get("post_url"):
+        if len(same_day) == 1:
             others = sum(1 for p in parsed.posts if p.date == row.date and (p.platform or parsed.platform) == platform)
             return same_day[0]["id"], 0.8 if others == 1 else 0.5, True
         return None, 0.0, nearby

@@ -363,6 +363,7 @@ llm:
   providers:
     # The strongest free model, for the work where quality matters more than speed: the performance review
     # of his analytics and the weekly review. Its free quota is small (or none on some keys); Flash takes over.
+    # Slow and paced (2 a minute), so it's kept off the morning's routes.
     gemini_pro:
       kind: gemini
       model: auto:pro
@@ -428,7 +429,7 @@ llm:
     reflect: [gemini_pro, gemini, groq, gemini_lite]
     analysis: [gemini_pro, gemini, groq, gemini_lite, openrouter]
     voice: [groq, gemini, gemini_lite]
-    vision: [gemini_pro, gemini, gemini_lite]
+    vision: [gemini, gemini_lite]
     search: [gemini]
     pulse: [gemini]
     humor_write: [gemini, groq, gemini_lite, openrouter]

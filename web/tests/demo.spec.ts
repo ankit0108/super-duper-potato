@@ -506,7 +506,7 @@ test("a stance in your own words shows as saved, and stays after leaving the pag
 
 test("confirm an extracted number and add numbers by hand", async ({ page }) => {
   await page.goto("/#/metrics");
-  await expect(page.getByRole("heading", { name: /Check 1 extracted number/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Check 1 set of numbers/ })).toBeVisible();
   await page.getByRole("button", { name: "Confirm" }).click();
   await expect(page.getByText("Confirmed.")).toBeVisible();
   await page.getByRole("button", { name: "Add numbers" }).first().click();
@@ -514,6 +514,33 @@ test("confirm an extracted number and add numbers by hand", async ({ page }) => 
   await dialog.getByRole("textbox").first().fill("1,234");
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Numbers saved. Rewards update on the next run.")).toBeVisible();
+});
+
+test("upload LinkedIn's Excel export and read what the numbers say, with the model that wrote it", async ({ page }) => {
+  await page.goto("/#/metrics");
+  const review = page.locator("section", { has: page.getByRole("heading", { name: "What your numbers say" }) });
+  await expect(review.getByText(/Written by gemini-3\.5-pro on .* from \d+ posts/)).toBeVisible();
+  await expect(review.getByText("Keep doing")).toBeVisible();
+  await expect(review.locator("li").first()).toContainText("impressions");
+
+  // Last week's upload: a screenshot and X's CSV export, each with what it gave.
+  await expect(page.getByText(/X export: \d+ posts, \d+ matched to PBS posts, 2 earlier/)).toBeVisible();
+
+  const input = page.getByLabel("Analytics files");
+  await expect(input).toHaveAttribute("accept", /\.xlsx/);
+  await input.setInputFiles({
+    name: "Content_2026-09-01_2026-09-27.xlsx",
+    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    buffer: Buffer.from("PK\u0003\u0004 demo"),
+  });
+  await expect(page.getByText("Export: Content_2026-09-01_2026-09-27.xlsx")).toBeVisible();
+  await page.getByRole("button", { name: "Upload", exact: true }).click();
+  await expect(page.getByText("Demo: upload simulated.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Where do I get the export?" }).click();
+  await expect(page.getByText(/pick a date range and choose/)).toBeVisible();
+  await review.getByRole("button", { name: "Analyse again" }).click();
+  await expect(page.getByText("Asked for a fresh review. It appears after the run.")).toBeVisible();
 });
 
 test("every page renders, with no sideways scrolling", async ({ page }) => {

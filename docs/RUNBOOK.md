@@ -73,8 +73,8 @@ sources, with one or two optional questions under **Make it yours**. Post the dr
 question in a sentence or two (typing or dictation): one to three minutes later the draft is rewritten from your
 answers plus the sources. A card with no recent sources waits for your answers.
 
-**Sunday (15 minutes).** Metrics: upload the week's LinkedIn and X analytics screenshots, confirm anything the
-review queue flags, do the follower check-in. Then **System → Run weekly review**. Monday morning, look at
+**Sunday (15 minutes).** Metrics: upload LinkedIn's analytics export (.xlsx) and X's (.csv), or screenshots,
+confirm anything the review queue flags, do the follower check-in, and read **What your numbers say**. Then **System → Run weekly review**. Monday morning, look at
 **Insights → Proposals** and approve or reject each one (a proposal that only asks you to look at something has
 **Got it** instead); the rest of the learning needs nothing from you.
 
@@ -122,6 +122,27 @@ and *Carousel*.
 ("Understood as: …"); if it's off, say what you mean in the notes and ask again. Stances: record or change a
 view; your wording shows under **Your stance** once saved.
 
+### Analytics exports and the performance review
+
+- **Where the files come from.** LinkedIn: your analytics (Me → Analytics, or **View analytics** under a post),
+  pick a date range, **Export**: an .xlsx file. A single post's analytics page has its own Export. X: Analytics →
+  **Export data** gives a .csv (X keeps analytics for Premium accounts). Upload them as they are under
+  **Metrics → Upload analytics**; screenshots still work.
+- **How they're read.** Exports are read by code (`pbs/analytics_files.py`), cell by cell, so the numbers are
+  exact; no model guesses them. Screenshots are read by the vision model and can need a check.
+- **What happens to each post.** A post PBS drafted is matched by the id in its link, its text or (with only a
+  date) by being PBS's one post that day; its numbers feed the learner like numbers typed in by hand. Posts you
+  made before PBS, or without it, are kept as *history*: they count in the review, not in the learner's rewards.
+  A row that might be one of PBS's posts but isn't certain waits in the review queue: pick the post, or **Not a
+  PBS post**. Uploading the same export again the same day updates the numbers rather than adding them twice.
+- **The review.** After an upload with new numbers, the run works out the medians, engagement rates, best and
+  weakest posts, days of the week, hours, formats and topics, and the strongest model the keys allow writes
+  **What your numbers say**: findings with the numbers behind them, what to keep, what to change, and experiments
+  for the next two weeks. That model is Gemini Pro (`gemini_pro` in **Settings → Models**, `auto:pro`, thinking
+  set high) when the free key has it, otherwise Gemini Flash, then Groq and the rest. The review names the model
+  that wrote it. **Analyse again** asks for a new one. It uses one model call, and the numbers go to Gemini like
+  the rest of the pipeline's work.
+
 ## When something's wrong
 
 The desk's banners say what happened; **System** shows every run, its steps and errors, provider usage and the
@@ -147,6 +168,8 @@ desk is where to look first.
 | The Studio says the free quota is used up | Each model has its own small daily free allowance, and Google Search inside the Studio has a separate, smaller one. The Studio answers without search when only search is used up (the reply says so), waits out short per-minute limits, then moves down its models: the newest Gemini flash models, flash-lite, then Gemma (much larger free limits, no search). A model out of quota is skipped until the reset at midnight US Pacific time (the message says when that is for you). **Settings → Studio** lists the models in order and which are used up. If the key is the pipeline's `GEMINI_API_KEY` or from the same Google Cloud project, the morning run shares its quota: make the Studio's key with **Create API key in new project** |
 | A Studio post or carousel "didn't come through cleanly" | The model's block wasn't valid. Tap **Try again** (or **Write it again** under the reply) |
 | Share → PBS Desk isn't in Android's share sheet | Install the desk from Chrome (**Add to Home screen**), open it once, then try again. Sharing only works with the installed app |
+| An export says "No analytics found in this file" | The file isn't one of LinkedIn's or X's analytics exports, or its columns were renamed beyond recognition. Export it again from the analytics page (not a copy re-saved from another app), or upload a screenshot instead. LinkedIn's .xls (old Excel) files aren't read: open and save as .xlsx |
+| The review says it was written by Flash, not Pro | Gemini Pro's free quota is small (or not offered on some keys) and it was used up or unavailable, so the next best model wrote it. **Analyse again** after midnight US Pacific time, or put a paid model first in **Settings → Models** (`llm.routes.analysis`) |
 | A change you made "didn't stick" | **System → Rejected changes** lists anything the pipeline couldn't apply, with the reason. *Changes in flight* shows what's still waiting for a run |
 | A card is **Blocked** | It matched your blocklist. Nothing was reworded. Edit the draft by hand or skip it. If the match is a false positive, refine the term in `PBS_BLOCKLIST` |
 | No quote cards, or the run log says `quotes: 0 verified, 6 not found on Wikiquote` | The day's quotes weren't found word for word on their Wikiquote pages (a page renamed, or the quote worded differently there), so they were left out, as designed. A few not found each day is normal. If it's every quote, Wikiquote may be refusing GitHub's servers: the doctor's `Sources` line shows the source's error. Fix a quote's wording or `page` in `pbs/defaults/quote_pools.yaml` to match the page |
@@ -175,7 +198,8 @@ Everything runs on free tiers: Actions minutes (unlimited on a public repo), Pag
 news sources. A normal day uses about 25–40 model calls (15 drafts, triage in two or three batches, and the editor
 pass), with a hard cap of 100 in settings (the Studio uses its own key from your browser, so it doesn't count); each cross-post is
 one more, as is each visual, each draft the editor pass rewrites (at most 12 a run, and only when the run has
-calls to spare), and the monthly platform research one. The one upgrade worth paying for, if drafts
+calls to spare), the monthly platform research one, and each performance review one (on Gemini Pro's own small
+free quota when the key has it). The one upgrade worth paying for, if drafts
 stay generic after a month, is a stronger drafting model: **Settings → Models**.
 
 ## Development

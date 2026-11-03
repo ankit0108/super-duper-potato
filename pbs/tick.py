@@ -1,8 +1,8 @@
 """The tick: every run does whatever is due, so no work depends on one particular run firing (FR-28).
 
 Order: ingest desk events → doctor if asked → expire → work Ankit is waiting on (answers, rewrites,
-'draft this', cross-posts) → requests → metrics → performance review if there are new numbers → morning delivery if due → Saturday batch if due → reflection
-if due → monthly platform research → learning → prune → export.
+'draft this', cross-posts) → requests → metrics → morning delivery if due → Saturday batch if due → reflection
+if due → monthly platform research → performance review if there are new numbers → learning → prune → export.
 """
 
 from __future__ import annotations
@@ -72,10 +72,6 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
     if "metrics" in ctx.hints or ctx.store.count("metric_uploads", "status = 'pending'"):
         with ctx.run.step("metrics") as s:
             s["stats"] = metrics.process_uploads(ctx)
-    if "analysis" in ctx.hints:
-        # New numbers (or he asked): the performance review, by the strongest model the keys allow.
-        with ctx.run.step("analysis") as s:
-            s["result"] = performance.run(ctx)
     if "stances" in ctx.hints:
         with ctx.run.step("stances") as s:
             s["added"] = stances.propose(ctx, int(ctx.store.get_setting("stance_proposals_wanted", 3) or 3))
@@ -108,6 +104,11 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
         # Monthly: what's changed on LinkedIn and X, proposed as guide updates for him to approve.
         with ctx.run.step("platform_research") as s:
             s["result"] = platform.research(ctx)
+    if "analysis" in ctx.hints or performance.due(ctx):
+        # New numbers (or he asked): the performance review, by the strongest model the keys allow. After the
+        # morning set, so a slow review never holds it up; a review that waited for quota is tried again.
+        with ctx.run.step("analysis") as s:
+            s["result"] = performance.run(ctx)
     with ctx.run.step("learn"):
         learn.update_rewards(ctx)
         voice.update_voice(ctx, weekly=False)

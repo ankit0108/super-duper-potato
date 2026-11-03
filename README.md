@@ -64,7 +64,8 @@ visuals in your voice, researched with Google Search, to copy, share or save to 
 the browser with a key kept on the device; the pipeline exports the style it follows) · card editor (editable hooks, hashtag chips, the first comment, visuals with PNG and PDF download, live
 checks and platform tips, thread tools, rewrite, cross-post or move to the other platform, optional questions,
 dictation) · Requests (the search
-says what it understood) · Stances · Metrics (screenshot upload, review queue, check-in) · Insights (charts,
+says what it understood) · Stances · Metrics (LinkedIn's .xlsx and X's .csv analytics exports read exactly, or screenshots; review queue, check-in,
+and a performance review by the strongest model the keys allow) · Insights (charts,
 playbook, the platform guide and its research, proposals, weekly report, voice and how AI-sounding the drafts are,
 the skip reasons and cross-posts the ranking uses, posts with and without a visual) · Sources · History · Settings · System.
 
@@ -76,7 +77,7 @@ weekly reviews, then a fresh morning.
 
 | Path | What's there |
 | --- | --- |
-| `pbs/` | The pipeline: `tick.py` (orchestrator), `scout/`, `topics.py`, `rank.py`, `bandit.py`, `draft.py`, `hashtags.py`, `platform.py` (platform guide and research), `visuals.py`, `studio.py` (the Studio kit and saved Studio posts), `pulse.py` (what's working on LinkedIn and X), `humor.py` (the writers' room), `images.py` (AI images), `guardrails.py`, `learn.py`, `voice.py`, `reflect.py`, `report.py`, `metrics.py`, `llm/`, `export.py`, `contracts.py` (the desk contract) |
+| `pbs/` | The pipeline: `tick.py` (orchestrator), `scout/`, `topics.py`, `rank.py`, `bandit.py`, `draft.py`, `hashtags.py`, `platform.py` (platform guide and research), `visuals.py`, `studio.py` (the Studio kit and saved Studio posts), `pulse.py` (what's working on LinkedIn and X), `humor.py` (the writers' room), `images.py` (AI images), `guardrails.py`, `learn.py`, `voice.py`, `reflect.py`, `report.py`, `metrics.py` and `analytics_files.py` (analytics uploads), `performance.py` (the performance review), `llm/`, `export.py`, `contracts.py` (the desk contract) |
 | `pbs/defaults/` | Default settings, sources, stances, the platform guide, voice rules, interview questions and the profile template |
 | `pbs/prompts/` | Versioned prompt templates |
 | `pbs/demo/` | Offline world (mock feeds + demo model) and the demo builder |

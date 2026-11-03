@@ -284,8 +284,8 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
           m.id === ev.metric_id
             ? {
                 ...m,
-                status: ev.action === "reject" ? "rejected" : "confirmed",
-                post_id: ev.post_id ?? m.post_id,
+                status: ev.action === "reject" ? "rejected" : ev.action === "history" ? "history" : "confirmed",
+                post_id: ev.action === "history" ? null : (ev.post_id ?? m.post_id),
                 ...(ev.action === "edit" && ev.values ? ev.values : {}),
               }
             : m,

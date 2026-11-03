@@ -22,6 +22,7 @@ from .context import Ctx
 from .llm.base import AllProvidersFailed, BudgetExhausted, LLMError, LLMRequest, why_unavailable
 
 KEY = "performance_review"
+DUE_KEY = "performance_due"  # set when a review had to wait for model quota: the next run tries again
 MIN_POSTS = 3
 MAX_POSTS = 150
 ENGAGEMENT_PARTS = ("reactions", "comments", "reposts", "sends", "saves")
@@ -57,6 +58,10 @@ class _Review(BaseModel):
 
 def latest(ctx: Ctx) -> dict[str, Any] | None:
     return ctx.store.get_setting(KEY)
+
+
+def due(ctx: Ctx) -> bool:
+    return bool(ctx.store.get_setting(DUE_KEY))
 
 
 def _engagement(m: dict[str, Any]) -> int | None:
@@ -213,6 +218,7 @@ def run(ctx: Ctx) -> dict[str, Any]:
                   "headline": f"Only {len(rows)} post{'s' if len(rows) != 1 else ''} with numbers so far: "
                               f"upload an export covering a few weeks for a review."}
         ctx.store.set_setting(KEY, review)
+        ctx.store.set_setting(DUE_KEY, False)
         return {"status": "too_little", "posts": len(rows)}
     prompt = prompting.render("performance", display_name=ctx.settings.display_name,
                               today=ctx.local_date_str(), input_json=data)
@@ -221,16 +227,19 @@ def run(ctx: Ctx) -> dict[str, Any]:
                             "invent one.",
                      prompt_version=prompting.version("performance"))
     old = latest(ctx) or {}
+    kept = old.get("status") == "ok"  # a good review stays up, with a note, when a new one can't be written
+    ctx.store.set_setting(DUE_KEY, False)
     try:
         out, resp = ctx.llm.call_json(req, _Review)
     except BudgetExhausted as exc:
-        ctx.store.set_setting(KEY, {**old, **base, "status": "waiting", "error": why_unavailable(exc)}
-                              if not old.get("headline") else {**old, "error": why_unavailable(exc)})
+        ctx.store.set_setting(KEY, {**old, "error": why_unavailable(exc)} if kept
+                              else {**base, "status": "waiting", "error": why_unavailable(exc)})
+        ctx.store.set_setting(DUE_KEY, True)
         log.info("performance: waiting for model quota")
         return {"status": "waiting", "posts": len(rows)}
     except (AllProvidersFailed, LLMError, ValueError) as exc:
-        ctx.store.set_setting(KEY, {**old, **base, "status": "failed", "error": "No model could write the review"}
-                              if not old.get("headline") else {**old, "error": "The last try failed"})
+        ctx.store.set_setting(KEY, {**old, "error": "the models couldn't be reached"} if kept
+                              else {**base, "status": "failed", "error": "No model could write the review"})
         log.info(f"performance: failed ({type(exc).__name__})")
         return {"status": "failed", "posts": len(rows)}
     review = {**base, "status": "ok", "model": resp.model, "provider": resp.provider,

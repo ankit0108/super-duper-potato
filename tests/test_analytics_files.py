@@ -259,3 +259,46 @@ def test_the_tick_reviews_after_an_upload(make_ctx, tmp_path):
 
     review = Store.open(ctx.data_root).get_setting(performance.KEY)
     assert review and review["posts"] >= 2
+
+
+def test_a_review_that_waits_for_quota_is_tried_again_on_the_next_run(make_ctx):
+    from pbs.llm.base import BudgetExhausted
+
+    ctx = make_ctx()
+    for i in range(3):
+        ctx.store.insert("metrics", {"id": f"met_w{i}", "platform": "linkedin", "impressions": 500 + i,
+                                     "reactions": 5, "status": "history", "source": "file",
+                                     "captured_at": timeutil.now_iso(), "created_at": timeutil.now_iso(),
+                                     "raw": {"url": LI.format(7370000000000000100 + i), "posted_date": "2026-09-1" + str(i)}})
+
+    def no_budget(req, schema=None, repair=True):
+        raise BudgetExhausted("per-run LLM call cap reached")
+
+    real = ctx.llm.call_json
+    ctx.llm.call_json = no_budget
+    assert performance.run(ctx)["status"] == "waiting"
+    assert performance.due(ctx) and performance.latest(ctx)["status"] == "waiting"
+    ctx.llm.call_json = real
+    assert performance.run(ctx)["status"] == "ok"
+    assert not performance.due(ctx)
+
+    # A good review stays up, with a note, when the next one can't be written.
+    ctx.llm.call_json = no_budget
+    performance.run(ctx)
+    kept = performance.latest(ctx)
+    assert kept["status"] == "ok" and kept["findings"] and "quota" in kept["error"]
+
+
+def test_a_pbs_post_with_a_different_link_isnt_a_candidate(make_ctx):
+    ctx = make_ctx()
+    morning_delivery(ctx)
+    card = ctx.store.select("cards", "platform = 'linkedin' AND status = 'suggested'", order="rank")[0]
+    learn.record_post(ctx, card, text="Agents need approval steps.", posts=None,
+                      post_url=LI.format(7370000000000000555), posted_at="2026-09-22T00:30:00Z",
+                      editing_seconds=None, hook_index=None)
+    blobs = ctx.data_root / "inbox" / "blobs"
+    blobs.mkdir(parents=True, exist_ok=True)
+    linkedin_export(blobs / "upl_d_1.xlsx", [(7370000000000000001, "9/22/2026", 80, 4100)])
+    _upload(ctx, "upl_d_1.xlsx", "upl_d")
+    (row,) = ctx.store.select("metrics")
+    assert row["status"] == "history"  # same day, but PBS's post links to another post
