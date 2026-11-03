@@ -164,9 +164,10 @@ def test_a_run_where_no_model_answers_is_partial_says_why_and_still_delivers_bri
     dead = {n: FakeProvider(n, fail_with=retired) for n in PROVIDERS}
     out = tick.run(tmp_path / "data", transport=web.transport(), llm_providers=dead, sleep=lambda s: None,
                    send_notifications=False, trigger="schedule")
-    assert out["status"] == "partial" and out["llm_calls"] == 0 and out["llm_failures"] == len(PROVIDERS)
+    morning = [n for n in PROVIDERS if n != "gemini_pro"]  # Pro is only on the reviews' routes
+    assert out["status"] == "partial" and out["llm_calls"] == 0 and out["llm_failures"] == len(morning)
     assert out["delivery"]["counts"] == {"linkedin": 5, "x": 10}  # the full set, as briefs
-    assert sum(len(p.calls) for p in dead.values()) == len(PROVIDERS)  # each tried once, then switched off
+    assert sum(len(p.calls) for p in dead.values()) == len(morning)  # each tried once, then switched off
     desk = json.loads((tmp_path / "data" / "desk" / "desk.json").read_text())
     DeskState.model_validate(desk)
     run = desk["runs"][0]

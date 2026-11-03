@@ -301,11 +301,16 @@ class Metric(_Out):
     followers_gained: int | None = None
     profile_views: int | None = None
     link_clicks: int | None = None
-    source: Literal["manual", "screenshot", "csv"] = "manual"
+    engagements: int | None = None
+    saves: int | None = None
+    members_reached: int | None = None
+    # "file": read exactly from an analytics export (LinkedIn's .xlsx, X's .csv).
+    source: Literal["manual", "screenshot", "csv", "file"] = "manual"
     upload_id: str | None = None
     extraction_confidence: float | None = None
     match_confidence: float | None = None
-    status: Literal["confirmed", "needs_review", "rejected"] = "confirmed"
+    # "history": a post from an export that PBS didn't draft; it counts in the performance review only.
+    status: Literal["confirmed", "needs_review", "rejected", "history"] = "confirmed"
     notes: str | None = None
     raw: dict[str, Any] | None = None
     created_at: str | None = None
@@ -624,6 +629,31 @@ class PulseConversation(_Out):
     url: str | None = None
 
 
+class PerformanceFinding(_Out):
+    title: str
+    detail: str = ""
+    evidence: str = ""
+
+
+class PerformanceInfo(_Out):
+    """What the numbers say: the performance review written from the analytics exports (pbs/performance.py)."""
+    at: str
+    model: str | None = Field(None, description="The model that wrote it")
+    provider: str | None = None
+    posts: int = 0
+    platforms: list[str] = []
+    period: str | None = None
+    headline: str = ""
+    findings: list[PerformanceFinding] = []
+    what_works: list[str] = []
+    what_doesnt: list[str] = []
+    try_next: list[str] = []
+    audience: str = ""
+    caveats: list[str] = []
+    status: Literal["ok", "waiting", "failed", "too_little"] = "ok"
+    error: str | None = None
+
+
 class PulseInfo(_Out):
     """What's working on LinkedIn and X: the social pulse's conversations over the last week (pbs/pulse.py)."""
     updated: str | None = None
@@ -665,6 +695,7 @@ class DeskState(_Out):
                           "sources}], research: {month, summary, articles, proposals}}")
     studio: StudioKit | None = None
     pulse: PulseInfo | None = None
+    performance: PerformanceInfo | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -838,7 +869,8 @@ class MetricsUploadEvent(_Event):
 class MetricsReviewEvent(_Event):
     type: Literal["metrics.review"]
     metric_id: str
-    action: Literal["confirm", "reject", "edit"]
+    # "history": not one of PBS's posts; kept for the performance review only.
+    action: Literal["confirm", "reject", "edit", "history"]
     post_id: str | None = None
     values: MetricValues | None = None
 
@@ -981,7 +1013,7 @@ class PlaybookRuleEvent(_Event):
 class RunRequestEvent(_Event):
     type: Literal["run.request"]
     tasks: list[Literal["morning", "weekly_batch", "reflection", "doctor", "report", "scout",
-                        "platform_research"]] = []
+                        "platform_research", "analysis"]] = []
     force: bool = False
     # "Get fresh posts" (tasks ["morning"], force): which platforms and how many cards for each (default: the
     # morning's), and whether to look for new sources first.

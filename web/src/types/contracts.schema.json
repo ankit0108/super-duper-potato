@@ -1905,6 +1905,17 @@
      "title": "Metrics",
      "type": "array"
     },
+    "performance": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/PerformanceInfo"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
     "platform_guide": {
      "anyOf": [
       {
@@ -2936,6 +2947,18 @@
      "default": null,
      "title": "Created At"
     },
+    "engagements": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Engagements"
+    },
     "extraction_confidence": {
      "anyOf": [
       {
@@ -2999,6 +3022,18 @@
      ],
      "default": null,
      "title": "Match Confidence"
+    },
+    "members_reached": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Members Reached"
     },
     "notes": {
      "anyOf": [
@@ -3089,6 +3124,18 @@
      "default": null,
      "title": "Reposts"
     },
+    "saves": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Saves"
+    },
     "sends": {
      "anyOf": [
       {
@@ -3106,7 +3153,8 @@
      "enum": [
       "manual",
       "screenshot",
-      "csv"
+      "csv",
+      "file"
      ],
      "title": "Source",
      "type": "string"
@@ -3116,7 +3164,8 @@
      "enum": [
       "confirmed",
       "needs_review",
-      "rejected"
+      "rejected",
+      "history"
      ],
      "title": "Status",
      "type": "string"
@@ -3362,7 +3411,8 @@
      "enum": [
       "confirm",
       "reject",
-      "edit"
+      "edit",
+      "history"
      ],
      "title": "Action",
      "type": "string"
@@ -3485,6 +3535,166 @@
     "paths"
    ],
    "title": "MetricsUploadEvent",
+   "type": "object"
+  },
+  "PerformanceFinding": {
+   "properties": {
+    "detail": {
+     "default": "",
+     "title": "Detail",
+     "type": "string"
+    },
+    "evidence": {
+     "default": "",
+     "title": "Evidence",
+     "type": "string"
+    },
+    "title": {
+     "title": "Title",
+     "type": "string"
+    }
+   },
+   "required": [
+    "title"
+   ],
+   "title": "PerformanceFinding",
+   "type": "object"
+  },
+  "PerformanceInfo": {
+   "description": "What the numbers say: the performance review written from the analytics exports (pbs/performance.py).",
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "audience": {
+     "default": "",
+     "title": "Audience",
+     "type": "string"
+    },
+    "caveats": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Caveats",
+     "type": "array"
+    },
+    "error": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Error"
+    },
+    "findings": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/PerformanceFinding"
+     },
+     "title": "Findings",
+     "type": "array"
+    },
+    "headline": {
+     "default": "",
+     "title": "Headline",
+     "type": "string"
+    },
+    "model": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The model that wrote it",
+     "title": "Model"
+    },
+    "period": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Period"
+    },
+    "platforms": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Platforms",
+     "type": "array"
+    },
+    "posts": {
+     "default": 0,
+     "title": "Posts",
+     "type": "integer"
+    },
+    "provider": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Provider"
+    },
+    "status": {
+     "default": "ok",
+     "enum": [
+      "ok",
+      "waiting",
+      "failed",
+      "too_little"
+     ],
+     "title": "Status",
+     "type": "string"
+    },
+    "try_next": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Try Next",
+     "type": "array"
+    },
+    "what_doesnt": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "What Doesnt",
+     "type": "array"
+    },
+    "what_works": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "What Works",
+     "type": "array"
+    }
+   },
+   "required": [
+    "at"
+   ],
+   "title": "PerformanceInfo",
    "type": "object"
   },
   "Playbook": {
@@ -5082,7 +5292,8 @@
        "doctor",
        "report",
        "scout",
-       "platform_research"
+       "platform_research",
+       "analysis"
       ],
       "type": "string"
      },

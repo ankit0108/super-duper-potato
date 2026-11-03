@@ -77,8 +77,8 @@ TABLES: dict[str, Table] = {
            json_cols="final_posts hashtags edit_stats hook_used features reward_parts guard", indexes="card_id platform"),
         _t("metrics",
            "post_id platform captured_at impressions reactions comments reposts sends followers_gained "
-           "profile_views link_clicks source upload_id extraction_confidence match_confidence status raw "
-           "notes created_at",
+           "profile_views link_clicks engagements saves members_reached source upload_id extraction_confidence "
+           "match_confidence status raw notes created_at",
            json_cols="raw", indexes="post_id status"),
         _t("metric_uploads", "paths week note status created_at processed_at results error",
            json_cols="paths results"),

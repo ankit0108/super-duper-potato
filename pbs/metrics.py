@@ -1,4 +1,9 @@
-"""Analytics screenshots → numbers matched to posts (FR-20). Low-confidence matches wait for review."""
+"""Analytics → numbers matched to posts (FR-20). Low-confidence matches wait for review.
+
+Two kinds of upload: exports (LinkedIn's .xlsx, X's .csv), read exactly by pbs/analytics_files.py with no model
+involved, and screenshots, read by the vision model. Exported posts that PBS didn't draft are kept as history:
+they count in the performance review (pbs/performance.py) but not in the learner's rewards.
+"""
 
 from __future__ import annotations
 
@@ -8,12 +13,18 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from . import ids, log, prompting, textutil, timeutil
+from . import analytics_files, ids, log, prompting, textutil, timeutil
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest, why_unavailable
 
 MIME = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
+SUFFIXES = (*MIME, *analytics_files.FILE_SUFFIXES)
 FIELDS = ("impressions", "reactions", "comments", "reposts", "sends", "followers_gained", "profile_views", "link_clicks")
+FILE_FIELDS = (*FIELDS, "engagements", "saves", "members_reached")
+DAYS_KEY = "analytics_days"
+AUDIENCE_KEY = "analytics_audience"
+TOTALS_KEY = "analytics_totals"
+KEEP_DAYS = 400
 
 
 def _to_int(v: Any) -> int | None:
@@ -113,7 +124,10 @@ def process_uploads(ctx: Ctx) -> dict[str, int]:
                 error = f"missing file {rel}"
                 continue
             try:
-                res = _extract(ctx, path.read_bytes(), MIME.get(path.suffix.lower(), "image/jpeg"), upload)
+                if path.suffix.lower() in analytics_files.FILE_SUFFIXES:
+                    res = import_file(ctx, path, upload)
+                else:
+                    res = _extract(ctx, path.read_bytes(), MIME.get(path.suffix.lower(), "image/jpeg"), upload)
                 results.append({"path": rel, **res})
                 stats["metrics"] += res["metrics"]
                 stats["needs_review"] += res["needs_review"]
@@ -138,7 +152,126 @@ def process_uploads(ctx: Ctx) -> dict[str, int]:
                          processed_at=timeutil.now_iso(), results={"files": results}, error=error)
     if stats["uploads"]:
         log.info(f"metrics: {stats['metrics']} numbers extracted, {stats['needs_review']} need review")
+    if stats["metrics"]:
+        ctx.hints.add("analysis")  # new numbers: the performance review is written again
     return stats
+
+
+def import_file(ctx: Ctx, path: Any, upload: dict[str, Any]) -> dict[str, Any]:
+    """An analytics export: every post's numbers (matched to PBS's posts, or kept as history), the daily series,
+    the audience and the follower count. Importing the same export again the same day changes nothing."""
+    parsed = analytics_files.parse(path)
+    res: dict[str, Any] = {"kind": "file", "platform": parsed.platform, "metrics": 0, "needs_review": 0,
+                           "matched": 0, "history": 0, **{k: v for k, v in parsed.summary().items()
+                                                         if k in ("days", "audience", "followers")}}
+    if parsed.empty:
+        res["error"] = "No analytics found in this file"
+        return res
+    today = ctx.local_date_str()
+    now = timeutil.now_iso()
+    matcher = _Matcher(ctx)
+    for row in parsed.posts:
+        platform = row.platform or parsed.platform
+        values = {k: v for k, v in row.values.items() if k in FILE_FIELDS}
+        if not values or platform not in ("linkedin", "x"):
+            continue
+        post_id, confidence, nearby = matcher.find(platform, row, parsed)
+        if post_id and confidence >= 0.75:
+            status, note = "confirmed", None
+        elif post_id or nearby:
+            status = "needs_review"
+            note = "Low-confidence match: please confirm" if post_id else "Couldn't tell which post this is"
+        else:
+            status, note = "history", None
+        mid = ids.stable_id("met", platform, row.key, today)
+        old = ctx.store.get("metrics", mid)
+        if old and old.get("status") in ("confirmed", "rejected") and old.get("status") != status:
+            status, post_id, note = old["status"], old.get("post_id"), old.get("notes")  # his review stands
+        ctx.store.upsert("metrics", {
+            "id": mid, "post_id": post_id, "platform": platform, "captured_at": now, **values, "source": "file",
+            "upload_id": upload["id"], "extraction_confidence": 1.0, "match_confidence": round(confidence, 3),
+            "status": status, "notes": note, "created_at": (old or {}).get("created_at") or now,
+            "raw": {"url": row.url, "posted_date": row.date, "text_snippet": textutil.truncate(row.text or "", 200)
+                    or row.url or "", "file": path.suffix.lower().lstrip(".")},
+        })
+        res["metrics"] += 1
+        res["matched"] += 1 if status == "confirmed" and post_id else 0
+        res["needs_review"] += 1 if status == "needs_review" else 0
+        res["history"] += 1 if status == "history" else 0
+    platform = parsed.platform or "linkedin"
+    if parsed.followers:
+        day = parsed.followers[0] or today
+        old = ctx.store.get("account_stats", f"acs_{platform}_{day}") or {}
+        ctx.store.upsert("account_stats", {"id": f"acs_{platform}_{day}", "date": day, "platform": platform,
+                                           "followers": parsed.followers[1], "profile_views": old.get("profile_views"),
+                                           "source": "file", "created_at": now})
+    if parsed.days:
+        _merge_days(ctx, platform, parsed.days)
+    if parsed.audience:
+        audience = ctx.store.get_setting(AUDIENCE_KEY, {}) or {}
+        audience[platform] = {"at": today, "rows": parsed.audience[:60]}
+        ctx.store.set_setting(AUDIENCE_KEY, audience)
+    if parsed.totals:
+        totals = ctx.store.get_setting(TOTALS_KEY, {}) or {}
+        totals[platform] = {"at": today, "period": parsed.period, **parsed.totals}
+        ctx.store.set_setting(TOTALS_KEY, totals)
+    if parsed.days or parsed.audience or parsed.totals or parsed.followers:
+        res["metrics"] = res["metrics"] or 1  # numbers worth a fresh review even without posts
+    return res
+
+
+def _merge_days(ctx: Ctx, platform: str, days: dict[str, dict[str, int]]) -> None:
+    stored = ctx.store.get_setting(DAYS_KEY, {}) or {}
+    series = dict(stored.get(platform) or {})
+    for day, values in days.items():
+        series[day] = {**series.get(day, {}), **values}
+    keep = sorted(series)[-KEEP_DAYS:]
+    stored[platform] = {d: series[d] for d in keep}
+    ctx.store.set_setting(DAYS_KEY, stored)
+
+
+class _Matcher:
+    """Which PBS post an exported row is: by the post's own id in its link, then by its text, then (with only a
+    date) by being the one post on that platform that day."""
+
+    def __init__(self, ctx: Ctx):
+        self.ctx = ctx
+        self.posts = ctx.store.select("posts", order="posted_at DESC", limit=2000)
+        self.by_key = {k: p["id"] for p in self.posts if (k := analytics_files.post_key(p.get("post_url")))}
+
+    def _near(self, platform: str, day: str | None, gap: int) -> list[dict[str, Any]]:
+        """PBS's posts on that platform within `gap` days of the date (his local dates, as the exports use)."""
+        target = timeutil.parse(day) if day else None
+        if target is None:
+            return []
+        out = []
+        for p in self.posts:
+            when = timeutil.parse(p.get("posted_at"))
+            if p["platform"] == platform and when is not None:
+                local = timeutil.local(when, self.ctx.tz).date()
+                if abs((local - target.date()).days) <= gap:
+                    out.append(p)
+        return out
+
+    def find(self, platform: str, row: analytics_files.PostRow,
+             parsed: analytics_files.Parsed) -> tuple[str | None, float, bool]:
+        """(post id, confidence, whether any PBS post is near enough in time to be it)."""
+        key = analytics_files.post_key(row.url)
+        if key and key in self.by_key:
+            return self.by_key[key], 1.0, True
+        # PBS's posts that day that could be this one: not those whose own link names a different post.
+        same_day = [p for p in self._near(platform, row.date, 0)
+                    if not (key and analytics_files.post_key(p.get("post_url")))]
+        nearby = bool(same_day)
+        if row.text:
+            post_id, conf = match_post(self.ctx, platform, row.text, row.date)
+            if post_id and conf >= 0.5 and not (key and analytics_files.post_key(
+                    (self.ctx.store.get("posts", post_id) or {}).get("post_url"))):
+                return post_id, conf, True
+        if len(same_day) == 1:
+            others = sum(1 for p in parsed.posts if p.date == row.date and (p.platform or parsed.platform) == platform)
+            return same_day[0]["id"], 0.8 if others == 1 else 0.5, True
+        return None, 0.0, nearby
 
 
 def _extract(ctx: Ctx, data: bytes, mime: str, upload: dict[str, Any]) -> dict[str, Any]:

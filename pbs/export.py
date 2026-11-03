@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from . import __version__, images, log, platform, pulse, stats, studio, timeutil
+from . import __version__, images, log, performance, platform, pulse, stats, studio, timeutil
 from .context import Ctx
 from .contracts import DESK_SCHEMA_VERSION, DeskState
 
@@ -132,7 +132,8 @@ def build(ctx: Ctx) -> dict[str, Any]:
         "delivery": delivery[0] if delivery else None,
         "cards": sorted(cards.values(), key=lambda c: (c.get("created_at") or "", c["id"]), reverse=True),
         "posts": post_rows,
-        "metrics": store.select("metrics", "status = 'needs_review' OR created_at >= ?", (since_posts,),
+        "metrics": store.select("metrics", "status = 'needs_review' OR (created_at >= ? AND status != 'history')",
+                                (since_posts,),
                                 order="created_at DESC", limit=400),
         "uploads": store.select("metric_uploads", order="created_at DESC", limit=20),
         "account_stats": store.select("account_stats", order="date DESC", limit=200),
@@ -162,6 +163,7 @@ def build(ctx: Ctx) -> dict[str, Any]:
                            "research": store.get_setting("platform_research_summary")},
         "studio": _studio_kit(ctx),
         "pulse": pulse.recent(ctx),
+        "performance": performance.latest(ctx),
     }
     validated = DeskState.model_validate(_drop_nones(state))
     return validated.model_dump(mode="json", exclude_none=True)

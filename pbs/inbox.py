@@ -15,7 +15,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from . import contracts as C
-from . import draft, hashtags, ids, images, learn, log, playbook, settings, timeutil
+from . import draft, hashtags, ids, images, learn, log, metrics, playbook, settings, timeutil
 from .context import Ctx
 
 
@@ -410,6 +410,8 @@ def _metrics_upload(ctx: Ctx, ev: C.MetricsUploadEvent) -> None:
     for p in ev.paths:
         if not p.startswith("inbox/blobs/") or ".." in p:
             raise Reject("uploads must live under inbox/blobs/")
+        if not p.lower().endswith(metrics.SUFFIXES):
+            raise Reject("upload screenshots (.png, .jpg, .webp) or analytics exports (.xlsx, .csv)")
     ctx.store.upsert("metric_uploads", {"id": ev.upload_id, "paths": ev.paths, "week": ev.week, "note": ev.note,
                                         "status": "pending", "created_at": _event_time(ev)})
     ctx.hints.add("metrics")
@@ -422,6 +424,9 @@ def _metrics_review(ctx: Ctx, ev: C.MetricsReviewEvent) -> None:
     patch: dict[str, Any] = {}
     if ev.action == "reject":
         patch["status"] = "rejected"
+    elif ev.action == "history":
+        patch.update(status="history", post_id=None, notes=None)
+        ctx.hints.add("analysis")
     else:
         patch["status"] = "confirmed"
         if ev.post_id:

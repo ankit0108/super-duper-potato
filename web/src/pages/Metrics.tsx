@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ImageUp, Loader2, X } from "lucide-react";
-import type { Metric, MetricValues, Platform, Post } from "@/types";
+import { Check, FileUp, History, Loader2, RefreshCw, Sparkles, X } from "lucide-react";
+import type { Metric, MetricUpload, MetricValues, Platform, Post } from "@/types";
 import { METRIC_FIELDS, compact, num, pct } from "@/lib/format";
 import { compressImage } from "@/lib/image";
 import { useRoute, navigate } from "@/lib/router";
@@ -113,6 +113,41 @@ function CheckIn() {
   );
 }
 
+// Analytics exports are sent as they are and read exactly by the pipeline; screenshots are shrunk first.
+const EXPORT = /\.(xlsx|csv)$/i;
+const MAX_EXPORT_BYTES = 10 * 1024 * 1024;
+const ACCEPT = "image/*,.xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv";
+const PLATFORM_NAME: Record<string, string> = { linkedin: "LinkedIn", x: "X" };
+
+export function isExport(file: { name: string }): boolean {
+  return EXPORT.test(file.name);
+}
+
+type FileResult = { path?: string; kind?: string; platform?: string | null; metrics?: number; matched?: number; history?: number; needs_review?: number; days?: number; audience?: number; followers?: number | null; error?: string };
+
+/** What an upload's files gave, in a line each ("LinkedIn export: 24 posts, 3 yours, 21 earlier"). */
+export function uploadSummary(u: MetricUpload): string[] {
+  const files = ((u.results as { files?: FileResult[] } | null | undefined)?.files ?? []) as FileResult[];
+  return files.map((f) => {
+    if (f.error) return f.error;
+    if (f.kind === "file") {
+      const name = PLATFORM_NAME[f.platform ?? ""] ?? "Analytics";
+      const posts = (f.matched ?? 0) + (f.history ?? 0) + (f.needs_review ?? 0);
+      const parts = [
+        posts ? `${posts} post${posts === 1 ? "" : "s"}` : null,
+        f.matched ? `${f.matched} matched to PBS posts` : null,
+        f.history ? `${f.history} earlier` : null,
+        f.needs_review ? `${f.needs_review} to check` : null,
+        f.days ? `${f.days} days of totals` : null,
+        f.followers != null ? `${num(f.followers)} followers` : null,
+        f.audience ? "audience" : null,
+      ].filter(Boolean);
+      return `${name} export: ${parts.join(", ") || "nothing new"}`;
+    }
+    return `Screenshot: ${f.metrics ?? 0} number set${f.metrics === 1 ? "" : "s"}${f.needs_review ? `, ${f.needs_review} to check` : ""}`;
+  });
+}
+
 function Uploads() {
   const act = useDesk((s) => s.act);
   const upload = useDesk((s) => s.uploadBlob);
@@ -123,6 +158,13 @@ function Uploads() {
   const [files, setFiles] = useState<File[]>([]);
   const [week, setWeek] = useState(isoWeek(new Date()));
   const [busy, setBusy] = useState(false);
+  const [showHow, setShowHow] = useState(false);
+  const exports = files.filter(isExport).length;
+  const choose = (list: File[]) => {
+    const tooBig = list.find((f) => isExport(f) && f.size > MAX_EXPORT_BYTES);
+    if (tooBig) toast("bad", `${tooBig.name} is over 10 MB: export a shorter date range.`);
+    setFiles(list.filter((f) => !(isExport(f) && f.size > MAX_EXPORT_BYTES)).slice(0, 20));
+  };
   const send = async () => {
     if (!files.length) return;
     setBusy(true);
@@ -130,12 +172,18 @@ function Uploads() {
     const paths: string[] = [];
     try {
       for (let i = 0; i < files.length; i++) {
-        const bytes = await compressImage(files[i]);
-        const path = `inbox/blobs/${uploadId}_${i + 1}.jpg`;
-        await upload(path, bytes);
+        const f = files[i];
+        const ext = isExport(f) ? f.name.toLowerCase().match(EXPORT)![1] : "jpg";
+        const bytes = isExport(f) ? new Uint8Array(await f.arrayBuffer()) : await compressImage(f);
+        const path = `inbox/blobs/${uploadId}_${i + 1}.${ext}`;
+        await upload(path, bytes, isExport(f) ? "desk: analytics export" : "desk: analytics screenshot");
         paths.push(path);
       }
-      act({ type: "metrics.upload", upload_id: uploadId, paths, week, note: null }, { toast: mode === "demo" ? "Demo: upload simulated." : "Uploaded. Numbers appear after the next run; low-confidence ones wait for your check." });
+      const note = exports ? `${exports} export${exports === 1 ? "" : "s"}${files.length > exports ? ` and ${files.length - exports} screenshot(s)` : ""}` : null;
+      act(
+        { type: "metrics.upload", upload_id: uploadId, paths, week, note },
+        { toast: mode === "demo" ? "Demo: upload simulated." : "Uploaded. The numbers and a fresh review appear after the next run (a few minutes)." },
+      );
       setFiles([]);
     } catch (e) {
       toast("bad", `Upload failed: ${(e as Error).message}`);
@@ -144,12 +192,15 @@ function Uploads() {
     }
   };
   return (
-    <Panel title="Analytics screenshots" description="LinkedIn post analytics, X post views, or your follower pages. The model reads the numbers and matches them to posts.">
+    <Panel
+      title="Upload analytics"
+      description="LinkedIn's Excel export or X's CSV export: every number is read exactly, straight from the file. Screenshots work too; a model reads those."
+    >
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border-strong px-4 py-3 text-sm hover:bg-surface-2">
-          <ImageUp className="size-5 text-muted" />
-          <span>{files.length ? `${files.length} screenshot${files.length === 1 ? "" : "s"} selected` : "Choose screenshots"}</span>
-          <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 20))} />
+          <FileUp className="size-5 text-muted" aria-hidden />
+          <span>{files.length ? `${files.length} file${files.length === 1 ? "" : "s"} selected` : "Choose .xlsx, .csv or screenshots"}</span>
+          <input type="file" accept={ACCEPT} multiple className="sr-only" aria-label="Analytics files" onChange={(e) => choose(Array.from(e.target.files ?? []))} />
         </label>
         <Field label="Week" htmlFor="up-week">
           <Input id="up-week" value={week} onChange={(e) => setWeek(e.target.value)} className="w-32" />
@@ -158,26 +209,161 @@ function Uploads() {
           Upload
         </Button>
       </div>
-      {uploads.length > 0 && (
-        <ul className="mt-4 divide-y divide-border text-[13px]">
-          {uploads.slice(0, 6).map((u) => (
-            <li key={u.id} className="flex items-center justify-between gap-2 py-2">
-              <span>
-                {u.week ?? "–"} · {u.paths?.length ?? 0} file(s) · {formatDate(u.created_at, tz)}
-              </span>
-              {u.status === "pending" ? (
-                <Badge tone="info" icon={<Loader2 className="size-3 animate-spin" />}>
-                  Waiting for the next run
-                </Badge>
-              ) : u.status === "processed" ? (
-                <Badge tone="ok">Processed</Badge>
-              ) : (
-                <Badge tone="bad">{u.error ?? "Failed"}</Badge>
-              )}
+      {files.length > 0 && (
+        <ul className="mt-2 space-y-0.5 text-xs text-muted">
+          {files.map((f) => (
+            <li key={`${f.name}-${f.size}`} className="truncate">
+              {isExport(f) ? "Export" : "Screenshot"}: {f.name}
             </li>
           ))}
         </ul>
       )}
+      <button type="button" className="mt-3 text-[13px] text-accent hover:underline" onClick={() => setShowHow((v) => !v)} aria-expanded={showHow}>
+        {showHow ? "Hide" : "Where do I get the export?"}
+      </button>
+      {showHow && (
+        <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] text-muted">
+          <li>
+            <span className="text-fg">LinkedIn:</span> open your analytics (Me → Analytics, or “View analytics” under any of your posts), pick a date range and choose <span className="text-fg">Export</span>. You get an .xlsx file: upload it as it is. A longer range (90 or 365 days) gives the review more to go on.
+          </li>
+          <li>
+            <span className="text-fg">One post:</span> the analytics page of a single post has its own Export too.
+          </li>
+          <li>
+            <span className="text-fg">X:</span> Analytics → <span className="text-fg">Export data</span> gives a .csv of your posts (X keeps analytics for Premium accounts).
+          </li>
+          <li>Posts you made before PBS count too: they're kept for the review, not mixed into the learning about PBS's drafts.</li>
+        </ul>
+      )}
+      {uploads.length > 0 && (
+        <ul className="mt-4 divide-y divide-border text-[13px]">
+          {uploads.slice(0, 6).map((u) => (
+            <li key={u.id} className="py-2">
+              <div className="flex items-center justify-between gap-2">
+                <span>
+                  {u.week ?? "–"} · {u.paths?.length ?? 0} file(s) · {formatDate(u.created_at, tz)}
+                </span>
+                {u.status === "pending" ? (
+                  <Badge tone="info" icon={<Loader2 className="size-3 animate-spin" />}>
+                    Waiting for the next run
+                  </Badge>
+                ) : u.status === "processed" ? (
+                  <Badge tone="ok">Processed</Badge>
+                ) : (
+                  <Badge tone="bad">{u.error ?? "Failed"}</Badge>
+                )}
+              </div>
+              {u.status === "processed" &&
+                uploadSummary(u).map((line, i) => (
+                  <p key={i} className="mt-0.5 text-xs text-muted">
+                    {line}
+                  </p>
+                ))}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+const PRO = "gemini_pro";
+
+/** Who wrote the review, in words: the model's name, and why when it wasn't the strongest one. */
+export function reviewAuthor(p: { model?: string | null; provider?: string | null }): { model: string; note: string | null } {
+  const model = p.model ?? "a model";
+  if (p.provider === PRO) return { model, note: null };
+  return { model, note: "Gemini Pro (the strongest free model) wasn't available on the key today, so the next best one wrote it." };
+}
+
+function List({ title, items, tone }: { title: string; items?: string[] | null; tone: "ok" | "bad" | "info" }) {
+  if (!items?.length) return null;
+  const mark = tone === "ok" ? "text-ok" : tone === "bad" ? "text-bad" : "text-accent";
+  return (
+    <div>
+      <h3 className="text-[13px] font-semibold">{title}</h3>
+      <ul className="mt-1.5 space-y-1 text-[13.5px]">
+        {items.map((t, i) => (
+          <li key={i} className="flex gap-2">
+            <span className={mark} aria-hidden>
+              {tone === "ok" ? "+" : tone === "bad" ? "−" : "→"}
+            </span>
+            <span>{t}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function Performance() {
+  const act = useDesk((s) => s.act);
+  const review = useDesk((s) => s.view?.performance);
+  const requested = useDesk((s) => s.pending.runRequested.includes("analysis"));
+  const tz = useTz();
+  const again = (
+    <Button
+      size="sm"
+      variant="ghost"
+      icon={<RefreshCw className="size-4" />}
+      disabled={requested}
+      onClick={() => act({ type: "run.request", tasks: ["analysis"] }, { toast: "Asked for a fresh review. It appears after the run." })}
+    >
+      {requested ? "Requested" : "Analyse again"}
+    </Button>
+  );
+  const title = (
+    <span className="flex items-center gap-1.5">
+      <Sparkles className="size-4 text-accent" aria-hidden /> What your numbers say
+    </span>
+  );
+  if (!review || review.status === "too_little" || (!review.headline && review.status !== "ok")) {
+    return (
+      <Panel title={title} description="A review of how your posts perform, written from your analytics by Gemini Pro, the strongest model on the free key (the next best one when Pro isn't available)." actions={review ? again : undefined}>
+        <p className="text-[13.5px] text-muted">
+          {review?.status === "waiting"
+            ? `Waiting for model quota: ${review.error ?? "it tries again on the next run"}.`
+            : review?.status === "failed"
+              ? `${review.error ?? "No model could write the review"}. It tries again after the next upload, or ask with Analyse again.`
+              : review?.headline || "Upload LinkedIn's or X's export below. After the next run, the review appears here: what's working, what isn't, and what to try next."}
+        </p>
+      </Panel>
+    );
+  }
+  const author = reviewAuthor(review);
+  return (
+    <Panel title={title} actions={again}>
+      <div className="space-y-4">
+        <p className="text-[15px] font-medium leading-snug">{review.headline}</p>
+        {(review.findings?.length ?? 0) > 0 && (
+          <ol className="space-y-3">
+            {review.findings!.map((f, i) => (
+              <li key={i} className="rounded-xl border border-border p-3">
+                <p className="text-[14px] font-semibold">{f.title}</p>
+                {f.detail && <p className="mt-0.5 text-[13.5px]">{f.detail}</p>}
+                {f.evidence && <p className="mt-1 text-xs text-muted tabular-nums">{f.evidence}</p>}
+              </li>
+            ))}
+          </ol>
+        )}
+        <div className="grid gap-4 md:grid-cols-3">
+          <List title="Keep doing" items={review.what_works} tone="ok" />
+          <List title="Change or drop" items={review.what_doesnt} tone="bad" />
+          <List title="Try in the next two weeks" items={review.try_next} tone="info" />
+        </div>
+        {review.audience && (
+          <p className="text-[13.5px]">
+            <span className="font-semibold">Who's reading: </span>
+            {review.audience}
+          </p>
+        )}
+        {(review.caveats?.length ?? 0) > 0 && <p className="text-xs text-muted">Keep in mind: {review.caveats!.join(" ")}</p>}
+        <p className="border-t border-border pt-3 text-xs text-muted">
+          Written by <span className="font-medium text-fg">{author.model}</span> on {formatDate(review.at, tz)} from {review.posts} post{review.posts === 1 ? "" : "s"}
+          {review.period ? ` (${review.period})` : ""}. {author.note}
+          {review.error ? ` The last try didn't work (${review.error}); this is the previous review.` : ""}
+        </p>
+      </div>
     </Panel>
   );
 }
@@ -188,19 +374,39 @@ function ReviewQueue({ posts }: { posts: Post[] }) {
   const queue = useMemo(() => (metrics ?? []).filter((m) => m.status === "needs_review"), [metrics]);
   const [choice, setChoice] = useState<Record<string, string>>({});
   if (!queue.length) return null;
-  const decide = (m: Metric, action: "confirm" | "reject") => {
+  const decide = (m: Metric, action: "confirm" | "reject" | "history") => {
     const postId = choice[m.id] ?? m.post_id ?? "";
-    act({ type: "metrics.review", metric_id: m.id, action, ...(action === "confirm" && postId ? { post_id: postId } : {}) }, { toast: action === "confirm" ? "Confirmed." : "Discarded." });
+    act(
+      { type: "metrics.review", metric_id: m.id, action, ...(action === "confirm" && postId ? { post_id: postId } : {}) },
+      { toast: action === "confirm" ? "Confirmed." : action === "history" ? "Kept for the review, not as a PBS post." : "Discarded." },
+    );
   };
   return (
-    <Panel title={`Check ${queue.length} extracted number${queue.length === 1 ? "" : "s"}`} description="The model wasn't sure which post these belong to. Pick the post and confirm.">
+    <Panel title={`Check ${queue.length} set${queue.length === 1 ? "" : "s"} of numbers`} description="PBS wasn't sure which post these belong to. Pick the post and confirm.">
       <ul className="space-y-3">
         {queue.map((m) => {
           const fields = METRIC_FIELDS[(m.platform as Platform) ?? "linkedin"].filter((f) => m[f.key] != null);
-          const snippet = (m.raw as { text_snippet?: string } | undefined)?.text_snippet;
+          const raw = (m.raw ?? {}) as { text_snippet?: string; url?: string | null; posted_date?: string | null };
+          const fromFile = m.source === "file";
+          const snippet = raw.text_snippet && raw.text_snippet !== raw.url ? raw.text_snippet : null;
           return (
             <li key={m.id} className="rounded-xl border border-border p-3">
-              {snippet && <p className="text-[13px] text-muted">Screenshot text: “{snippet}”</p>}
+              {fromFile ? (
+                <p className="text-[13px] text-muted">
+                  From your export{raw.posted_date ? `, posted ${raw.posted_date}` : ""}
+                  {snippet ? `: “${snippet}”` : ""}
+                  {raw.url && (
+                    <>
+                      {" "}
+                      <a href={raw.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                        open the post
+                      </a>
+                    </>
+                  )}
+                </p>
+              ) : (
+                snippet && <p className="text-[13px] text-muted">Screenshot text: “{snippet}”</p>
+              )}
               <p className="mt-1 text-[13px]">{fields.map((f) => `${f.label}: ${num(m[f.key] as number)}`).join(" · ")}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Select aria-label="Which post" value={choice[m.id] ?? m.post_id ?? ""} onChange={(e) => setChoice((c) => ({ ...c, [m.id]: e.target.value }))} className="h-9 w-full min-w-0 sm:w-auto sm:max-w-md sm:flex-1">
@@ -214,6 +420,11 @@ function ReviewQueue({ posts }: { posts: Post[] }) {
                 <Button size="sm" variant="primary" icon={<Check className="size-4" />} onClick={() => decide(m, "confirm")} disabled={!(choice[m.id] ?? m.post_id)}>
                   Confirm
                 </Button>
+                {fromFile && (
+                  <Button size="sm" variant="ghost" icon={<History className="size-4" />} onClick={() => decide(m, "history")}>
+                    Not a PBS post
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" icon={<X className="size-4" />} onClick={() => decide(m, "reject")}>
                   Discard
                 </Button>
@@ -242,9 +453,10 @@ export function Metrics() {
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Metrics</h1>
-        <p className="mt-1 text-sm text-muted">Sunday routine: upload screenshots, confirm anything flagged, and do the follower check-in. Manual numbers work anytime.</p>
+        <p className="mt-1 text-sm text-muted">Weekly routine: upload LinkedIn's and X's analytics exports (or screenshots), confirm anything flagged, and read what the numbers say. Manual numbers work anytime.</p>
       </header>
       <ReviewQueue posts={posts} />
+      <Performance />
       <div className="grid gap-5 xl:grid-cols-2">
         <Uploads />
         <CheckIn />

@@ -2,7 +2,7 @@
 
 Order: ingest desk events → doctor if asked → expire → work Ankit is waiting on (answers, rewrites,
 'draft this', cross-posts) → requests → metrics → morning delivery if due → Saturday batch if due → reflection
-if due → monthly platform research → learning → prune → export.
+if due → monthly platform research → performance review if there are new numbers → learning → prune → export.
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ from . import (
     log,
     metrics,
     notify,
+    performance,
     platform,
     playbook,
     reflect,
@@ -35,7 +36,7 @@ from .scout.sources import sync_seeds
 from .topics import build_topics
 
 TASKS = {"morning", "weekly_batch", "reflection", "doctor", "report", "scout", "work", "requests", "metrics",
-         "stances", "rewards", "platform_research"}
+         "stances", "rewards", "platform_research", "analysis"}
 
 
 def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | None = None, force: bool = False,
@@ -103,6 +104,11 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
         # Monthly: what's changed on LinkedIn and X, proposed as guide updates for him to approve.
         with ctx.run.step("platform_research") as s:
             s["result"] = platform.research(ctx)
+    if "analysis" in ctx.hints or performance.due(ctx):
+        # New numbers (or he asked): the performance review, by the strongest model the keys allow. After the
+        # morning set, so a slow review never holds it up; a review that waited for quota is tried again.
+        with ctx.run.step("analysis") as s:
+            s["result"] = performance.run(ctx)
     with ctx.run.step("learn"):
         learn.update_rewards(ctx)
         voice.update_voice(ctx, weekly=False)

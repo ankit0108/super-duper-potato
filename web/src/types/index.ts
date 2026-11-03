@@ -20,6 +20,7 @@ export type Question = Item<Card["questions"]>;
 export type Post = Item<DeskState["posts"]>;
 export type Metric = Item<DeskState["metrics"]>;
 export type MetricUpload = Item<DeskState["uploads"]>;
+export type PerformanceInfo = NonNullable<DeskState["performance"]>;
 export type AccountStat = Item<DeskState["account_stats"]>;
 export type Stance = Item<DeskState["stances"]>;
 export type Position = Item<Stance["positions"]>;

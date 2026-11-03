@@ -361,6 +361,20 @@ llm:
   # break anything; its free quotas are per model, so a model that runs out hands over to the next.
   # Groq (free key, doesn't train on inputs) is the main fallback; OpenRouter's free router is the last resort.
   providers:
+    # The strongest free model, for the work where quality matters more than speed: the performance review
+    # of his analytics and the weekly review. Its free quota is small (or none on some keys); Flash takes over.
+    # Slow and paced (2 a minute), so it's kept off the morning's routes.
+    gemini_pro:
+      kind: gemini
+      model: auto:pro
+      quota_per_model: true
+      api_key_env: GEMINI_API_KEY
+      daily_limit: 20
+      rpm: 2
+      output_headroom: 16000
+      thinking: high
+      trains_on_inputs: true
+      vision: true
     gemini:
       kind: gemini
       model: auto:flash
@@ -412,7 +426,8 @@ llm:
     draft_personal: [groq, gemini, gemini_lite, openrouter]
     edit: [groq, gemini, gemini_lite]
     questions: [gemini_lite, gemini, groq, openrouter]
-    reflect: [gemini, groq, gemini_lite]
+    reflect: [gemini_pro, gemini, groq, gemini_lite]
+    analysis: [gemini_pro, gemini, groq, gemini_lite, openrouter]
     voice: [groq, gemini, gemini_lite]
     vision: [gemini, gemini_lite]
     search: [gemini]
@@ -428,7 +443,8 @@ llm:
   # Seconds a call may take before that model counts as busy and the next one answers: a stalled call once cost
   # minutes. Search with grounding and the weekly review get longer.
   timeouts: {default: 90, draft: 50, draft_personal: 50, edit: 40, triage: 75, translate: 45, questions: 45,
-             visual: 60, search_plan: 40, search_rerank: 40, humor_write: 60, humor_judge: 45, pulse: 90}
+             visual: 60, search_plan: 40, search_rerank: 40, humor_write: 60, humor_judge: 45, pulse: 90,
+             analysis: 180, reflect: 150}
   temperature:
     translate: 0.1
     triage: 0.2
@@ -437,6 +453,7 @@ llm:
     edit: 0.4
     questions: 0.6
     reflect: 0.3
+    analysis: 0.3
     voice: 0.3
     vision: 0.0
     search: 0.2
