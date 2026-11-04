@@ -4667,6 +4667,31 @@
      "title": "Conversations",
      "type": "array"
     },
+    "engines": {
+     "default": [],
+     "description": "Providers that can search the web today",
+     "items": {
+      "type": "string"
+     },
+     "title": "Engines",
+     "type": "array"
+    },
+    "paused": {
+     "default": false,
+     "title": "Paused",
+     "type": "boolean"
+    },
+    "status": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/PulseStatus"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
     "updated": {
      "anyOf": [
       {
@@ -4681,6 +4706,59 @@
     }
    },
    "title": "PulseInfo",
+   "type": "object"
+  },
+  "PulseStatus": {
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "engine": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The model that searched",
+     "title": "Engine"
+    },
+    "error": {
+     "anyOf": [
+      {
+       "enum": [
+        "no_search",
+        "bad_reply",
+        "failed"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Error"
+    },
+    "found": {
+     "default": 0,
+     "title": "Found",
+     "type": "integer"
+    },
+    "ok": {
+     "default": false,
+     "title": "Ok",
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "at"
+   ],
+   "title": "PulseStatus",
    "type": "object"
   },
   "Question": {
@@ -5325,7 +5403,8 @@
        "report",
        "scout",
        "platform_research",
-       "analysis"
+       "analysis",
+       "pulse"
       ],
       "type": "string"
      },

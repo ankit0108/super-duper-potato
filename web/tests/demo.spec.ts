@@ -692,6 +692,13 @@ test("what's working on LinkedIn and X: the week's conversations in Insights", a
   await expect(page.getByText("What's working on LinkedIn and X")).toBeVisible();
   await expect(page.getByText("AI agents that report work they never did").first()).toBeVisible();
   await expect(page.getByText(/^Why it works:/).first()).toBeVisible();
+  await expect(page.getByText(/^Last searched .* with gemini-3\.6-flash\.$/)).toBeVisible();
+  await page.getByRole("button", { name: "Draft a post" }).first().click();
+  await expect(page.getByText("Drafting it: the card appears on your board in a few minutes, with the sources it found.")).toBeVisible();
+  await page.getByRole("button", { name: "Search now" }).click();
+  await expect(page.getByText("Searching LinkedIn and X now: conversations appear here in a few minutes.")).toBeVisible();
+  await page.goto("/#/requests");
+  await expect(page.getByText("AI agents that report work they never did").first()).toBeVisible();
   await page.goto("/#/sources");
   await page.getByRole("tab", { name: /^Buzz/ }).click();
   await expect(page.getByText("Social pulse: what's working on LinkedIn and X").filter({ visible: true }).first()).toBeVisible();

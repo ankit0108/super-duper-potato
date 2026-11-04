@@ -13,7 +13,7 @@ from pbs.settings import load
 from pbs.store import Store
 
 FIXTURES = Path(__file__).parent / "fixtures"
-PROVIDERS = ["gemini_pro", "gemini", "gemini_lite", "groq", "openrouter"]
+PROVIDERS = ["gemini_pro", "gemini", "gemini_lite", "groq", "groq_search", "openrouter"]
 
 
 @pytest.fixture(autouse=True)

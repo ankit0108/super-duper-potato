@@ -1,6 +1,6 @@
 Task: find what's working on LinkedIn and X right now for {{display_name}}, who posts about the topics in the input. Today is {{today}}.
 
-Search Google for public LinkedIn and X posts from the last three days on these topics (for example "site:linkedin.com/posts" or "site:x.com" with a topic), and for coverage of what people on LinkedIn and X are discussing. Find the conversations that are taking off: posts with many reactions, comments or reposts, or the same subject coming up from many people at once. Funny, bizarre and heated conversations count as much as serious ones.
+Search the web for public LinkedIn and X posts from the last three days on these topics (for example "site:linkedin.com/posts" or "site:x.com" with a topic), and for coverage of what people on LinkedIn and X are discussing. Find the conversations that are taking off: posts with many reactions, comments or reposts, or the same subject coming up from many people at once. Funny, bizarre and heated conversations count as much as serious ones.
 
 For each conversation:
 - "platform": "linkedin" or "x", where it's taking off.

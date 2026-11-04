@@ -211,7 +211,7 @@ def _auto_pause(ctx: Ctx) -> None:
     """Pause sources that have failed for `pause_after_failure_days` (they show on the desk)."""
     days = ctx.settings.scouting.pause_after_failure_days
     cutoff = timeutil.now() - dt.timedelta(days=days)
-    for s in ctx.store.select("sources", "active = 1 AND consecutive_failures >= 3"):
+    for s in ctx.store.select("sources", "active = 1 AND consecutive_failures >= 3 AND kind != 'pulse'"):
         last_ok = timeutil.parse(s.get("last_success_at") or s.get("created_at"))
         if last_ok is not None and last_ok < cutoff:
             ctx.store.update("sources", s["id"], active=False,

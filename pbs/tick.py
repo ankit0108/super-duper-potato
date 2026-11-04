@@ -25,6 +25,7 @@ from . import (
     performance,
     platform,
     playbook,
+    pulse,
     reflect,
     requests,
     stances,
@@ -36,7 +37,7 @@ from .scout.sources import sync_seeds
 from .topics import build_topics
 
 TASKS = {"morning", "weekly_batch", "reflection", "doctor", "report", "scout", "work", "requests", "metrics",
-         "stances", "rewards", "platform_research", "analysis"}
+         "stances", "rewards", "platform_research", "analysis", "pulse"}
 
 
 def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | None = None, force: bool = False,
@@ -80,6 +81,7 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
         with ctx.run.step("stances") as s:
             s["added"] = stances.propose(ctx, int(ctx.store.get_setting("stance_proposals_wanted", 3) or 3))
 
+    pulse_tried = (ctx.store.get_setting(pulse.STATUS_KEY) or {}).get("at")
     morning_wanted = "morning" in ctx.hints and ctx.force
     if deliver.delivery_due(ctx) or morning_wanted:
         with ctx.run.step("morning") as s:
@@ -97,6 +99,14 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
             run_scouts(ctx)
         with ctx.run.step("topics"):
             build_topics(ctx)
+    if "pulse" in ctx.hints and (ctx.store.get_setting(pulse.STATUS_KEY) or {}).get("at") == pulse_tried:
+        # He asked for "What's working" now (Insights), and the morning step didn't just search: search now.
+        with ctx.run.step("pulse") as s:
+            if ctx.llm.grounding_off_today():
+                pulse._status(ctx, ok=False, error="no_search")
+                s["stats"] = {"found": 0}
+            else:
+                s["stats"] = pulse.run(ctx)
     batch_done = ctx.store.get("deliveries", deliver.weekly_batch_key(ctx)) is not None
     if deliver.weekly_batch_due(ctx) or ("weekly_batch" in ctx.hints and (ctx.force or not batch_done)):
         with ctx.run.step("weekly_batch") as s:

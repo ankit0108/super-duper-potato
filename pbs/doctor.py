@@ -101,21 +101,22 @@ def run_doctor(ctx: Ctx, probe_llm: bool = True, probe_sources: bool = True) -> 
                 status = "warn" if exc.quota or exc.rate_limited else "fail"
                 checks.append(_check(f"Model: {name} ({_model_label(provider, spec)})", status, exc.public(),
                                      private=str(exc)[:200]))
-        grounding = next((n for n, s in ctx.settings.llm.providers.items() if s.grounding
-                          and router._providers.get(n) and router._providers[n].available()), None)
-        if grounding:
+        # Each model that can search the web (Gemini with Google Search, Groq's compound models): the social pulse
+        # and request searches use the first one that works.
+        for grounding in [n for n, s in ctx.settings.llm.providers.items() if s.grounding
+                          and router._providers.get(n) and router._providers[n].available()]:
+            label = "Google Search grounding" if grounding.startswith("gemini") else f"Web search: {grounding}"
             try:
                 resp = router._providers[grounding].generate(LLMRequest(
                     task="doctor", system="", prompt="What is the latest stable Python release? One line.",
                     json_mode=False, grounding=True, max_output_tokens=100))
                 router._record(grounding, model=resp.model)
-                checks.append(_check("Google Search grounding", "ok" if resp.grounding else "warn",
+                checks.append(_check(label, "ok" if resp.grounding else "warn",
                                      f"{len(resp.grounding)} sources returned" if resp.grounding
-                                     else "Answered without search sources; requests use the free search feeds."))
+                                     else "Answered without search sources."))
             except Exception as raw:  # noqa: BLE001
                 public = raw.public() if isinstance(raw, LLMError) else type(raw).__name__
-                checks.append(_check("Google Search grounding", "warn",
-                                     f"Not available ({public}). Requests use the free search feeds."))
+                checks.append(_check(label, "warn", f"Not available ({public})."))
 
     if probe_llm:
         checks.extend(_image_checks(ctx))

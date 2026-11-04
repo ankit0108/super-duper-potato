@@ -61,3 +61,16 @@ describe("when to post", () => {
     expect(readerTags("#SoftwareEngineering, MachineLearning  #LLM, , x")).toEqual(["#SoftwareEngineering", "#MachineLearning", "#LLM"]);
   });
 });
+
+describe("what's working", () => {
+  it("says why there's nothing new", async () => {
+    const { pulseNote } = await import("./Insights");
+    const at = "2026-11-03T20:04:00Z";
+    expect(pulseNote({ conversations: [], engines: [], status: { at, ok: false, error: "no_search", found: 0 } }, "UTC")).toMatch(/No web search is available to the pipeline today/);
+    expect(pulseNote({ conversations: [], engines: ["groq_search"], status: { at, ok: false, error: "no_search", found: 0 } }, "UTC")).toMatch(/^No web search was available on/);
+    expect(pulseNote({ conversations: [], engines: ["groq_search"], status: { at, ok: false, error: "failed", found: 0 } }, "UTC")).toMatch(/didn't come back with anything usable/);
+    expect(pulseNote({ conversations: [], engines: ["groq_search"], paused: true }, "UTC")).toMatch(/paused on the Sources page/);
+    expect(pulseNote({ conversations: [], engines: ["groq_search"] }, "UTC")).toMatch(/first search runs/);
+    expect(pulseNote({ conversations: [], engines: ["groq_search"], status: { at, ok: true, engine: "groq/compound", found: 4 } }, "UTC")).toBeNull();
+  });
+});

@@ -358,7 +358,8 @@ def run_search(ctx: Ctx, query: str, notes: str | None = None, *, recency_days: 
 
 
 def grounded_search(ctx: Ctx, plan: SearchPlan) -> list[tuple[dict[str, Any], dict[str, Any]]]:
-    """Gemini with Google Search grounding, when the free tier allows it (skipped for the day once it says no)."""
+    """A model that searches the web (Gemini with Google Search, or Groq's compound models), when one can today
+    (each is skipped for the day once its search says no)."""
     if ctx.llm.grounding_off_today():
         return []
     try:
@@ -371,12 +372,13 @@ def grounded_search(ctx: Ctx, plan: SearchPlan) -> list[tuple[dict[str, Any], di
     except (BudgetExhausted, AllProvidersFailed, LLMError) as exc:
         log.info(f"search: grounding unavailable ({type(exc).__name__})")
         return []
-    src = {"id": "search:grounded", "kind": "grounded", "name": "Google Search (via Gemini)", "lang": "en"}
+    engine = "Google Search (via Gemini)" if resp.provider.startswith("gemini") else f"Web search (via {resp.model})"
+    src = {"id": "search:grounded", "kind": "grounded", "name": engine, "lang": "en"}
     out: list[tuple[dict[str, Any], dict[str, Any]]] = []
     if resp.grounding:
         out.append((src, {"url": resp.grounding[0]["url"], "title": f"Search summary: {plan.query}",
                           "summary": textutil.truncate(resp.text, 700), "published_at": None, "lang": "en",
-                          "publisher": "Google Search summary", "signals": {"grounded": 1}}))
+                          "publisher": "Web search summary", "signals": {"grounded": 1}}))
     for g in resp.grounding[:6]:
         out.append((src, {"url": g["url"], "title": g.get("title") or textutil.url_host(g["url"]),
                           "summary": "", "published_at": None, "lang": "en",

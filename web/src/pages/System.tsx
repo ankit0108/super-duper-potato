@@ -190,7 +190,7 @@ export function System() {
             </ul>
           )}
         </Panel>
-        <Panel title="Doctor" description={view?.doctor ? `Checked ${relative(view.doctor.created_at, now)}` : "Checks secrets, each model provider, Google Search grounding and every source."}>
+        <Panel title="Doctor" description={view?.doctor ? `Checked ${relative(view.doctor.created_at, now)}` : "Checks secrets, each model provider, each web search (Gemini, Groq) and every source."}>
           {view?.doctor ? (
             <ul className="space-y-1.5">
               {(view.doctor.checks ?? []).map((c, i) => (
