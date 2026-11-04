@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Check, CircleDashed, ExternalLink, Plus, Search, Trash2, X } from "lucide-react";
 import type { DeskState, FormatName, Platform, PlaybookRule, Proposal } from "@/types";
 import { safeUrl } from "@/lib/compose";
+import { newId } from "@/lib/storage";
 import { FORMAT_LABEL, SKIP_REASONS, num, pct } from "@/lib/format";
 import { tellName } from "@/lib/guard";
 import { formatDate, localDateKey } from "@/lib/time";
@@ -855,16 +856,58 @@ function LearningTab({ view }: { view: DeskState }) {
 type Tab = "overview" | "playbook" | "proposals" | "report" | "voice" | "learning" | "working";
 
 /** What the social pulse found taking off on LinkedIn and X this week, and why (pbs/pulse.py). */
+type PulseView = NonNullable<DeskState["pulse"]>;
+
+/** Why "What's working" has nothing new, in words (null when the last search worked). */
+export function pulseNote(p: PulseView | null | undefined, tz?: string): string | null {
+  if (p?.paused) return "The daily search is paused on the Sources page (Buzz tab): switch “Social pulse” back on.";
+  const st = p?.status;
+  if (!(p?.engines ?? []).length && (!st || !st.ok))
+    return "No web search is available to the pipeline today. Gemini's free tier usually has no Google Search, so it uses Groq's search (the GROQ_API_KEY secret, free); when that's missing or out of today's free searches, it tries again tomorrow.";
+  if (!st) return "The first search runs with the next morning set. Search now to run it straight away.";
+  if (st.ok) return null;
+  const when = formatDate(st.at, tz);
+  if (st.error === "no_search") return `No web search was available on ${when} (today's free searches were used up). It tries again tomorrow, or Search now.`;
+  return `The last search, on ${when}, didn't come back with anything usable. It tries again tomorrow, or Search now.`;
+}
+
 function WorkingTab({ view }: { view: NonNullable<ReturnType<typeof useDesk.getState>["view"]> }) {
-  const rows = view.pulse?.conversations ?? [];
+  const act = useDesk((s) => s.act);
+  const tz = useTz();
+  const requested = useDesk((s) => s.pending.runRequested.includes("pulse"));
+  const pulse = view.pulse;
+  const rows = pulse?.conversations ?? [];
+  const note = pulseNote(pulse, tz);
+  const searchNow = (
+    <Button size="sm" variant="ghost" icon={<Search className="size-4" />} disabled={requested || !!pulse?.paused} onClick={() => act({ type: "run.request", tasks: ["pulse"] }, { toast: "Searching LinkedIn and X now: conversations appear here in a few minutes." })}>
+      {requested ? "Searching…" : "Search now"}
+    </Button>
+  );
+  const draft = (c: (typeof rows)[number]) =>
+    act(
+      {
+        type: "request.create",
+        request_id: newId("req"),
+        query: c.topic,
+        platforms: { [c.platform]: 1 },
+        notes: [`What's working on ${c.platform === "linkedin" ? "LinkedIn" : "X"}: ${c.said}`, c.why && `Why it works: ${c.why}`, c.angle && `My angle: ${c.angle}`].filter(Boolean).join("\n").slice(0, 2000),
+      },
+      { toast: "Drafting it: the card appears on your board in a few minutes, with the sources it found." },
+    );
   if (!rows.length)
     return (
-      <Empty title="Nothing yet">
-        Once a day the pipeline searches public LinkedIn and X posts on your topics for the conversations taking off and why they work. They show here, and the best reach your board marked “Trending”.
-      </Empty>
+      <Panel title="What's working on LinkedIn and X" actions={searchNow}>
+        <p className="text-[13.5px] text-muted">{note ?? "Nothing this week yet."}</p>
+        <p className="mt-2 text-[13px] text-muted">Once a day the pipeline searches public LinkedIn and X posts on your topics for the conversations taking off and why they work. They show here, the best reach your board marked “Trending”, and any of them can become a draft.</p>
+      </Panel>
     );
   return (
-    <Panel title="What's working on LinkedIn and X" description="Conversations taking off on your topics this week, from a daily Google search of public posts. The best of them reach your board marked “Trending”.">
+    <Panel
+      title="What's working on LinkedIn and X"
+      description="Conversations taking off on your topics this week, from a daily web search of public posts. The best of them reach your board marked “Trending”; Draft a post makes a card from any of them now."
+      actions={searchNow}
+    >
+      {note && <p className="mb-3 text-[13px] text-muted">{note}</p>}
       <ul className="divide-y divide-border">
         {rows.map((c, i) => (
           <li key={`${c.date}-${i}`} className="space-y-1 py-3 first:pt-0 last:pb-0">
@@ -876,14 +919,24 @@ function WorkingTab({ view }: { view: NonNullable<ReturnType<typeof useDesk.getS
             {c.said && <p className="text-[13px]">{c.said}</p>}
             {c.why && <p className="text-[13px] text-muted">Why it works: {c.why}</p>}
             {c.angle && <p className="text-[13px] text-muted">Your angle: {c.angle}</p>}
-            {safeUrl(c.url) && (
-              <a href={safeUrl(c.url)} target="_blank" rel="noreferrer" className="text-[13px] text-accent hover:underline">
-                See it
-              </a>
-            )}
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <Button size="sm" variant="soft" icon={<Plus className="size-4" />} onClick={() => draft(c)}>
+                Draft a post
+              </Button>
+              {safeUrl(c.url) && (
+                <a href={safeUrl(c.url)} target="_blank" rel="noreferrer" className="text-[13px] text-accent hover:underline">
+                  See it
+                </a>
+              )}
+            </div>
           </li>
         ))}
       </ul>
+      {pulse?.status?.ok && pulse.status.engine && (
+        <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
+          Last searched {formatDate(pulse.status.at, tz)} with {pulse.status.engine}.
+        </p>
+      )}
     </Panel>
   );
 }

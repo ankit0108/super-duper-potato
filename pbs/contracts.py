@@ -659,10 +659,21 @@ class PerformanceInfo(_Out):
     retried: str | None = None
 
 
+class PulseStatus(_Out):
+    at: str
+    ok: bool = False
+    engine: str | None = Field(None, description="The model that searched")
+    found: int = 0
+    error: Literal["no_search", "bad_reply", "failed"] | None = None
+
+
 class PulseInfo(_Out):
     """What's working on LinkedIn and X: the social pulse's conversations over the last week (pbs/pulse.py)."""
     updated: str | None = None
     conversations: list[PulseConversation] = []
+    status: PulseStatus | None = None
+    engines: list[str] = Field([], description="Providers that can search the web today")
+    paused: bool = False
 
 
 class DeskState(_Out):
@@ -1018,7 +1029,7 @@ class PlaybookRuleEvent(_Event):
 class RunRequestEvent(_Event):
     type: Literal["run.request"]
     tasks: list[Literal["morning", "weekly_batch", "reflection", "doctor", "report", "scout",
-                        "platform_research", "analysis"]] = []
+                        "platform_research", "analysis", "pulse"]] = []
     force: bool = False
     # "Get fresh posts" (tasks ["morning"], force): which platforms and how many cards for each (default: the
     # morning's), and whether to look for new sources first.

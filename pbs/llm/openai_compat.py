@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import os
+import re
 import time
 from typing import Any
 
@@ -111,9 +112,32 @@ class OpenAICompatProvider:
             model=str(data.get("model") or model),
             tokens_in=int(usage.get("prompt_tokens") or 0),
             tokens_out=int(usage.get("completion_tokens") or 0),
+            grounding=search_results(msg),
             finish_reason=choices[0].get("finish_reason"),
             latency_ms=latency,
         )
+
+
+_URL_LINE = re.compile(r"(?im)^\s*url:\s*(https?://\S+)")
+
+
+def search_results(msg: dict[str, Any]) -> list[dict[str, str]]:
+    """The pages a model that searches by itself read (Groq's compound models list them under
+    "executed_tools": [{"type": "search", "search_results": {"results": [{"url", "title"}]}, "output": "…"}])."""
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for tool in msg.get("executed_tools") or []:
+        if not isinstance(tool, dict):
+            continue
+        results = ((tool.get("search_results") or {}).get("results") or []) if isinstance(
+            tool.get("search_results"), dict) else []
+        pairs = [(str(r.get("url") or ""), str(r.get("title") or "")) for r in results if isinstance(r, dict)]
+        pairs += [(u, "") for u in _URL_LINE.findall(str(tool.get("output") or ""))]
+        for url, title in pairs:
+            if url.startswith(("http://", "https://")) and url not in seen:
+                seen.add(url)
+                out.append({"url": url, "title": title[:300]})
+    return out[:40]
 
 
 def _classify(resp: httpx.Response) -> LLMError:

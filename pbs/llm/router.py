@@ -136,7 +136,7 @@ class Router:
         if req is not None:
             if req.images and not spec.vision:
                 return False
-            if req.grounding and (not spec.grounding or self.grounding_off_today()):
+            if req.grounding and (not spec.grounding or self.grounding_off_today(name)):
                 return False
             if spec.max_input_tokens and req.estimated_input_tokens() > spec.max_input_tokens:
                 return False
@@ -330,13 +330,36 @@ class Router:
                 self._disabled[name] = exc.public()
                 log.warn(f"llm: {name} switched off for this run: {exc.public()}")
 
-    def grounding_off_today(self) -> bool:
-        return (self.store.get_setting(GROUNDING_OFF) or {}).get("day") == self._day()
+    def _grounding_off_today(self) -> dict[str, str]:
+        """Providers whose web search said no today: {name: reason}."""
+        row = self.store.get_setting(GROUNDING_OFF) or {}
+        if row.get("day") != self._day():
+            return {}
+        if "providers" in row:
+            return dict(row["providers"] or {})
+        return {row["provider"]: row.get("reason") or ""} if row.get("provider") else {}
+
+    def grounding_off_today(self, name: str | None = None) -> bool:
+        """Whether web search is off today: for one provider, or (no name) for every provider that can search."""
+        off = self._grounding_off_today()
+        if name is not None:
+            return name in off
+        searchers = [n for n, s in self.settings.llm.providers.items()
+                     if s.grounding and n in self._providers and self._providers[n].available()]
+        return all(n in off for n in searchers)
+
+    def search_engines(self) -> list[str]:
+        """The providers that can search the web today (key set, search not refused today)."""
+        off = self._grounding_off_today()
+        return [n for n, s in self.settings.llm.providers.items()
+                if s.grounding and n in self._providers and self._providers[n].available() and n not in off]
 
     def _grounding_off(self, name: str, exc: LLMError) -> None:
-        if not self.grounding_off_today():
-            self.store.set_setting(GROUNDING_OFF, {"day": self._day(), "provider": name, "reason": exc.public()})
-            log.info(f"llm: {name} search grounding unavailable today ({exc.public()}); searches use the free feeds")
+        off = self._grounding_off_today()
+        if name not in off:
+            off[name] = exc.public()
+            self.store.set_setting(GROUNDING_OFF, {"day": self._day(), "providers": off})
+            log.info(f"llm: {name} web search unavailable today ({exc.public()})")
 
     def _mark_exhausted(self, name: str, error: str) -> None:
         with self._lock:

@@ -53,7 +53,7 @@ def test_every_call_gets_its_tasks_deadline(make_ctx):
     assert req.timeout == 50
     grounded = LLMRequest(task="search", system="s", prompt="p")
     ctx.llm.call(grounded)
-    assert grounded.timeout == 90
+    assert grounded.timeout == 120  # a model that searches the web reads pages first
 
 
 def _slow(seconds: float):
@@ -126,3 +126,17 @@ def test_a_fresh_set_reuses_the_mornings_triage(make_ctx):
     assert sum(1 for p in ctx.llm._providers.values() for c in p.calls if c.task == "triage") == asked + 1
     cands = build_candidates(ctx, ctx.store.select("topics"), build_memory(ctx))
     assert cands["linkedin"] and cands["x"]
+
+
+def test_search_results_of_a_model_that_searches_by_itself_are_read():
+    from pbs.llm.openai_compat import search_results
+
+    msg = {"content": "…", "executed_tools": [
+        {"type": "search", "arguments": "{}", "search_results": {"results": [
+            {"title": "A post", "url": "https://www.linkedin.com/posts/a_x-activity-7300000000000000001", "score": 0.9}]},
+         "output": "Title: Another\nURL: https://x.com/a/status/1900000000000000001\nContent: …"},
+        {"type": "python", "output": "2"}]}
+    got = search_results(msg)
+    assert [g["url"] for g in got] == ["https://www.linkedin.com/posts/a_x-activity-7300000000000000001",
+                                       "https://x.com/a/status/1900000000000000001"]
+    assert got[0]["title"] == "A post" and search_results({"content": "x"}) == []

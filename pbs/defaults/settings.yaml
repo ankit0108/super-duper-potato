@@ -428,6 +428,22 @@ llm:
       output_headroom: 1024
       extra_body: {reasoning_effort: low}
       trains_on_inputs: false
+    # Groq's compound models search the web by themselves (free tier, the same GROQ_API_KEY): the search for
+    # the social pulse and requests when Gemini's Google Search isn't available on the key (its free tier often
+    # has none).
+    groq_search:
+      kind: openai
+      base_url: https://api.groq.com/openai/v1
+      model: groq/compound
+      fallback_models: [groq/compound-mini]
+      quota_per_model: true
+      api_key_env: GROQ_API_KEY
+      daily_limit: 40
+      rpm: 10
+      max_input_tokens: 6000
+      output_headroom: 1024
+      trains_on_inputs: false
+      grounding: true
     openrouter:
       kind: openai
       base_url: https://openrouter.ai/api/v1
@@ -448,8 +464,8 @@ llm:
     analysis: [gemini_pro, gemini, groq, gemini_lite, openrouter]
     voice: [groq, gemini, gemini_lite]
     vision: [gemini, gemini_lite]
-    search: [gemini]
-    pulse: [gemini]
+    search: [gemini, groq_search]
+    pulse: [gemini, groq_search]
     humor_write: [gemini, groq, gemini_lite, openrouter]
     humor_judge: [gemini, groq, gemini_lite, openrouter]
     search_plan: [gemini_lite, groq, gemini, openrouter]
@@ -461,7 +477,7 @@ llm:
   # Seconds a call may take before that model counts as busy and the next one answers: a stalled call once cost
   # minutes. Search with grounding and the weekly review get longer.
   timeouts: {default: 90, draft: 50, draft_personal: 50, edit: 40, triage: 75, translate: 45, questions: 45,
-             visual: 60, search_plan: 40, search_rerank: 40, humor_write: 60, humor_judge: 45, pulse: 90,
+             visual: 60, search_plan: 40, search_rerank: 40, humor_write: 60, humor_judge: 45, pulse: 150, search: 120,
              analysis: 180, reflect: 150}
   temperature:
     translate: 0.1

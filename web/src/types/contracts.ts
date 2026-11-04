@@ -262,7 +262,7 @@ export type Id27 = string;
 export type PerPlatform = number | null;
 export type Platforms1 = ("linkedin" | "x")[] | null;
 export type Tasks = (
-  "morning" | "weekly_batch" | "reflection" | "doctor" | "report" | "scout" | "platform_research" | "analysis"
+  "morning" | "weekly_batch" | "reflection" | "doctor" | "report" | "scout" | "platform_research" | "analysis" | "pulse"
 )[];
 export type Type28 = "run.request";
 export type At28 = string;
@@ -784,6 +784,19 @@ export type Topic = string;
 export type Url3 = string | null;
 export type Why2 = string;
 export type Conversations = PulseConversation[];
+/**
+ * Providers that can search the web today
+ */
+export type Engines = string[];
+export type Paused = boolean;
+export type At32 = string;
+/**
+ * The model that searched
+ */
+export type Engine = string | null;
+export type Error2 = ("no_search" | "bad_reply" | "failed") | null;
+export type Found = number;
+export type Ok = boolean;
 export type Updated = string | null;
 export type DailyLimit1 = number | null;
 export type Day = string;
@@ -797,8 +810,8 @@ export type Requests = number;
 export type TokensIn = number;
 export type TokensOut = number;
 export type Quota = Quota1[];
-export type At32 = string | null;
-export type Error2 = string | null;
+export type At33 = string | null;
+export type Error3 = string | null;
 export type Id42 = string;
 export type Type31 = string | null;
 export type RejectedEvents = RejectedEvent[];
@@ -815,7 +828,7 @@ export type ReportsIndex = {
 export type CardIds = string[];
 export type CompletedAt = string | null;
 export type CreatedAt10 = string | null;
-export type Error3 = string | null;
+export type Error4 = string | null;
 export type Id44 = string;
 export type Notes4 = string | null;
 export type Query2 = string;
@@ -829,7 +842,7 @@ export type Status9 = "queued" | "running" | "done" | "partial" | "failed" | "ca
 export type Requests1 = Request[];
 export type Degraded1 = string | null;
 export type EndedAt = string | null;
-export type At33 = string | null;
+export type At34 = string | null;
 export type Message = string | null;
 export type Type32 = string;
 export type Where = string;
@@ -886,7 +899,7 @@ export type System = string;
 export type Version1 = string;
 export type XLimit = number;
 export type CreatedAt11 = string | null;
-export type Error4 = string | null;
+export type Error5 = string | null;
 export type Id48 = string;
 export type Note9 = string | null;
 export type Paths1 = string[];
@@ -909,7 +922,7 @@ export type Id49 = string;
 export type Rules1 = string[];
 export type Summary3 = string | null;
 export type Version2 = number;
-export type At34 = string | null;
+export type At35 = string | null;
 export type Code = string;
 export type Level = "info" | "warn" | "error";
 export type Message1 = string;
@@ -2048,6 +2061,9 @@ export interface Payload {
  */
 export interface PulseInfo {
   conversations?: Conversations;
+  engines?: Engines;
+  paused?: Paused;
+  status?: PulseStatus | null;
   updated?: Updated;
 }
 /**
@@ -2062,6 +2078,17 @@ export interface PulseConversation {
   topic: Topic;
   url?: Url3;
   why?: Why2;
+}
+/**
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "PulseStatus".
+ */
+export interface PulseStatus {
+  at: At32;
+  engine?: Engine;
+  error?: Error2;
+  found?: Found;
+  ok?: Ok;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -2085,8 +2112,8 @@ export interface Quota1 {
  * via the `definition` "RejectedEvent".
  */
 export interface RejectedEvent {
-  at?: At32;
-  error?: Error2;
+  at?: At33;
+  error?: Error3;
   id: Id42;
   type?: Type31;
 }
@@ -2117,7 +2144,7 @@ export interface Request {
   card_ids?: CardIds;
   completed_at?: CompletedAt;
   created_at?: CreatedAt10;
-  error?: Error3;
+  error?: Error4;
   id: Id44;
   notes?: Notes4;
   platforms?: Platforms3;
@@ -2150,7 +2177,7 @@ export interface Run {
  * via the `definition` "RunError".
  */
 export interface RunError {
-  at?: At33;
+  at?: At34;
   message?: Message;
   type: Type32;
   where: Where;
@@ -2259,7 +2286,7 @@ export interface Pillars {
  */
 export interface MetricUpload {
   created_at?: CreatedAt11;
-  error?: Error4;
+  error?: Error5;
   id: Id48;
   note?: Note9;
   paths?: Paths1;
@@ -2295,7 +2322,7 @@ export interface Stats2 {
  * via the `definition` "DeskWarning".
  */
 export interface DeskWarning {
-  at?: At34;
+  at?: At35;
   code: Code;
   level?: Level;
   message: Message1;

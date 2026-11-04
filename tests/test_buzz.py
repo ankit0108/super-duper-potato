@@ -167,3 +167,99 @@ def test_history_keeps_a_week(make_ctx):
     pulse.run(ctx)
     topics = [c["topic"] for c in pulse.recent(ctx)["conversations"]]
     assert "Old news" not in topics and len(topics) == 4
+
+
+def _pulse_ctx(make_ctx, **pulse_handler):
+    from conftest import fake_providers as _fp
+
+    from pbs.llm.base import LLMError
+    from pbs.llm.fake import FakeProvider
+
+    refused = LLMError("You exceeded your current quota", status=429, code="RESOURCE_EXHAUSTED", quota=True,
+                       retryable=False)
+    providers = {**_fp(), "gemini": FakeProvider("gemini", fail_with=refused)}
+    if pulse_handler:
+        providers["groq_search"] = FakeProvider("groq_search", handlers=pulse_handler, model="groq/compound")
+    return make_ctx(providers=providers), providers
+
+
+def test_when_geminis_search_says_no_groqs_search_finds_whats_working(make_ctx):
+    from pbs.llm import fake
+
+    ctx, providers = _pulse_ctx(make_ctx, pulse=fake._pulse)
+    res = pulse.run(ctx)
+    assert res["found"] == 4
+    assert [c.task for c in providers["groq_search"].calls] == ["pulse"]
+    assert ctx.llm.grounding_off_today("gemini") and not ctx.llm.grounding_off_today("groq_search")
+    assert ctx.llm.search_engines() == ["groq_search"] and not ctx.llm.grounding_off_today()
+    status = ctx.store.get_setting(pulse.STATUS_KEY)
+    assert status["ok"] and status["engine"] == "groq/compound" and status["found"] == 4
+    info = pulse.recent(ctx)
+    assert len(info["conversations"]) == 4 and info["status"]["ok"] and info["engines"] == ["groq_search"]
+
+
+def test_with_no_search_at_all_the_desk_is_told_why(make_ctx):
+    ctx, _ = _pulse_ctx(make_ctx)
+    ctx.llm._providers.pop("groq_search")  # no GROQ_API_KEY
+    pulse.run(ctx)
+    assert not pulse.due(ctx)  # already tried today
+    ctx.store.set_setting(pulse.LAST_KEY, None)
+    assert not pulse.due(ctx) and ctx.store.get_setting(pulse.STATUS_KEY)["error"] == "no_search"
+    assert pulse.recent(ctx)["engines"] == []
+
+
+def test_only_links_from_the_pages_the_search_read_are_kept(make_ctx):
+    from pbs.llm.base import LLMResponse
+    from pbs.llm.fake import FakeProvider
+
+    class Searching(FakeProvider):
+        def generate(self, req):
+            resp = super().generate(req)
+            return LLMResponse(**{**resp.__dict__, "grounding": [
+                {"url": "https://www.linkedin.com/posts/someone_ai-agents-activity-7300000000000000001", "title": "t"}]})
+
+    ctx, providers = _pulse_ctx(make_ctx)
+    from pbs.llm import fake
+
+    providers["groq_search"] = Searching("groq_search", handlers={"pulse": fake._pulse}, model="groq/compound")
+    ctx = make_ctx(providers=providers)
+    pulse.run(ctx)
+    urls = {h["topic"]: h["url"] for h in ctx.store.get_setting(pulse.HISTORY_KEY)}
+    assert urls["AI agents that report work they never did"].startswith("https://www.linkedin.com/posts/someone_")
+    assert urls["The model that refused to write a regex"].startswith("https://x.com/search")  # not read: a search link
+
+
+def test_the_feeds_automatic_pause_never_stops_the_pulse_and_one_is_undone(make_ctx):
+    from pbs.scout import scouting
+
+    ctx = make_ctx()
+    from pbs.scout.sources import sync_seeds
+
+    sync_seeds(ctx.store)
+    ctx.store.update("sources", pulse.SOURCE_ID, active=False, consecutive_failures=6,
+                     paused_reason=f"{scouting.AUTO_PAUSE} 7 days (AllProvidersFailed)")
+    assert pulse.due(ctx)
+    source = ctx.store.get("sources", pulse.SOURCE_ID)
+    assert source["active"] and source["paused_reason"] is None
+    ctx.store.update("sources", pulse.SOURCE_ID, consecutive_failures=9, last_success_at="2026-01-01T00:00:00Z")
+    scouting._auto_pause(ctx)
+    assert ctx.store.get("sources", pulse.SOURCE_ID)["active"]
+    ctx.store.update("sources", pulse.SOURCE_ID, active=False, paused_reason="Paused by you")
+    assert not pulse.due(ctx)  # his own pause stays
+
+
+def test_search_now_from_the_desk_runs_the_pulse(make_ctx):
+    from conftest import fake_providers as _fp
+    from conftest import write_inbox
+
+    from pbs import tick
+
+    ctx = make_ctx()
+    ctx.store.set_setting(pulse.LAST_KEY, ctx.local_date_str())  # today's already ran
+    ctx.store.save()
+    write_inbox(ctx.data_root, [{"id": "p1", "type": "run.request", "tasks": ["pulse"]}])
+    tick.run(ctx.data_root, llm_providers=_fp(), send_notifications=False, morning=lambda c: None)
+    from pbs.store import Store
+
+    status = Store.open(ctx.data_root).get_setting(pulse.STATUS_KEY)
+    assert status and status["ok"] and status["found"] == 4

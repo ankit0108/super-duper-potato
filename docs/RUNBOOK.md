@@ -36,12 +36,16 @@ comments on Reddit"). Words trending on X (trends24) and Bluesky lift the storie
 half. Cards are badged *People are talking*, *Bizarre* or *Trending on X*, and **Read what people are saying** opens
 the thread. Reddit and trends24 often refuse GitHub's servers: those are best effort, and the doctor lists them.
 
-**What's working on LinkedIn and X.** Once a day the morning run searches Google (through Gemini) for public
-LinkedIn and X posts on your topics: the conversations taking off and why they work. The best reach the board marked
-*Trending on LinkedIn* or *Trending on X*, with why posts about them are working, and the draft is written with
-that in mind. **Insights → What's working** lists the week's. PBS never logs in to or scrapes LinkedIn or X. When
-you see a post you like in their apps, share it to **PBS Desk** (Studio, above). Pause it on Sources → Buzz
-(*Social pulse*); `pulse` in the settings turns it off or changes how many a platform.
+**What's working on LinkedIn and X.** Once a day the morning run searches the web for public LinkedIn and X posts
+on your topics: the conversations taking off and why they work. The search is Gemini with Google Search when the
+key has it (the free tier usually doesn't), otherwise Groq's compound models, which search the web by themselves
+on the free tier with the same `GROQ_API_KEY`. The best reach the board marked *Trending on LinkedIn* or *Trending
+on X*, with why posts about them are working, and the draft is written with that in mind. **Insights → What's
+working** lists the week's, says when and with which model it last searched (or why it couldn't), **Search now**
+runs it straight away, and **Draft a post** on any of them makes a card for that platform within a few minutes (as
+a request, with its own sources). PBS never logs in to or scrapes LinkedIn or X. When you see a post you like in
+their apps, share it to **PBS Desk** (Studio, above). Pause it on Sources → Buzz (*Social pulse*); `pulse` in the
+settings turns it off or changes how many a platform.
 
 **Funny posts.** Every morning has at least one funny card on LinkedIn, and X mixes them in as the ranking learns.
 They're about real stories (the bizarre, the funny, what people are arguing about), not generic premises (the premise
@@ -203,6 +207,7 @@ desk is where to look first.
 | Share → PBS Desk isn't in Android's share sheet | Install the desk from Chrome (**Add to Home screen**), open it once, then try again. Sharing only works with the installed app |
 | An export says "No analytics found in this file" | The file isn't one of LinkedIn's or X's analytics exports, or its columns were renamed beyond recognition. Export it again from the analytics page (not a copy re-saved from another app), or upload a screenshot instead. LinkedIn's .xls (old Excel) files aren't read: open and save as .xlsx |
 | The review says it was written by Flash, not Pro | Gemini Pro's free quota is small (or not offered on some keys) and it was used up or unavailable, so the next best model wrote it. **Analyse again** after midnight US Pacific time, or put a paid model first in **Settings → Models** (`llm.routes.analysis`) |
+| **What's working** is empty, or says no web search is available | Gemini's Google Search has no free allowance on most keys (the run log says `llm: gemini web search unavailable today`), so the search uses Groq's compound models: check the `GROQ_API_KEY` secret is set (System → Run doctor shows a `groq_search` line). Each engine that says no is skipped for that day only. Then **Search now**. Before Nov 2026 a pulse that kept failing was paused with the feeds; it's switched back on by itself |
 | A change you made "didn't stick" | **System → Rejected changes** lists anything the pipeline couldn't apply, with the reason. *Changes in flight* shows what's still waiting for a run |
 | A card is **Blocked** | It matched your blocklist. Nothing was reworded. Edit the draft by hand or skip it. If the match is a false positive, refine the term in `PBS_BLOCKLIST` |
 | No quote cards, or the run log says `quotes: 0 verified, 6 not found on Wikiquote` | The day's quotes weren't found word for word on their Wikiquote pages (a page renamed, or the quote worded differently there), so they were left out, as designed. A few not found each day is normal. If it's every quote, Wikiquote may be refusing GitHub's servers: the doctor's `Sources` line shows the source's error. Fix a quote's wording or `page` in `pbs/defaults/quote_pools.yaml` to match the page |

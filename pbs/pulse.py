@@ -1,7 +1,8 @@
 """The social pulse: what's working on LinkedIn and X.
 
-Neither platform can be read without logging in (and scraping them breaks their terms), so once a day one Gemini
-call with Google Search looks for public LinkedIn and X posts on his topics: the conversations taking off, what
+Neither platform can be read without logging in (and scraping them breaks their terms), so once a day one call to a
+model that searches the web (Gemini with Google Search when the key allows it, else Groq's compound models, free
+with the same GROQ_API_KEY) looks for public LinkedIn and X posts on his topics: the conversations taking off, what
 people are saying and why posts about them travel. Each one becomes a story for the day's ranking, marked
 "Trending on LinkedIn" or "Trending on X", with the why-it-works note in the drafter's material. The last week's
 are kept for Insights ("What's working").
@@ -22,6 +23,7 @@ from .scout.scouting import DedupIndex, ingest_items
 SOURCE_ID = "social-pulse"
 LAST_KEY = "pulse_last"
 HISTORY_KEY = "pulse_history"
+STATUS_KEY = "pulse_status"  # the last try: {at, ok, engine, found, error} for the desk
 HISTORY_DAYS = 8
 PLATFORM_NAME = {"linkedin": "LinkedIn", "x": "X"}
 # A link to a post itself (not a profile or a search page).
@@ -29,13 +31,34 @@ POST_URL = re.compile(r"^https://(www\.)?(linkedin\.com/(posts|feed/update|pulse
 
 
 def due(ctx: Ctx) -> bool:
-    """Once a day, when it's on, its source isn't paused and search grounding hasn't said no today."""
+    """Once a day, when it's on, its source isn't paused and a model that searches the web is available today."""
     if not ctx.settings.pulse.enabled or ctx.store.get_setting(LAST_KEY) == ctx.local_date_str():
         return False
-    source = ctx.store.get("sources", SOURCE_ID)
+    source = _unpaused(ctx)
     if source is not None and not source.get("active"):
         return False
-    return not ctx.llm.grounding_off_today()
+    if ctx.llm.grounding_off_today():
+        _status(ctx, ok=False, error="no_search")
+        return False
+    return True
+
+
+def _unpaused(ctx: Ctx) -> dict[str, Any] | None:
+    """The pulse's source, switched back on if the feeds' automatic pause caught it (it isn't a feed: days without
+    a web search aren't a broken address). A pause he chose stays."""
+    from .scout.scouting import AUTO_PAUSE
+
+    source = ctx.store.get("sources", SOURCE_ID)
+    if source is not None and not source.get("active") and str(source.get("paused_reason") or "").startswith(AUTO_PAUSE):
+        ctx.store.update("sources", SOURCE_ID, active=True, paused_reason=None, consecutive_failures=0,
+                         updated_at=timeutil.now_iso())
+        source = ctx.store.get("sources", SOURCE_ID)
+    return source
+
+
+def _status(ctx: Ctx, ok: bool, engine: str | None = None, found: int = 0, error: str | None = None) -> None:
+    ctx.store.set_setting(STATUS_KEY, {"at": timeutil.now_iso(), "ok": ok, "engine": engine, "found": found,
+                                       "error": error})
 
 
 def _topics(ctx: Ctx) -> dict[str, list[str]]:
@@ -72,7 +95,11 @@ def run(ctx: Ctx) -> dict[str, Any]:
     except (BudgetExhausted, AllProvidersFailed, LLMError, ValueError) as exc:
         log.info(f"pulse: unavailable today ({type(exc).__name__})")
         _health(ctx, ok=False, found=0, error=type(exc).__name__)
+        _status(ctx, ok=False, error="no_search" if isinstance(exc, BudgetExhausted) else
+                "bad_reply" if isinstance(exc, ValueError) else "failed")
         return stats
+    # Example links only from the pages the search read, when the engine says which (no made-up links).
+    read = {textutil.canonical_url(g["url"]) for g in resp.grounding if g.get("url")}
     now = timeutil.now_iso()
     raws: list[dict[str, Any]] = []
     history: list[dict[str, Any]] = []
@@ -86,7 +113,8 @@ def run(ctx: Ctx) -> dict[str, Any]:
         said = textutil.normalize_ws(str(row.get("what_people_say") or ""))[:500]
         why = textutil.normalize_ws(str(row.get("why_it_works") or ""))[:300]
         angle = textutil.normalize_ws(str(row.get("angle") or ""))[:300]
-        examples = [u for u in row.get("examples") or [] if isinstance(u, str) and POST_URL.match(u)][:2]
+        examples = [u for u in row.get("examples") or [] if isinstance(u, str) and POST_URL.match(u)
+                    and (not read or textutil.canonical_url(u) in read)][:2]
         url = examples[0] if examples else search_url(platform, topic)
         name = PLATFORM_NAME[platform]
         raws.append({
@@ -113,18 +141,23 @@ def run(ctx: Ctx) -> dict[str, Any]:
     ctx.store.set_setting(HISTORY_KEY, (kept + history)[-80:])
     stats.update(found=len(raws), linkedin=counts["linkedin"], x=counts["x"], new_items=len(new_ids))
     _health(ctx, ok=True, found=len(new_ids))
-    log.info(f"pulse: {len(raws)} conversations (linkedin {counts['linkedin']}, x {counts['x']}), "
+    _status(ctx, ok=True, engine=resp.model, found=len(raws))
+    log.info(f"pulse: {len(raws)} conversations (linkedin {counts['linkedin']}, x {counts['x']}) via {resp.provider}, "
              f"{len(resp.grounding)} search results")
     return stats
 
 
 def recent(ctx: Ctx) -> dict[str, Any] | None:
-    """The last week's conversations, newest first, for Insights."""
+    """The last week's conversations, newest first, and how the last search went, for Insights."""
     rows = [h for h in ctx.store.get_setting(HISTORY_KEY, []) or [] if isinstance(h, dict)]
-    if not rows:
+    status = ctx.store.get_setting(STATUS_KEY)
+    if not rows and not status:
         return None
     rows.sort(key=lambda h: h.get("date") or "", reverse=True)
-    return {"updated": rows[0].get("date"), "conversations": rows[:40]}
+    source = ctx.store.get("sources", SOURCE_ID) or {}
+    return {"updated": rows[0].get("date") if rows else None, "conversations": rows[:40],
+            "status": status, "engines": ctx.llm.search_engines(),
+            "paused": not source.get("active", True) if source else False}
 
 
 def _health(ctx: Ctx, ok: bool, found: int, error: str | None = None) -> None:
