@@ -267,7 +267,7 @@ class WeeklyBatch(_Strict):
 
 
 class ProviderSpec(_Strict):
-    kind: Literal["gemini", "openai", "fake"]
+    kind: Literal["gemini", "openai", "ollama", "fake"]
     # A model ID, or for Gemini "auto:flash" / "auto:flash-lite" / "auto:pro": the newest models of that family the key
     # can use, found at run time, so retired and renamed models don't break the pipeline.
     model: str

@@ -57,7 +57,26 @@ class _Review(BaseModel):
 
 
 def latest(ctx: Ctx) -> dict[str, Any] | None:
-    return ctx.store.get_setting(KEY)
+    review = ctx.store.get_setting(KEY)
+    return {**review, "coverage": coverage(ctx)} if review else None
+
+
+def coverage(ctx: Ctx) -> dict[str, Any]:
+    """Data coverage is computed even when no AI review can run; missing is never a zero result."""
+    from .learn import latest_metrics
+
+    latest_by = latest_metrics(ctx)
+    result = {}
+    for platform in ("linkedin", "x"):
+        posts = ctx.store.select("posts", "platform = ?", (platform,))
+        measured = [latest_by[p["id"]] for p in posts if p["id"] in latest_by
+                    and latest_by[p["id"]].get("impressions") is not None]
+        result[platform] = {
+            "published": len(posts), "measured": len(measured), "missing": len(posts) - len(measured),
+            "needs_review": ctx.store.count("metrics", "platform = ? AND status = 'needs_review'", (platform,)),
+            "latest_capture": max((m.get("captured_at") or "" for m in measured), default=None),
+        }
+    return result
 
 
 def due(ctx: Ctx) -> bool:
@@ -83,7 +102,8 @@ def _post_rows(ctx: Ctx) -> list[dict[str, Any]]:
         raw = m.get("raw") or {}
         key = m.get("post_id") or raw.get("url") or f"{m.get('platform')}:{raw.get('posted_date')}:" \
             f"{textutil.title_key(raw.get('text_snippet') or '')[:40]}"
-        latest_by[key] = {**latest_by.get(key, {}), **{k: v for k, v in m.items() if v is not None}}
+        # A snapshot is one observation. Combining today's impressions with last week's likes invents a rate.
+        latest_by[f"{m.get('platform')}:{key}"] = m
     posts = {p["id"]: p for p in ctx.store.select("posts")}
     rows: list[dict[str, Any]] = []
     for m in latest_by.values():
@@ -110,6 +130,8 @@ def _post_rows(ctx: Ctx) -> list[dict[str, Any]]:
         row.update({k: m[k] for k in NUMBERS if m.get(k) is not None})
         row["engagement"] = _engagement(m)
         row["engagement_rate"] = _rate(m)
+        row["captured_at"] = m.get("captured_at")
+        row["measurement_scope"] = "export_period" if m.get("source") == "file" else "snapshot"
         rows.append({k: v for k, v in row.items() if v is not None})
     rows.sort(key=lambda r: r.get("date") or "", reverse=True)
     return rows[:MAX_POSTS]
@@ -125,6 +147,8 @@ def _groups(rows: list[dict[str, Any]], field: str) -> list[dict[str, Any]]:
         if r.get(field) is not None:
             by[r[field]].append(r)
     out = [{field: k, "posts": len(v),
+            "measured_posts": sum(r.get("impressions") is not None for r in v),
+            "evidence": "insufficient" if sum(r.get("impressions") is not None for r in v) < 5 else "observational",
             "median_impressions": _median([r["impressions"] for r in v if r.get("impressions") is not None]),
             "median_rate": _median([r["engagement_rate"] for r in v if r.get("engagement_rate") is not None])}
            for k, v in by.items()]
@@ -146,12 +170,16 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
         rated = [r for r in mine if r.get("engagement_rate") is not None]
         by_imp = sorted([r for r in mine if r.get("impressions") is not None], key=lambda r: -r["impressions"])
         by_rate = sorted(rated, key=lambda r: -r["engagement_rate"])
+        rate_impressions = sum(r["impressions"] for r in rated)
         out[platform] = {
             "posts": len(mine), "drafted_by_pbs": sum(1 for r in mine if r["source"] == "pbs"),
             "first": min((r["date"] for r in mine if r.get("date")), default=None),
             "last": max((r["date"] for r in mine if r.get("date")), default=None),
             "median_impressions": _median([r["impressions"] for r in by_imp]),
             "median_engagement_rate": _median([r["engagement_rate"] for r in rated]),
+            "rate_posts": len(rated),
+            "weighted_engagement_rate": round(100 * sum(r["engagement"] for r in rated) / rate_impressions, 2)
+            if rate_impressions else None,
             "total_impressions": sum(r["impressions"] for r in by_imp),
             "most_seen": [_brief(r) for r in by_imp[:5]],
             "least_seen": [_brief(r) for r in by_imp[-3:]] if len(by_imp) > 5 else [],
@@ -160,6 +188,7 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "by_hour": _groups(mine, "hour"),
             "by_format": _groups(mine, "format"),
             "by_topic": _groups(mine, "topic"),
+            "by_posting_window": _groups(mine, "in_posting_window"),
         }
     return out
 
@@ -219,12 +248,10 @@ def gather(ctx: Ctx) -> dict[str, Any]:
 
     rows = _post_rows(ctx)
     totals = ctx.store.get_setting(TOTALS_KEY, {}) or {}
-    start = _period_start(totals)
-    if start:
-        # The export lists older posts that were still seen in its period: say so, so they aren't compared as new.
-        for r in rows:
-            if r.get("date") and r["date"] < start:
-                r["published_before_period"] = True
+    for r in rows:
+        start = _period_start({r["platform"]: totals.get(r["platform"], {})})
+        if start and r.get("date") and r["date"] < start:
+            r["published_before_period"] = True
     audience = {p: _audience(v.get("rows") or []) for p, v in (ctx.store.get_setting(AUDIENCE_KEY, {}) or {}).items()}
     windows: dict[str, Any] = {}
     for platform in ("linkedin", "x"):
@@ -236,6 +263,7 @@ def gather(ctx: Ctx) -> dict[str, Any]:
             if r.get("platform") == platform and r.get("hour") is not None:
                 r["in_posting_window"] = span[0] <= r["hour"] <= span[1]
     return {"summary": summarise(rows), "posts": rows, "followers": _followers(ctx), "days": _days(ctx),
+            "coverage": coverage(ctx),
             "audience": audience, "totals": totals, "posting_window": windows,
             "goals": textutil.truncate(profile_text(ctx.settings.profile), 1200)}
 
@@ -247,7 +275,7 @@ def run(ctx: Ctx) -> dict[str, Any]:
     platforms = sorted(data["summary"])
     periods = [t.get("period") for t in data["totals"].values() if t.get("period")]
     base: dict[str, Any] = {"at": timeutil.now_iso(), "posts": len(rows), "platforms": platforms,
-                            "period": periods[0] if len(periods) == 1 else _period(rows)}
+                            "period": periods[0] if len(periods) == 1 else _period(rows), "coverage": data["coverage"]}
     if len(rows) < MIN_POSTS and not (data["days"] or data["totals"]):
         review = {**base, "status": "too_little",
                   "headline": f"Only {len(rows)} post{'s' if len(rows) != 1 else ''} with numbers so far: "
@@ -282,6 +310,10 @@ def run(ctx: Ctx) -> dict[str, Any]:
     review = {**base, "status": "ok", "model": resp.model, "provider": resp.provider, "passed_over": passed,
               **out.model_dump()}
     review["findings"] = review["findings"][:6]
+    limits = [f"{p}: no confirmed post impressions; no performance conclusion is available."
+              for p, c in data["coverage"].items() if c["published"] and not c["measured"]]
+    limits.append("Day, time and topic comparisons are observational; small groups are experiments, not rules.")
+    review["caveats"] = list(dict.fromkeys([*limits, *review["caveats"]]))[:6]
     today = ctx.local_date_str()
     if resp.provider not in STRONG and any(p["provider"] in STRONG and p["why"] == "busy" for p in passed) \
             and old.get("retried") != today:

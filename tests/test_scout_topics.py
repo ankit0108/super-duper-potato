@@ -40,8 +40,9 @@ def test_same_story_clusters_into_one_topic_with_why_now(make_ctx):
     run_scouts(ctx)
     build_topics(ctx)
     top = ctx.store.select("topics", order="n_sources DESC", limit=1)[0]
-    assert len(top["item_ids"]) == 5 and top["n_sources"] == 5
-    assert "Covered by 5 outlets" in top["why_now"]["note"] and "Hacker News" in top["why_now"]["note"]
+    # Generic agent stories no longer bridge into the launch cluster.
+    assert len(top["item_ids"]) == 3 and top["n_sources"] == 3
+    assert "Covered by 3 outlets" in top["why_now"]["note"]
     assert "OpenAI" in top["title"]
 
 

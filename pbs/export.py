@@ -33,7 +33,7 @@ def warnings(ctx: Ctx) -> list[dict[str, Any]]:
     today_rows = ctx.store.select("quota", "day = ?", (timeutil.now().strftime("%Y-%m-%d"),))
     failing = [q for q in today_rows if q.get("last_error_at") and not q.get("exhausted_at")
                and (not q.get("last_ok_at") or q["last_error_at"] > q["last_ok_at"])]
-    if failing and not any(int(q.get("requests") or 0) for q in today_rows):
+    if failing and not any(q.get("last_ok_at") for q in today_rows):
         detail = "; ".join(f"{q['provider']}: {str(q.get('last_error') or '')[:120]}" for q in failing)
         out.append({"level": "error", "code": "llm_failing", "at": max(q["last_error_at"] for q in failing),
                     "message": f"No model has answered today, so new cards arrive as briefs. {detail}. "

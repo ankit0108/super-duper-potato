@@ -43,6 +43,8 @@ const KIND_LABEL: Record<string, string> = {
   gtrends: "Google Trends",
   trends24: "X trends",
   bsky_trends: "Bluesky trends",
+  bsky_search: "Bluesky public posts",
+  bsky_feed: "Bluesky author feed",
   pulse: "Social pulse",
 };
 

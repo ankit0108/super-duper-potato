@@ -622,18 +622,30 @@ class StudioKit(_Out):
 
 class PulseConversation(_Out):
     date: str
-    platform: Literal["linkedin", "x"]
+    platform: Literal["linkedin", "x", "bluesky", "mastodon", "hackernews"]
     topic: str
     said: str = ""
     why: str = ""
     angle: str = ""
     url: str | None = None
+    evidence: Literal["observed_activity", "indexed_coverage", "search_cited"] | None = None
+    metrics: dict[str, int] = {}
+    observed_at: str | None = None
+    limitation: str = ""
 
 
 class PerformanceFinding(_Out):
     title: str
     detail: str = ""
     evidence: str = ""
+
+
+class MetricCoverage(_Out):
+    published: int = 0
+    measured: int = 0
+    missing: int = 0
+    needs_review: int = 0
+    latest_capture: str | None = None
 
 
 class PerformanceInfo(_Out):
@@ -651,6 +663,7 @@ class PerformanceInfo(_Out):
     try_next: list[str] = []
     audience: str = ""
     caveats: list[str] = []
+    coverage: dict[str, MetricCoverage] = {}
     status: Literal["ok", "waiting", "failed", "too_little"] = "ok"
     error: str | None = None
     passed_over: list[dict[str, str]] = Field([], description="Stronger models tried first: [{provider, why: "
@@ -948,7 +961,7 @@ class SourceUpsertEvent(_Event):
     name: str | None = Field(None, max_length=120)
     kind: Literal["rss", "gnews", "arxiv", "hf_papers", "hn_front", "hn_show", "hn_ask", "wikipedia_otd",
                   "wikipedia_pool", "wikiquote_pool", "reddit", "reddit_json", "mastodon_links", "gtrends",
-                  "trends24", "bsky_trends", "pulse"] | None = None
+                  "trends24", "bsky_trends", "bsky_search", "bsky_feed", "pulse"] | None = None
     url: str | None = Field(None, max_length=1000)
     query: str | None = Field(None, max_length=300)
     scout: Literal["tech", "affairs", "startups", "life", "humor", "ideas", "buzz"] | None = None

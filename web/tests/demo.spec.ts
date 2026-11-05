@@ -689,9 +689,9 @@ test("a funny post from the writers' room: the critic's note, and another versio
 
 test("what's working on LinkedIn and X: the week's conversations in Insights", async ({ page }) => {
   await page.goto("/#/insights?tab=working");
-  await expect(page.getByText("What's working on LinkedIn and X")).toBeVisible();
+  await expect(page.getByText("Social evidence", { exact: true })).toBeVisible();
   await expect(page.getByText("AI agents that report work they never did").first()).toBeVisible();
-  await expect(page.getByText(/^Why it works:/).first()).toBeVisible();
+  await expect(page.getByText(/^Angle hypothesis:/).first()).toBeVisible();
   await expect(page.getByText(/^Last searched .* with gemini-3\.6-flash\.$/)).toBeVisible();
   await page.getByRole("button", { name: "Draft a post" }).first().click();
   await expect(page.getByText("Drafting it: the card appears on your board in a few minutes, with the sources it found.")).toBeVisible();
@@ -717,4 +717,14 @@ test("the Studio's key is checked with Gemini straight from the browser (the pag
   await expect(page.getByText(/Gemini key …-key saved on this device/)).toBeVisible();
   // When a model's free quota runs out the next answers; Gemma, with far larger free limits, comes last.
   await expect(page.getByText("Models, tried in order: gemini-2.5-flash, gemini-2.5-flash-lite, gemma-3-27b-it")).toBeVisible();
+});
+
+test("Studio backup providers are reachable under the page's content security policy", async ({ page }) => {
+  const urls = ["https://api.groq.com/openai/v1/chat/completions", "https://api.cerebras.ai/v1/chat/completions", "https://openrouter.ai/api/v1/chat/completions"];
+  for (const url of urls) await page.route(url, (route) => route.fulfill({
+    status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+    body: JSON.stringify({ choices: [{ message: { content: "Test reply" } }] }),
+  }));
+  const statuses = await page.evaluate(async (endpoints) => Promise.all(endpoints.map(async (url) => (await fetch(url, { method: "POST" })).status)), urls);
+  expect(statuses).toEqual([200, 200, 200]);
 });

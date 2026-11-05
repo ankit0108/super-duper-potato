@@ -111,6 +111,8 @@ def cluster(items: list[dict[str, Any]], threshold: float) -> list[list[str]]:
             inverted[tok].append(iid)
     limit = max(15, int(len(keys) * 0.2))
     seen: set[tuple[str, str]] = set()
+    by_id = {it["id"]: it for it in items}
+    edges: list[tuple[float, str, str]] = []
     for _tok, members in inverted.items():
         if len(members) > limit:
             continue
@@ -120,16 +122,23 @@ def cluster(items: list[dict[str, Any]], threshold: float) -> list[list[str]]:
                 if pair in seen:
                     continue
                 seen.add(pair)
-                if _cosine(vecs[a], vecs[b]) >= threshold:
-                    uf.union(a, b)
-    # Items that already belong to the same topic stay together across runs.
-    by_topic: dict[str, list[str]] = defaultdict(list)
-    for it in items:
-        if it.get("topic_id"):
-            by_topic[it["topic_id"]].append(it["id"])
-    for members in by_topic.values():
-        for other in members[1:]:
-            uf.union(members[0], other)
+                similarity = _cosine(vecs[a], vecs[b])
+                if similarity >= threshold and same_event(by_id[a], by_id[b]):
+                    edges.append((similarity, a, b))
+    # Complete-link clustering: a shared generic headline must not bridge unrelated stories.
+    # Revalidate old memberships too, so a bad historical cluster can heal on the next scout.
+    members_by_root = {k: {k} for k in keys}
+    for _, a, b in sorted(edges, reverse=True):
+        ra, rb = uf.find(a), uf.find(b)
+        if ra == rb:
+            continue
+        left, right = members_by_root[ra], members_by_root[rb]
+        if len(left) + len(right) > MAX_CLUSTER:
+            continue
+        if all(_cosine(vecs[x], vecs[y]) >= threshold and same_event(by_id[x], by_id[y])
+               for x in left for y in right):
+            uf.union(ra, rb)
+            members_by_root[uf.find(ra)] = left | right
     groups: dict[str, list[str]] = defaultdict(list)
     for k in keys:
         groups[uf.find(k)].append(k)
@@ -137,6 +146,20 @@ def cluster(items: list[dict[str, Any]], threshold: float) -> list[list[str]]:
     for members in groups.values():
         out.extend(_split_large(members, vecs, threshold))
     return out
+
+
+def same_event(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    """Repeated earnings/funding vocabulary does not make two companies the same event."""
+    def subject(it: dict[str, Any]) -> set[str]:
+        title = it.get("title_en") or it.get("title") or ""
+        match = re.search(r"\b(?:q[1-4]|raises?|raised|secures?|profits?|revenues?|turns profitable)\b", title, re.I)
+        if not match:
+            return set()
+        return set(textutil.sim_tokens(title[:match.start()])) - {
+            "startup", "startups", "fintech", "spacetech", "insurtech", "indian", "india", "ai", "new",
+        }
+    left, right = subject(a), subject(b)
+    return not left or not right or bool(left & right)
 
 
 def _split_large(members: list[str], vecs: dict[str, dict[str, float]], threshold: float) -> list[list[str]]:
@@ -227,6 +250,9 @@ def why_now(items: list[dict[str, Any]], publishers: list[str]) -> dict[str, Any
                      "comments on Reddit")
     if signals.get("mastodon_accounts"):
         parts.append(f"shared by {int(signals['mastodon_accounts'])} accounts on Mastodon")
+    if signals.get("bsky_likes") or signals.get("bsky_replies"):
+        parts.append(f"{int(signals.get('bsky_likes') or 0)} likes and "
+                     f"{int(signals.get('bsky_replies') or 0)} replies observed on Bluesky")
     if signals.get("search_traffic"):
         parts.append(f"{int(signals['search_traffic']):,}+ searches on Google")
     if signals.get("hf_upvotes"):
@@ -328,7 +354,7 @@ def build_topics(ctx: Ctx, items: list[dict[str, Any]] | None = None, origin: st
     for members in groups:
         its = [by_id[m] for m in members]
         existing_ids = Counter(it["topic_id"] for it in its if it.get("topic_id"))
-        topic_id = existing_ids.most_common(1)[0][0] if existing_ids else None
+        topic_id = next((tid for tid, _ in existing_ids.most_common() if tid not in touched), None)
         existing = store.get("topics", topic_id) if topic_id else None
         if existing is None:
             topic_id = ids.new_id("top")

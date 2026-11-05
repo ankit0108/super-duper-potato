@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -115,6 +116,7 @@ class ModelCycle:
         self.dead: set[str] = set()
         self.spent: set[str] = set()
         self.busy: dict[str, int] = {}  # model -> "overloaded" answers this run
+        self.cooldown: dict[str, float] = {}
 
     @property
     def current(self) -> str | None:
@@ -123,7 +125,8 @@ class ModelCycle:
     def usable(self) -> list[str]:
         n = len(self.models)
         order = [self.models[(self.idx + k) % n] for k in range(n)]
-        ok = [m for m in order if m not in self.dead and m not in self.spent]
+        ok = [m for m in order if m not in self.dead and m not in self.spent
+              and self.cooldown.get(m, 0) <= time.monotonic()]
         calm = [m for m in ok if self.busy.get(m, 0) < BUSY_AFTER]
         if not calm:
             # Every model is busy: one try per call, not one per model, taking turns (the least busy first), so
@@ -163,6 +166,8 @@ class ModelCycle:
                     self.spent.add(model)
                 elif exc.quota or exc.rate_limited or (exc.status or 0) >= 500:
                     transient = exc
+                    if exc.rate_limited and not req.grounding:
+                        self.cooldown[model] = time.monotonic() + max(1, exc.retry_after or 60)
                     if (exc.status or 0) >= 500 and not req.grounding:
                         self.busy[model] = self.busy.get(model, 0) + 1
                 else:
@@ -180,6 +185,11 @@ class ModelCycle:
             raise transient
         if last is not None:
             raise last
+        cooling = [until for model, until in self.cooldown.items()
+                   if model not in self.dead and model not in self.spent and until > time.monotonic()]
+        if cooling:
+            raise LLMError("models cooling down after rate limit", status=429, rate_limited=True,
+                           retry_after=max(1, min(cooling) - time.monotonic()))
         raise LLMError("no model left to try", code="no_model", fatal_for_provider=True, model_gone=True)
 
 

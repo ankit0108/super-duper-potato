@@ -204,7 +204,7 @@ class Store:
             sql = f'INSERT OR REPLACE INTO "{table.name}" ({cols}) VALUES ({placeholders})'
             for path in self._files_for(table):
                 text = path.read_text(encoding="utf-8")
-                self._file_hashes[str(path.relative_to(self.root))] = hashlib.sha1(text.encode()).hexdigest()
+                self._file_hashes[path.relative_to(self.root).as_posix()] = hashlib.sha1(text.encode()).hexdigest()
                 batch = []
                 for line in text.splitlines():
                     if not line.strip():
@@ -223,7 +223,7 @@ class Store:
         meta = self.db_dir / "_meta.json"
         if not meta.exists():
             meta.write_text(json.dumps({"schema": SCHEMA_VERSION}) + "\n", encoding="utf-8")
-            changed.append(str(meta.relative_to(self.root)))
+            changed.append(meta.relative_to(self.root).as_posix())
         for table in TABLES.values():
             groups: dict[str | None, list[str]] = {}
             for row in self.select(table.name):
@@ -232,7 +232,7 @@ class Store:
             written: set[str] = set()
             for key, lines in groups.items():
                 path = self._path_for(table, key)
-                rel = str(path.relative_to(self.root))
+                rel = path.relative_to(self.root).as_posix()
                 written.add(rel)
                 text = "\n".join(lines) + "\n"
                 digest = hashlib.sha1(text.encode()).hexdigest()

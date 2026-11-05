@@ -428,9 +428,8 @@ llm:
       output_headroom: 1024
       extra_body: {reasoning_effort: low}
       trains_on_inputs: false
-    # Groq's compound models search the web by themselves (free tier, the same GROQ_API_KEY): the search for
-    # the social pulse and requests when Gemini's Google Search isn't available on the key (its free tier often
-    # has none).
+    # Compound was retired in September 2026. Keep the name for old saved settings, disabled by default.
+    # Paid browser-search tools are not silently enabled as a replacement. Public feeds still scout without AI.
     groq_search:
       kind: openai
       base_url: https://api.groq.com/openai/v1
@@ -438,7 +437,7 @@ llm:
       fallback_models: [groq/compound-mini]
       quota_per_model: true
       api_key_env: GROQ_API_KEY
-      daily_limit: 40
+      daily_limit: 0
       rpm: 10
       max_input_tokens: 6000
       output_headroom: 1024
@@ -453,27 +452,47 @@ llm:
       rpm: 10
       output_headroom: 1024
       trains_on_inputs: true
+    cerebras:
+      kind: openai
+      base_url: https://api.cerebras.ai/v1
+      model: gpt-oss-120b
+      fallback_models: [qwen-3.8-27b]
+      quota_per_model: true
+      api_key_env: CEREBRAS_API_KEY
+      daily_limit: 80
+      rpm: 5
+      max_input_tokens: 6000
+      output_headroom: 1024
+      trains_on_inputs: true
+    ollama:
+      kind: ollama
+      base_url: http://127.0.0.1:11434/v1
+      model: qwen3:8b
+      daily_limit: 200
+      rpm: 10
+      max_input_tokens: 12000
+      trains_on_inputs: false
   routes:
-    translate: [gemini_lite, groq, gemini, openrouter]
-    triage: [gemini_lite, gemini, groq, openrouter]
-    draft: [gemini, groq, gemini_lite, openrouter]
-    draft_personal: [groq, gemini, gemini_lite, openrouter]
-    edit: [groq, gemini, gemini_lite]
-    questions: [gemini_lite, gemini, groq, openrouter]
-    reflect: [gemini_pro, gemini, groq, gemini_lite]
-    analysis: [gemini_pro, gemini, groq, gemini_lite, openrouter]
-    voice: [groq, gemini, gemini_lite]
+    translate: [gemini_lite, groq, cerebras, gemini, openrouter, ollama]
+    triage: [gemini_lite, gemini, groq, cerebras, openrouter, ollama]
+    draft: [gemini, groq, cerebras, gemini_lite, openrouter, ollama]
+    draft_personal: [groq, ollama, gemini, cerebras, gemini_lite, openrouter]
+    edit: [groq, cerebras, gemini, gemini_lite, openrouter, ollama]
+    questions: [gemini_lite, gemini, groq, cerebras, openrouter, ollama]
+    reflect: [gemini_pro, gemini, groq, cerebras, gemini_lite, openrouter, ollama]
+    analysis: [gemini_pro, gemini, groq, cerebras, gemini_lite, openrouter, ollama]
+    voice: [groq, cerebras, gemini, gemini_lite, ollama]
     vision: [gemini, gemini_lite]
-    search: [gemini, groq_search]
-    pulse: [gemini, groq_search]
-    humor_write: [gemini, groq, gemini_lite, openrouter]
-    humor_judge: [gemini, groq, gemini_lite, openrouter]
-    search_plan: [gemini_lite, groq, gemini, openrouter]
-    search_rerank: [gemini_lite, groq, gemini, openrouter]
-    research: [gemini, groq, gemini_lite]
-    visual: [gemini, groq, gemini_lite, openrouter]
-    stances: [gemini, groq, gemini_lite]
-    evergreen: [gemini, groq, gemini_lite, openrouter]
+    search: [gemini]
+    pulse: [gemini]
+    humor_write: [gemini, groq, cerebras, gemini_lite, openrouter, ollama]
+    humor_judge: [gemini, groq, cerebras, gemini_lite, openrouter, ollama]
+    search_plan: [gemini_lite, groq, cerebras, gemini, openrouter, ollama]
+    search_rerank: [gemini_lite, groq, cerebras, gemini, openrouter, ollama]
+    research: [gemini, groq, cerebras, gemini_lite, ollama]
+    visual: [gemini, groq, cerebras, gemini_lite, openrouter, ollama]
+    stances: [gemini, groq, cerebras, gemini_lite, ollama]
+    evergreen: [gemini, groq, cerebras, gemini_lite, openrouter, ollama]
   # Seconds a call may take before that model counts as busy and the next one answers: a stalled call once cost
   # minutes. Search with grounding and the weekly review get longer.
   timeouts: {default: 90, draft: 50, draft_personal: 50, edit: 40, triage: 75, translate: 45, questions: 45,

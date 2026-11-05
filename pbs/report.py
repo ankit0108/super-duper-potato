@@ -1,6 +1,6 @@
 """Weekly system report (FR-23): how well the machine is working, plus the small fixes it may make itself.
 
-Auto-applied: pausing zero-yield sources, per-scout candidate counts, exploration rate (bounded).
+Auto-applied: per-scout candidate counts and exploration rate (bounded). Low-yield sources get a review proposal.
 Everything touching pillars, reward weights or guardrails becomes a proposal for Ankit.
 """
 
@@ -151,18 +151,8 @@ def build_report(ctx: Ctx, start: dt.datetime, end: dt.datetime) -> tuple[dict[s
 
 def plan_actions(ctx: Ctx, sections: dict[str, Any]) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
-    total_posts_28d = ctx.store.count("posts", "posted_at >= ?",
-                                      (timeutil.iso(timeutil.now() - dt.timedelta(days=28)),))
-    weeks = ctx.settings.scouting.pause_after_zero_yield_weeks
-    if total_posts_28d >= 20:
-        for y in sections["source_yield"]:
-            src = ctx.store.get("sources", y["source_id"])
-            if not src or not src["active"] or y["items_28d"] < 10 or y["picked_items_28d"] > 0:
-                continue
-            age = timeutil.hours_between(timeutil.parse(src.get("created_at")), timeutil.now()) or 0
-            if age >= weeks * 7 * 24:
-                actions.append({"type": "pause_source", "source_id": src["id"],
-                                "reason": f"No picked cards from {y['items_28d']} items in {weeks} weeks"})
+    # Selection yield measures the whole ranking pipeline, not source quality. Never automatically pause
+    # a healthy source because its stories were not shown or picked; health_proposals asks for a review.
     rates = [r for r in sections["scout_hit_rate"] if r["rate"] is not None and r["delivered"] >= 10
              and r["scout"] in ctx.settings.scouting.candidates_per_scout]
     if rates:
@@ -213,6 +203,15 @@ def apply_actions(ctx: Ctx, actions: list[dict[str, Any]]) -> list[dict[str, Any
 def health_proposals(ctx: Ctx, sections: dict[str, Any]) -> list[str]:
     """Flag prompts for review when edit ratio rises, and suggest the strongest free model after 4 flat weeks."""
     ids: list[str] = []
+    quiet = [y for y in sections.get("source_yield", [])
+             if y["active"] and not y["failing"] and y["items_28d"] >= 10 and y["picked_items_28d"] == 0]
+    since = timeutil.iso(timeutil.now() - dt.timedelta(days=28))
+    if quiet and not ctx.store.count("proposals", "kind = 'source_review' AND created_at >= ?", (since,)):
+        ids.append(playbook.create_proposal(
+            ctx, kind="source_review", title="Review source relevance and ranking before pausing feeds",
+            detail="Some healthy feeds have no selected posts. That can mean their stories were never surfaced. "
+                   "Review them on Sources; they stay active. Approving this acknowledges the review only.",
+            payload={}, evidence=[y["source_id"] for y in quiet[:12]], confidence="low", source="report"))
     dq = sections["drafter_quality"]
     for pl in ("linkedin", "x"):
         now_m, prev_m = dq["edit_ratio_median"].get(pl), dq["edit_ratio_median_prev"].get(pl)
@@ -232,9 +231,9 @@ def health_proposals(ctx: Ctx, sections: dict[str, Any]) -> list[str]:
             if len(series) >= 4 and series[-1] >= series[0] - 0.02 and not asked:
                 ids.append(playbook.create_proposal(
                     ctx, kind="model_upgrade", title="Edit ratio is flat after four weeks: consider a stronger drafter",
-                    detail="The free models are already the newest ones available. If drafts still need the same "
-                           "amount of editing, the one paid upgrade worth making is a stronger drafting model, set "
-                           "in Settings → Models. Approving this only records that you've seen it.",
+                    detail="Compare the configured free providers, improve source detail, and add examples of "
+                           "your own edits before changing models. Check Settings → Models for unused free "
+                           "fallbacks. Approving this only records that you've seen it.",
                     payload={}, confidence="medium", source="report"))
                 break
     return ids

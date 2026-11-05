@@ -364,10 +364,13 @@ def select_sources(ctx: Ctx, topic: dict[str, Any], limit: int = 6) -> list[dict
     items = ctx.store.select("items", f"id IN ({placeholders})", item_ids)
     src_names = {s["id"]: s.get("name") for s in ctx.store.select("sources")}
 
-    def pref(it: dict[str, Any]) -> tuple[int, int]:
+    title_tokens = frozenset(textutil.sim_tokens(topic.get("title_en") or topic.get("title") or ""))
+
+    def pref(it: dict[str, Any]) -> tuple[float, int, int]:
         english = 0 if (it.get("lang") != "hi" or it.get("title_en")) else 1
         summary = 0 if (it.get("summary_en") or it.get("summary")) else 1
-        return (english, summary)
+        relevance = textutil.jaccard(title_tokens, frozenset(textutil.sim_tokens(it.get("title_en") or it["title"])))
+        return (-relevance, english, summary)
 
     ordered = sorted(items, key=lambda it: it.get("published_at") or "", reverse=True)
     ordered.sort(key=pref)
@@ -388,7 +391,7 @@ def select_sources(ctx: Ctx, topic: dict[str, Any], limit: int = 6) -> list[dict
             "orig_title": it["title"] if hindi else None,
             # An evergreen story's article is the whole material, so more of it comes along.
             "summary": textutil.truncate(it.get("summary_en") or it.get("summary") or "",
-                                         1200 if (it.get("signals") or {}).get("evergreen") else 420),
+                                         1600 if (it.get("signals") or {}).get("evergreen") else 1200),
         })
         if len(out) >= limit:
             break
@@ -439,6 +442,14 @@ def _material(card: dict[str, Any], extra: dict[str, Any] | None = None) -> dict
                      "date": (s.get("published_at") or "")[:10] or None, "summary": s.get("summary"),
                      "url": s.get("url")} for i, s in enumerate(card.get("sources") or [])],
     }
+    summaries = [s.get("summary") or "" for s in card.get("sources") or []]
+    data["evidence_depth"] = "summary" if any(len(s.split()) >= 35 for s in summaries) else "headline_only"
+    data["editorial_brief"] = (
+        "Name the specific development, explain one consequence supported by the source, then stop. "
+        "A single company or paper is not evidence of an industry trend. Clearly label your interpretation. "
+        "With headline-only evidence write a short attributed observation; do not invent the mechanism, "
+        "market implications, causality, benchmarks, or practical experience. Do not pad to a target length."
+    )
     trend = card.get("trending") or {}
     if trend.get("why"):
         data["why_posts_about_it_are_working"] = f"On {PLATFORM_LABEL.get(trend.get('on'), trend.get('on'))}: {trend['why']}"
@@ -581,7 +592,7 @@ def draft_external(ctx: Ctx, card: dict[str, Any], avoid_angles: list[str] | Non
         return _draft_funny(ctx, card, vars_, style)
     version = prompting.version("system", "draft")
     req = LLMRequest(task="draft", system=_system(ctx), prompt=prompting.render("draft", **vars_),
-                     max_output_tokens=3000, prompt_version=version)
+                     max_output_tokens=1800 if card["format"] != "x_thread" else 3000, prompt_version=version)
     out, resp = ctx.llm.call_json(req, DraftOut)
     norm = normalize_output(ctx, card, out, card.get("sources") or [], style)
     card["draft_basis"] = "sources"

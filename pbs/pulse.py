@@ -1,11 +1,7 @@
-"""The social pulse: what's working on LinkedIn and X.
+"""Public social evidence: cited LinkedIn/X posts plus no-key feed observations.
 
-Neither platform can be read without logging in (and scraping them breaks their terms), so once a day one call to a
-model that searches the web (Gemini with Google Search when the key allows it, else Groq's compound models, free
-with the same GROQ_API_KEY) looks for public LinkedIn and X posts on his topics: the conversations taking off, what
-people are saying and why posts about them travel. Each one becomes a story for the day's ranking, marked
-"Trending on LinkedIn" or "Trending on X", with the why-it-works note in the drafter's material. The last week's
-are kept for Insights ("What's working").
+Observed activity, indexed coverage and suggested angles are distinct. Search citations prove only that the
+search engine returned a page; they do not prove performance or causality. Public feeds continue without AI.
 """
 
 from __future__ import annotations
@@ -35,12 +31,8 @@ def due(ctx: Ctx) -> bool:
     if not ctx.settings.pulse.enabled or ctx.store.get_setting(LAST_KEY) == ctx.local_date_str():
         return False
     source = _unpaused(ctx)
-    if source is not None and not source.get("active"):
-        return False
-    if ctx.llm.grounding_off_today():
-        _status(ctx, ok=False, error="no_search")
-        return False
-    return True
+    # Public feed observations still work when every AI search quota is exhausted.
+    return source is None or bool(source.get("active"))
 
 
 def _unpaused(ctx: Ctx) -> dict[str, Any] | None:
@@ -77,6 +69,51 @@ def search_url(platform: str, topic: str) -> str:
     return f"https://x.com/search?q={quote(topic)}&f=top"
 
 
+def feed_observations(ctx: Ctx) -> list[dict[str, Any]]:
+    """Evidence from fetched public feeds. Counts stay on their own platform; no causal claims."""
+    since = timeutil.iso(timeutil.now() - dt.timedelta(hours=72))
+    rows = ctx.store.select("items", "fetched_at >= ?", (since,))
+    ranked: list[tuple[int, dict[str, Any]]] = []
+    for item in rows:
+        published = timeutil.parse(item.get("published_at"))
+        if published is None or not 0 <= (timeutil.now() - published).total_seconds() <= 72 * 3600:
+            continue
+        sig = item.get("signals") or {}
+        platform = sig.get("discovery_platform")
+        metrics: dict[str, int] = {}
+        url = item["url"]
+        if sig.get("hn_points"):
+            platform, url = "hackernews", sig.get("hn_url") or url
+            metrics = {"points": int(sig["hn_points"]), "comments": int(sig.get("hn_comments") or 0)}
+        elif sig.get("mastodon_accounts"):
+            platform = "mastodon"
+            metrics = {"sharing_accounts": int(sig["mastodon_accounts"])}
+        elif platform == "bluesky":
+            metrics = {k: int(sig.get(f"bsky_{k}") or 0) for k in ("likes", "replies", "reposts")}
+        if platform not in ("linkedin", "x", "bluesky", "mastodon", "hackernews"):
+            continue
+        observed = bool(metrics) and sum(metrics.values()) > 0
+        ranked.append((sum(metrics.values()), {
+            "date": published.date().isoformat(), "platform": platform,
+            "topic": item.get("title_en") or item["title"],
+            "said": textutil.truncate(item.get("summary_en") or item.get("summary") or "", 500),
+            "why": "", "angle": "", "url": url,
+            "evidence": "observed_activity" if observed else "indexed_coverage",
+            "metrics": metrics, "observed_at": item.get("fetched_at"),
+            "limitation": ("Public counts are a snapshot, not an engagement rate or proof of why it worked."
+                           if observed else "Indexed public coverage; engagement and reach are unknown."),
+        }))
+    ranked.sort(key=lambda pair: (-pair[0], pair[1]["url"]))
+    out: list[dict[str, Any]] = []
+    counts: dict[str, int] = {}
+    for _, row in ranked:
+        p = row["platform"]
+        if counts.get(p, 0) < ctx.settings.pulse.per_platform:
+            out.append(row)
+            counts[p] = counts.get(p, 0) + 1
+    return out
+
+
 def run(ctx: Ctx) -> dict[str, Any]:
     """The day's pulse: conversations stored as items (scout "buzz"). Counts only in the log."""
     today = ctx.local_date_str()
@@ -87,6 +124,9 @@ def run(ctx: Ctx) -> dict[str, Any]:
     from .draft import _system
 
     stats: dict[str, Any] = {"found": 0, "linkedin": 0, "x": 0}
+    feed_rows = feed_observations(ctx)
+    search_error = None
+    resp = None
     try:
         resp = ctx.llm.call(LLMRequest(task="pulse", system=_system(ctx), prompt=prompt, json_mode=False,
                                        grounding=True, max_output_tokens=3000,
@@ -94,12 +134,11 @@ def run(ctx: Ctx) -> dict[str, Any]:
         rows = json_rows(extract_json(resp.text), "conversations")
     except (BudgetExhausted, AllProvidersFailed, LLMError, ValueError) as exc:
         log.info(f"pulse: unavailable today ({type(exc).__name__})")
-        _health(ctx, ok=False, found=0, error=type(exc).__name__)
-        _status(ctx, ok=False, error="no_search" if isinstance(exc, BudgetExhausted) else
-                "bad_reply" if isinstance(exc, ValueError) else "failed")
-        return stats
+        search_error = ("no_search" if isinstance(exc, BudgetExhausted) else
+                        "bad_reply" if isinstance(exc, ValueError) else "failed")
+        rows = []
     # Example links only from the pages the search read, when the engine says which (no made-up links).
-    read = {textutil.canonical_url(g["url"]) for g in resp.grounding if g.get("url")}
+    read = {textutil.canonical_url(g["url"]) for g in (resp.grounding if resp else []) if g.get("url")}
     now = timeutil.now_iso()
     raws: list[dict[str, Any]] = []
     history: list[dict[str, Any]] = []
@@ -109,47 +148,57 @@ def run(ctx: Ctx) -> dict[str, Any]:
         topic = textutil.normalize_ws(str(row.get("topic") or ""))[:200]
         if platform not in counts or len(topic) < 4 or counts[platform] >= per:
             continue
-        counts[platform] += 1
         said = textutil.normalize_ws(str(row.get("what_people_say") or ""))[:500]
         why = textutil.normalize_ws(str(row.get("why_it_works") or ""))[:300]
         angle = textutil.normalize_ws(str(row.get("angle") or ""))[:300]
         examples = [u for u in row.get("examples") or [] if isinstance(u, str) and POST_URL.match(u)
-                    and (not read or textutil.canonical_url(u) in read)][:2]
-        url = examples[0] if examples else search_url(platform, topic)
+                    and textutil.canonical_url(u) in read
+                    and ("linkedin.com/" in u) == (platform == "linkedin")][:2]
+        if not examples:
+            continue  # A model's claim, or a search page, is not evidence that a conversation exists.
+        counts[platform] += 1
+        url = examples[0]
         name = PLATFORM_NAME[platform]
         raws.append({
             "url": url,
             # Each day's conversation is its own story, even when the link is a search.
             "canonical": f"{textutil.canonical_url(url)}#pulse-{today}-{textutil.title_key(topic)[:40]}",
             "title": topic,
-            "summary": textutil.truncate(f"What people on {name} are saying: {said} Why posts about it are working: "
-                                         f"{why}", 900),
+            "summary": textutil.truncate(f"Public conversation on {name}: {said} "
+                                         f"Possible angle (unverified hypothesis): {why}", 900),
             "published_at": now,
             "lang": "en",
             "publisher": f"{name} (social pulse)",
-            "signals": {"trending_on": platform, "why_works": why, "pulse": 1,
+            "signals": {"discovery_platform": platform, "pulse": 1,
                         **({"discussion_url": examples[0]} if examples else {})},
         })
         history.append({"date": today, "platform": platform, "topic": topic, "said": said, "why": why,
-                        "angle": angle, "url": url})
+                        "angle": angle, "url": url, "evidence": "search_cited", "metrics": {},
+                        "observed_at": now,
+                        "limitation": "Search-cited public post; performance is unknown and the angle is a hypothesis."})
     source = ctx.store.get("sources", SOURCE_ID) or {"id": SOURCE_ID, "scout": "buzz"}
     index = DedupIndex(ctx.store, ctx.settings.scouting.dedup_window_days)
     new_ids, _ = ingest_items(ctx.store, source, raws, index)
     since = (timeutil.now() - dt.timedelta(days=HISTORY_DAYS)).date().isoformat()
     kept = [h for h in ctx.store.get_setting(HISTORY_KEY, []) or [] if isinstance(h, dict)
             and (h.get("date") or "") >= since and h.get("date") != today]
-    ctx.store.set_setting(HISTORY_KEY, (kept + history)[-80:])
-    stats.update(found=len(raws), linkedin=counts["linkedin"], x=counts["x"], new_items=len(new_ids))
-    _health(ctx, ok=True, found=len(new_ids))
-    _status(ctx, ok=True, engine=resp.model, found=len(raws))
-    log.info(f"pulse: {len(raws)} conversations (linkedin {counts['linkedin']}, x {counts['x']}) via {resp.provider}, "
-             f"{len(resp.grounding)} search results")
+    by_url = {h.get("url"): h for h in [*kept, *feed_rows, *history]}
+    ctx.store.set_setting(HISTORY_KEY, list(by_url.values())[-100:])
+    found = len({h["url"] for h in [*feed_rows, *history]})
+    stats.update(found=found, linkedin=counts["linkedin"], x=counts["x"], new_items=len(new_ids),
+                 public_feed_observations=len(feed_rows))
+    _health(ctx, ok=found > 0, found=len(new_ids), error=search_error if not found else None)
+    _status(ctx, ok=found > 0, engine=resp.model if resp and history else "Public feeds" if feed_rows else None,
+            found=found, error=search_error if not found else None)
+    log.info(f"pulse: {found} evidence-backed observations; {len(feed_rows)} from public feeds")
     return stats
 
 
 def recent(ctx: Ctx) -> dict[str, Any] | None:
     """The last week's conversations, newest first, and how the last search went, for Insights."""
-    rows = [h for h in ctx.store.get_setting(HISTORY_KEY, []) or [] if isinstance(h, dict)]
+    since = (timeutil.now() - dt.timedelta(days=HISTORY_DAYS)).date().isoformat()
+    rows = [h for h in ctx.store.get_setting(HISTORY_KEY, []) or [] if isinstance(h, dict)
+            and (h.get("date") or "") >= since]
     status = ctx.store.get_setting(STATUS_KEY)
     if not rows and not status:
         return None

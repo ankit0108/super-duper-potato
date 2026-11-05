@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-import stat
+import sys
 import threading
 import time
 
@@ -78,10 +78,11 @@ def _slow(seconds: float):
 def test_cards_are_drafted_several_at_a_time_and_reach_the_desk_in_batches(make_ctx, tmp_path, monkeypatch):
     monkeypatch.delenv("PBS_SERIAL")
     calls = tmp_path / "checkpoints.txt"
-    script = tmp_path / "push.sh"
-    script.write_text(f'#!/bin/sh\necho "$1" >> "{calls}"\n', encoding="utf-8")
-    script.chmod(script.stat().st_mode | stat.S_IEXEC)
-    monkeypatch.setenv("PBS_CHECKPOINT", str(script))
+    script = tmp_path / "push.py"
+    script.write_text(f'import sys\nwith open({str(calls)!r}, "a", encoding="utf-8") as f:\n'
+                      '    f.write(sys.argv[1] + "\\n")\n', encoding="utf-8")
+    from pathlib import Path
+    monkeypatch.setenv("PBS_CHECKPOINT", f'"{Path(sys.executable).as_posix()}" "{script.as_posix()}"')
     handler, state = _slow(0.05)
     ctx = make_ctx(providers=fake_providers(draft=handler))
     ctx.settings.drafting.editor_pass = False

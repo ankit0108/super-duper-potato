@@ -3190,6 +3190,44 @@
    "title": "Metric",
    "type": "object"
   },
+  "MetricCoverage": {
+   "properties": {
+    "latest_capture": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Latest Capture"
+    },
+    "measured": {
+     "default": 0,
+     "title": "Measured",
+     "type": "integer"
+    },
+    "missing": {
+     "default": 0,
+     "title": "Missing",
+     "type": "integer"
+    },
+    "needs_review": {
+     "default": 0,
+     "title": "Needs Review",
+     "type": "integer"
+    },
+    "published": {
+     "default": 0,
+     "title": "Published",
+     "type": "integer"
+    }
+   },
+   "title": "MetricCoverage",
+   "type": "object"
+  },
   "MetricUpload": {
    "properties": {
     "created_at": {
@@ -3580,6 +3618,14 @@
      },
      "title": "Caveats",
      "type": "array"
+    },
+    "coverage": {
+     "additionalProperties": {
+      "$ref": "#/$defs/MetricCoverage"
+     },
+     "default": {},
+     "title": "Coverage",
+     "type": "object"
     },
     "error": {
      "anyOf": [
@@ -4613,10 +4659,55 @@
      "title": "Date",
      "type": "string"
     },
+    "evidence": {
+     "anyOf": [
+      {
+       "enum": [
+        "observed_activity",
+        "indexed_coverage",
+        "search_cited"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Evidence"
+    },
+    "limitation": {
+     "default": "",
+     "title": "Limitation",
+     "type": "string"
+    },
+    "metrics": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "default": {},
+     "title": "Metrics",
+     "type": "object"
+    },
+    "observed_at": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Observed At"
+    },
     "platform": {
      "enum": [
       "linkedin",
-      "x"
+      "x",
+      "bluesky",
+      "mastodon",
+      "hackernews"
      ],
      "title": "Platform",
      "type": "string"
@@ -5845,6 +5936,8 @@
         "gtrends",
         "trends24",
         "bsky_trends",
+        "bsky_search",
+        "bsky_feed",
         "pulse"
        ],
        "type": "string"

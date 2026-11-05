@@ -7,6 +7,7 @@ import os
 import re
 import time
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -31,6 +32,11 @@ class OpenAICompatProvider:
         return os.environ.get(self.spec.api_key_env, "").strip() if self.spec.api_key_env else ""
 
     def available(self) -> bool:
+        if self.spec.kind == "ollama":
+            # Opt in on the machine running PBS; never silently call Ollama's paid cloud service.
+            return (os.environ.get("PBS_OLLAMA_ENABLED") == "1"
+                    and urlparse(self.spec.base_url or "").hostname in ("localhost", "127.0.0.1", "::1")
+                    and not any("cloud" in m.lower() for m in self.models))
         return bool(self._key()) and bool(self.spec.base_url)
 
     @property
@@ -77,7 +83,7 @@ class OpenAICompatProvider:
         try:
             resp = client.post(url, json=self._body(model, req), headers=headers)
             # Some models reject JSON mode or a provider-specific field: drop it, ask once more, remember.
-            optional = ["response_format", *self.spec.extra_body]
+            optional = ["response_format", *(k for k in self.spec.extra_body if k not in ("tools", "tool_choice"))]
             rejected = [k for k in optional if k not in self._dropped and k in resp.text] if resp.status_code == 400 else []
             if rejected:
                 self._dropped.update(rejected)

@@ -19,6 +19,9 @@ picks, what he changes and how the posts perform.
 The full product spec is [docs/PRD.md](docs/PRD.md). Setup takes about 15 minutes: [docs/SETUP.md](docs/SETUP.md).
 Day-to-day operation and fixes: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
+The [November quality update](docs/QUALITY_AND_FREE_PROVIDERS.md) explains evidence-based social scouting,
+source recovery, analytics coverage, and the new Cerebras, Studio backup, and local Ollama options.
+
 ## How it works
 
 ```mermaid

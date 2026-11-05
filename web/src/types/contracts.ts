@@ -218,6 +218,8 @@ export type Kind2 =
       | "gtrends"
       | "trends24"
       | "bsky_trends"
+      | "bsky_search"
+      | "bsky_feed"
       | "pulse"
     )
   | null;
@@ -681,6 +683,11 @@ export type Metrics = Metric[];
 export type At31 = string;
 export type Audience = string;
 export type Caveats = string[];
+export type LatestCapture = string | null;
+export type Measured = number;
+export type Missing = number;
+export type NeedsReview = number;
+export type Published = number;
 export type Error = string | null;
 export type Detail1 = string;
 export type Evidence1 = string;
@@ -778,7 +785,10 @@ export type Title11 = string;
 export type Proposals = Proposal[];
 export type Angle1 = string;
 export type Date2 = string;
-export type Platform10 = "linkedin" | "x";
+export type Evidence4 = ("observed_activity" | "indexed_coverage" | "search_cited") | null;
+export type Limitation = string;
+export type ObservedAt = string | null;
+export type Platform10 = "linkedin" | "x" | "bluesky" | "mastodon" | "hackernews";
 export type Said = string;
 export type Topic = string;
 export type Url3 = string | null;
@@ -1937,6 +1947,7 @@ export interface PerformanceInfo {
   at: At31;
   audience?: Audience;
   caveats?: Caveats;
+  coverage?: Coverage;
   error?: Error;
   findings?: Findings;
   headline?: Headline;
@@ -1952,6 +1963,20 @@ export interface PerformanceInfo {
   try_next?: TryNext;
   what_doesnt?: WhatDoesnt;
   what_works?: WhatWorks;
+}
+export interface Coverage {
+  [k: string]: MetricCoverage;
+}
+/**
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "MetricCoverage".
+ */
+export interface MetricCoverage {
+  latest_capture?: LatestCapture;
+  measured?: Measured;
+  missing?: Missing;
+  needs_review?: NeedsReview;
+  published?: Published;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -2073,11 +2098,18 @@ export interface PulseInfo {
 export interface PulseConversation {
   angle?: Angle1;
   date: Date2;
+  evidence?: Evidence4;
+  limitation?: Limitation;
+  metrics?: Metrics1;
+  observed_at?: ObservedAt;
   platform: Platform10;
   said?: Said;
   topic: Topic;
   url?: Url3;
   why?: Why2;
+}
+export interface Metrics1 {
+  [k: string]: number;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema

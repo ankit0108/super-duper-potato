@@ -4,7 +4,9 @@ import type { Card } from "@/types";
 import { parseReply, type StudioPost, type StudioVisual } from "@/lib/studio/blocks";
 import { deleteChat, getChat, listChats, saveChat, titleFrom, type StudioChat, type StudioContext, type StudioImage, type StudioMessage } from "@/lib/studio/chats";
 import { demoStream } from "@/lib/studio/demo";
-import { listModels, StudioError, streamWithFallback } from "@/lib/studio/gemini";
+import { listModels, StudioError } from "@/lib/studio/gemini";
+import { studioReply } from "@/lib/studio/router";
+import { getBackupKeys } from "@/lib/studio/settings";
 import { contentsFor, evidenceOf, quickActions, systemFor, STARTERS, type QuickAction } from "@/lib/studio/prompt";
 import { cachedModels, getStudioKey, markSpent, quotaResetsAt, setStudioKey, spentModels } from "@/lib/studio/settings";
 import { sharedContext, takeShared } from "@/lib/studio/shared";
@@ -73,7 +75,8 @@ export function Studio() {
   const [dragging, setDragging] = useState(false);
   const composer = useRef<ComposerHandle>(null);
   const bottom = useRef<HTMLDivElement>(null);
-  const ready = demo || !!key;
+  const [, refreshKeys] = useState(0);
+  const ready = demo || !!key || Object.values(getBackupKeys()).some(Boolean);
   const routeId = route.parts[1] ? decodeURIComponent(route.parts[1]) : null;
 
   const refreshList = useCallback(() => void listChats().then(setChats), []);
@@ -140,9 +143,10 @@ export function Studio() {
   }, [count, lastText, streaming]);
 
   const models = async (): Promise<string[]> => {
+    if (!key) return [];
     const cached = cachedModels(key);
     if (cached) return cached;
-    const found = await listModels(key);
+    const found = await listModels(key).catch(() => ["gemini-flash-latest", "gemini-flash-lite-latest"]);
     setStudioKey(key, found);
     return found;
   };
@@ -167,7 +171,7 @@ export function Studio() {
     try {
       const result = demo
         ? await demoStream({ ask: lastUser?.text ?? "", picture: !!lastUser?.images?.length, shared: base.messages.some((m) => m.context?.kind === "shared"), signal: ctrl.signal, onText })
-        : await streamWithFallback({
+        : await studioReply({
             key,
             models: await models(),
             system: systemFor(env.kit, env.name, env.tz),
@@ -305,8 +309,8 @@ export function Studio() {
         </header>
 
         {!ready ? (
-          <Panel title="Set up the Studio" description="One step: a free Gemini key, kept on this device.">
-            <StudioKeyPanel compact onReady={() => setKey(getStudioKey())} />
+            <Panel title="Set up the Studio" description="Add a free-tier AI key, kept on this device. Gemini also supports pictures and search.">
+            <StudioKeyPanel compact onReady={() => { setKey(getStudioKey()); refreshKeys((n) => n + 1); }} />
           </Panel>
         ) : (
           <>
@@ -575,7 +579,7 @@ function AssistantMessage({
           )}
           {message.error_kind === "quota" && (
             <p className="text-[12.5px] text-muted">
-              Gemini's free quotas reset at midnight US Pacific time, about {formatTime(quotaResetsAt().toISOString(), env.tz)} your time. If this key is the pipeline's own (its morning run uses the same quota) or comes from the same Google Cloud project, make one in a new project:{" "}
+              The configured providers have reached their limits. Gemini's daily quota resets around {formatTime(quotaResetsAt().toISOString(), env.tz)} your time; other providers have their own reset times. Add a free backup key in{" "}
               <Link to="/settings" className="text-accent hover:underline">
                 Settings → Studio
               </Link>
@@ -606,7 +610,7 @@ function AssistantMessage({
                 <Search className="size-3 shrink-0" aria-hidden /> Searched: {message.searched.slice(0, 2).join(" · ")}
               </span>
             )}
-            {message.model && message.model !== "demo" && <span className="mr-auto truncate">{message.model}{message.no_search ? " · without Google Search (its free quota is used up)" : ""}</span>}
+            {message.model && message.model !== "demo" && <span className="mr-auto truncate">{message.model}{message.no_search ? " · without web search" : ""}</span>}
             <IconButton size="sm" label="Copy reply" icon={<Copy className="size-3.5" />} onClick={() => void copyReply()} className="ml-auto" />
             {last && <IconButton size="sm" label="Write it again" icon={<RotateCcw className="size-3.5" />} onClick={onRetry} disabled={busy} />}
           </div>

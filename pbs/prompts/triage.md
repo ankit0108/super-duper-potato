@@ -21,6 +21,7 @@ His recent feedback on suggestions (why he skipped them, and what he moved or co
 {{feedback}}
 
 How to judge:
+- Score the evidence as well as the idea. A headline without supporting detail cannot justify a sweeping market claim, deployment advice or a multi-post explainer. Prefer a specific source-backed observation to a generic "this changes everything" angle. One company's results are not proof of a market-wide trend.
 - Learn from his feedback: a topic like one he skipped gets a lower angle_potential, or "none" on that platform, for the reason he gave. His own words say most about what he wants. A topic like one he moved to the other platform belongs there; one he wanted on both platforms suits both.
 - angle_potential 1–5: is there something specific and non-generic to say about it? 5 = a sharp, well-grounded take few people will post. 1 = generic news anyone could repost.
 - The angle fits the story itself: the technology, the business, the market, the people it affects, the policy, or the history behind it. His automation work is one possible lens, used only when the story is about automating work; never bend a chip, model, funding, policy or research story toward enterprise or process automation. Across the set, vary the lens.

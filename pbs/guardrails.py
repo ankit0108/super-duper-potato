@@ -380,6 +380,18 @@ def check_card(card: dict[str, Any], *, settings: Any, blocklist: list[str], evi
         "stance_id": prev.get("stance_id"),
         "notes": list(prev.get("notes") or []),
     }
+    for claim in card.get("claims") or []:
+        index = claim.get("source")
+        sources = card.get("sources") or []
+        if not isinstance(index, int) or not 0 <= index < len(sources):
+            if sources:
+                flags["notes"].append("A factual claim has no valid source reference; check it before posting.")
+            continue
+        source = sources[index]
+        source_text = " ".join(str(source.get(k) or "") for k in ("title", "summary", "published_at"))
+        if unsourced_numbers(claim.get("text") or "", source_text):
+            flags["notes"].append(f"A claim cites source {index + 1}, but its figure is absent from that source.")
+    flags["notes"] = list(dict.fromkeys(flags["notes"]))
     return CardCheck(flags=flags, blocked=bool(flags["blocked"]))
 
 

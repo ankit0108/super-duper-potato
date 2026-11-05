@@ -13,7 +13,7 @@ from pbs.settings import load
 from pbs.store import Store
 
 FIXTURES = Path(__file__).parent / "fixtures"
-PROVIDERS = ["gemini_pro", "gemini", "gemini_lite", "groq", "groq_search", "openrouter"]
+PROVIDERS = ["gemini_pro", "gemini", "gemini_lite", "groq", "groq_search", "openrouter", "cerebras", "ollama"]
 
 
 @pytest.fixture(autouse=True)
@@ -22,7 +22,7 @@ def _frozen_clock(monkeypatch):
     timeutil.freeze("2026-09-27T19:45:00Z")
     ids.seed(7)
     for var in ("PBS_BLOCKLIST", "GEMINI_API_KEY", "GROQ_API_KEY", "OPENROUTER_API_KEY", "PBS_NTFY_TOPIC",
-                "PBS_TELEGRAM_BOT_TOKEN", "PBS_CHECKPOINT"):
+                "PBS_TELEGRAM_BOT_TOKEN", "PBS_CHECKPOINT", "CEREBRAS_API_KEY", "PBS_OLLAMA_ENABLED"):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("PBS_SERIAL", "1")  # drafts one at a time: a fixed order (tests of parallel drafting unset it)
     yield

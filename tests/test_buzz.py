@@ -119,29 +119,26 @@ def test_what_people_talk_about_keeps_seats_on_the_shortlist(make_ctx):
 
 def test_the_social_pulse_finds_whats_working_once_a_day(make_ctx, capsys):
     ctx = make_ctx()
-    res = deliver.morning_delivery(ctx)
+    deliver.morning_delivery(ctx)
     calls = [c for p in ctx.llm._providers.values() for c in p.calls if c.task == "pulse"]
     assert len(calls) == 1 and calls[0].grounding and not calls[0].json_mode
     assert "site:linkedin.com/posts" in calls[0].prompt and "Tech humour" in calls[0].prompt
     items = ctx.store.select("items", "source_id = ?", (pulse.SOURCE_ID,))
-    assert {i["signals"]["trending_on"] for i in items} == {"linkedin", "x"} and len(items) == 4
+    assert {i["signals"]["discovery_platform"] for i in items} == {"linkedin", "x"} and len(items) == 2
     agents = next(i for i in items if i["title"].startswith("AI agents that report"))
     assert agents["url"].startswith("https://www.linkedin.com/posts/")  # a post link from the search
-    assert "Why posts about it are working: A screenshot plus a one-line caption" in agents["summary"]
-    no_link = next(i for i in items if i["title"].startswith("Founders posting"))
-    assert no_link["url"].startswith("https://x.com/search?q=Founders")  # no post link found: a search
-    # A conversation that made the set is marked as trending, with why it works for the drafter.
-    trending = [c for c in ctx.store.select("cards", "delivery_id = ?", (res["id"],)) if (c.get("trending") or {}).get("why")]
-    assert trending and trending[0]["trending"]["on"] in ("linkedin", "x")
+    assert "unverified hypothesis" in agents["summary"]
+    assert not any(i["title"].startswith("Founders posting") for i in items)
+    assert not any(i["signals"].get("trending_on") for i in items)  # a citation is not measured popularity
     desk = export.build(ctx)
-    assert [c["topic"] for c in desk["pulse"]["conversations"]][:2] == [
-        "AI agents that report work they never did", "Engineers asked to justify every AI tool cost"]
+    assert {c["topic"] for c in desk["pulse"]["conversations"]} >= {
+        "AI agents that report work they never did", "The model that refused to write a regex"}
     source = ctx.store.get("sources", pulse.SOURCE_ID)
-    assert source["last_success_at"] and source["items_last_run"] == 4
+    assert source["last_success_at"] and source["items_last_run"] == 2
     # Once a day: a fresh set later doesn't search again. The public log carries counts only.
     assert not pulse.due(ctx)
     out = capsys.readouterr().out
-    assert "pulse: 4 conversations (linkedin 2, x 2)" in out and "Founders" not in out
+    assert "evidence-backed observations" in out and "Founders" not in out
 
 
 def test_the_pulse_waits_when_paused_off_or_out_of_search_quota(make_ctx):
@@ -157,7 +154,7 @@ def test_the_pulse_waits_when_paused_off_or_out_of_search_quota(make_ctx):
     assert not pulse.due(ctx)
     ctx.settings.pulse.enabled = True
     ctx.llm.grounding_off_today = lambda: True
-    assert not pulse.due(ctx)
+    assert pulse.due(ctx)  # public-feed observations do not require an AI search
 
 
 def test_history_keeps_a_week(make_ctx):
@@ -166,7 +163,7 @@ def test_history_keeps_a_week(make_ctx):
     ctx.store.set_setting(pulse.HISTORY_KEY, [{"date": old, "platform": "x", "topic": "Old news"}])
     pulse.run(ctx)
     topics = [c["topic"] for c in pulse.recent(ctx)["conversations"]]
-    assert "Old news" not in topics and len(topics) == 4
+    assert "Old news" not in topics and len(topics) == 2
 
 
 def _pulse_ctx(make_ctx, **pulse_handler):
@@ -183,19 +180,19 @@ def _pulse_ctx(make_ctx, **pulse_handler):
     return make_ctx(providers=providers), providers
 
 
-def test_when_geminis_search_says_no_groqs_search_finds_whats_working(make_ctx):
+def test_retired_compound_search_is_not_called_when_gemini_is_unavailable(make_ctx):
     from pbs.llm import fake
 
     ctx, providers = _pulse_ctx(make_ctx, pulse=fake._pulse)
     res = pulse.run(ctx)
-    assert res["found"] == 4
-    assert [c.task for c in providers["groq_search"].calls] == ["pulse"]
-    assert ctx.llm.grounding_off_today("gemini") and not ctx.llm.grounding_off_today("groq_search")
-    assert ctx.llm.search_engines() == ["groq_search"] and not ctx.llm.grounding_off_today()
+    assert res["found"] == 0
+    assert not providers["groq_search"].calls
+    assert ctx.llm.grounding_off_today("gemini")
+    assert ctx.llm.search_engines() == [] and ctx.llm.grounding_off_today()
     status = ctx.store.get_setting(pulse.STATUS_KEY)
-    assert status["ok"] and status["engine"] == "groq/compound" and status["found"] == 4
+    assert not status["ok"] and status["error"] == "no_search"
     info = pulse.recent(ctx)
-    assert len(info["conversations"]) == 4 and info["status"]["ok"] and info["engines"] == ["groq_search"]
+    assert not info["conversations"] and info["engines"] == []
 
 
 def test_with_no_search_at_all_the_desk_is_told_why(make_ctx):
@@ -204,7 +201,7 @@ def test_with_no_search_at_all_the_desk_is_told_why(make_ctx):
     pulse.run(ctx)
     assert not pulse.due(ctx)  # already tried today
     ctx.store.set_setting(pulse.LAST_KEY, None)
-    assert not pulse.due(ctx) and ctx.store.get_setting(pulse.STATUS_KEY)["error"] == "no_search"
+    assert pulse.due(ctx) and ctx.store.get_setting(pulse.STATUS_KEY)["error"] == "no_search"
     assert pulse.recent(ctx)["engines"] == []
 
 
@@ -221,12 +218,12 @@ def test_only_links_from_the_pages_the_search_read_are_kept(make_ctx):
     ctx, providers = _pulse_ctx(make_ctx)
     from pbs.llm import fake
 
-    providers["groq_search"] = Searching("groq_search", handlers={"pulse": fake._pulse}, model="groq/compound")
+    providers["gemini"] = Searching("gemini", handlers={"pulse": fake._pulse})
     ctx = make_ctx(providers=providers)
     pulse.run(ctx)
     urls = {h["topic"]: h["url"] for h in ctx.store.get_setting(pulse.HISTORY_KEY)}
     assert urls["AI agents that report work they never did"].startswith("https://www.linkedin.com/posts/someone_")
-    assert urls["The model that refused to write a regex"].startswith("https://x.com/search")  # not read: a search link
+    assert "The model that refused to write a regex" not in urls  # unread links cannot become evidence
 
 
 def test_the_feeds_automatic_pause_never_stops_the_pulse_and_one_is_undone(make_ctx):
@@ -262,4 +259,4 @@ def test_search_now_from_the_desk_runs_the_pulse(make_ctx):
     from pbs.store import Store
 
     status = Store.open(ctx.data_root).get_setting(pulse.STATUS_KEY)
-    assert status and status["ok"] and status["found"] == 4
+    assert status and status["ok"] and status["found"] == 2

@@ -164,6 +164,11 @@ buzz:
   - {id: trends24-world, name: "X trends: worldwide (trends24)", kind: trends24, url: "https://trends24.in/", best_effort: true, region: worldwide}
   - {id: bsky-trends, name: "Bluesky: trending topics", kind: bsky_trends, url: "https://public.api.bsky.app/xrpc/app.bsky.unspecced.getTrendingTopics?limit=25", best_effort: true}
 
+  # Public indexed LinkedIn/X coverage: discovery only, never a claim of measured engagement.
+  - {id: linkedin-public-ai, name: "LinkedIn: public AI and engineering posts", kind: gnews, query: 'site:linkedin.com/posts (AI OR software OR engineering) when:3d', social_platform: linkedin, best_effort: true, max_items: 12}
+  - {id: x-public-ai, name: "X: public AI and engineering posts", kind: gnews, query: '(site:x.com OR site:twitter.com) (AI OR software OR engineering) when:3d', social_platform: x, best_effort: true, max_items: 12}
+  - {id: bsky-engineering-posts, name: "Bluesky: Simon Willison's public AI posts", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=simonwillison.net&limit=25&filter=posts_no_replies', best_effort: true, max_items: 15}
+
 life: []
 
 # Funny takes on the news come from every scout (triage picks them) and relatable premises from humor_pools.yaml.

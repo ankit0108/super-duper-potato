@@ -39,7 +39,7 @@ GROUNDING_OFF = "grounding_off"  # settings key: the day search grounding said n
 def build_provider(name: str, spec: ProviderSpec) -> Provider:
     if spec.kind == "gemini":
         return GeminiProvider(name, spec)
-    if spec.kind == "openai":
+    if spec.kind in ("openai", "ollama"):
         return OpenAICompatProvider(name, spec)
     if spec.kind == "fake":
         from .fake import FakeProvider
@@ -51,6 +51,7 @@ def build_provider(name: str, spec: ProviderSpec) -> Provider:
 @dataclass
 class RunUsage:
     calls: int = 0
+    attempts: int = 0
     failures: int = 0
     fallbacks: int = 0
     tokens_in: int = 0
@@ -69,6 +70,7 @@ class RunUsage:
     def as_dict(self) -> dict[str, Any]:
         return {
             "calls": self.calls,
+            "attempts": self.attempts,
             "failures": self.failures,
             "fallbacks": self.fallbacks,
             "tokens_in": self.tokens_in,
@@ -156,7 +158,7 @@ class Router:
         """Rough number of calls still available for a task today (for degradation planning)."""
         caps = [
             self.settings.llm.daily_cap - self.used_today(),
-            self.settings.llm.max_calls_per_run - self.usage.calls,
+            self.settings.llm.max_calls_per_run - max(self.usage.calls, self.usage.attempts),
         ]
         per_provider = 0
         for name in self.chain(task, personal):
@@ -182,7 +184,7 @@ class Router:
 
     # -- calls ------------------------------------------------------------------------------------
     def call(self, req: LLMRequest) -> LLMResponse:
-        if self.usage.calls >= self.settings.llm.max_calls_per_run:
+        if self.usage.attempts >= self.settings.llm.max_calls_per_run:
             raise BudgetExhausted("per-run LLM call cap reached")
         if self.used_today() >= self.settings.llm.daily_cap:
             raise BudgetExhausted("daily LLM call cap reached")
@@ -207,9 +209,10 @@ class Router:
             provider = self._providers[name]
             server_error: LLMError | None = None
             for attempt in range(3):
-                self._pace(name)
                 try:
-                    resp = provider.generate(req)
+                    resp = self._generate(name, provider, req)
+                except BudgetExhausted:
+                    break
                 except Exception as raw:  # noqa: BLE001 - one broken provider must not stop the chain
                     exc = raw if isinstance(raw, LLMError) else LLMError(
                         f"unexpected {type(raw).__name__}: {str(raw)[:200]}", code=type(raw).__name__,
@@ -250,7 +253,8 @@ class Router:
                         self.usage.by_provider[name] = self.usage.by_provider.get(name, 0) + 1
                         self.usage.by_task[req.task] = self.usage.by_task.get(req.task, 0) + 1
                         self.usage.models[name] = resp.model
-                    self._record(name, tokens_in=resp.tokens_in, tokens_out=resp.tokens_out, model=resp.model)
+                    self._record(name, tokens_in=resp.tokens_in, tokens_out=resp.tokens_out, model=resp.model,
+                                 count=False)
                     return resp
             if server_error is not None:
                 self._strike(name, server_error)
@@ -289,6 +293,19 @@ class Router:
             return _validate(extract_json(resp2.text), schema), resp2
 
     # -- bookkeeping ------------------------------------------------------------------------------
+    def _generate(self, name: str, provider: Provider, req: LLMRequest) -> LLMResponse:
+        # Reserve before the network call, atomically. Parallel drafts cannot overrun the free-call cap.
+        # Keep generation parallel; only the reservation and provider pacing need to be serialized.
+        with self._lock:
+            if (self.usage.attempts >= self.settings.llm.max_calls_per_run
+                    or self.used_today() >= self.settings.llm.daily_cap
+                    or not self.provider_usable(name, req, allow_overloaded=True)):
+                raise BudgetExhausted("free call budget reserved or provider unavailable")
+            self.usage.attempts += 1
+            self._record(name)
+        self._pace(name)
+        return provider.generate(req)
+
     def _pace(self, name: str) -> None:
         spec = self.settings.llm.providers[name]
         min_interval = 60.0 / max(1, spec.rpm)
@@ -312,11 +329,11 @@ class Router:
         now = timeutil.now_iso()
         if count:
             row["requests"] = int(row.get("requests") or 0) + 1
-            row["last_ok_at"] = now
         row["tokens_in"] = int(row.get("tokens_in") or 0) + tokens_in
         row["tokens_out"] = int(row.get("tokens_out") or 0) + tokens_out
         if model:
             row["model"] = model
+            row["last_ok_at"] = now
         if error:
             row["last_error"] = error
             row["last_error_at"] = now
@@ -345,14 +362,15 @@ class Router:
         if name is not None:
             return name in off
         searchers = [n for n, s in self.settings.llm.providers.items()
-                     if s.grounding and n in self._providers and self._providers[n].available()]
+                     if s.grounding and s.daily_limit > 0 and n in self._providers and self._providers[n].available()]
         return all(n in off for n in searchers)
 
     def search_engines(self) -> list[str]:
         """The providers that can search the web today (key set, search not refused today)."""
         off = self._grounding_off_today()
         return [n for n, s in self.settings.llm.providers.items()
-                if s.grounding and n in self._providers and self._providers[n].available() and n not in off]
+                if s.grounding and s.daily_limit > 0 and n in self._providers
+                and self._providers[n].available() and n not in off]
 
     def _grounding_off(self, name: str, exc: LLMError) -> None:
         off = self._grounding_off_today()

@@ -41,6 +41,8 @@ def parse(source: dict[str, Any], content: bytes, local_date: str | None = None)
         return _parse_reddit(source, content)
     if kind == "mastodon_links":
         return _parse_mastodon_links(content)
+    if kind in ("bsky_search", "bsky_feed"):
+        return _parse_bsky_posts(content)
     if kind == "gtrends":
         return _parse_gtrends(source, content)
     if kind == "trends24":
@@ -96,11 +98,12 @@ def _parse_feed(source: dict[str, Any], content: bytes) -> list[RawItem]:
         items.append({
             "url": link,
             "title": title,
-            "summary": textutil.truncate(summary, 700),
+            "summary": textutil.truncate(summary, 1600),
             "published_at": published,
             "lang": lang if lang in ("en", "hi") else textutil.detect_lang(title),
             "publisher": publisher,
-            "signals": {},
+            "signals": {"discovery_platform": (source.get("extra") or {}).get("social_platform")}
+            if (source.get("extra") or {}).get("social_platform") else {},
         })
     return items
 
@@ -121,7 +124,7 @@ def _parse_hf(content: bytes) -> list[RawItem]:
         items.append({
             "url": f"https://huggingface.co/papers/{pid}",
             "title": title,
-            "summary": textutil.truncate(paper.get("summary") or paper.get("ai_summary") or "", 700),
+            "summary": textutil.truncate(paper.get("summary") or paper.get("ai_summary") or "", 1600),
             "published_at": timeutil.iso(timeutil.parse(row.get("publishedAt") or paper.get("publishedAt"))),
             "lang": "en",
             "publisher": "Hugging Face papers",
@@ -162,6 +165,37 @@ def _json(content: bytes) -> Any:
         return json.loads(content)
     except (json.JSONDecodeError, UnicodeDecodeError):
         return None
+
+
+def _parse_bsky_posts(content: bytes) -> list[RawItem]:
+    """Public AppView posts with observed counts; popularity is not a factual verification."""
+    data = _json(content)
+    out: list[RawItem] = []
+    rows = (data.get("posts") or [r.get("post") for r in data.get("feed", [])
+                                 if isinstance(r, dict) and not r.get("reason")]) if isinstance(data, dict) else []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        record, author = row.get("record") or {}, row.get("author") or {}
+        uri = str(row.get("uri") or "")
+        match = re.fullmatch(r"at://(did:[a-z0-9:.-]+)/app\.bsky\.feed\.post/([a-zA-Z0-9]+)", uri)
+        body = textutil.normalize_ws(record.get("text") or "")
+        published = timeutil.parse(record.get("createdAt"))
+        if not match or not body or published is None:
+            continue
+        def count(key: str, row: dict[str, Any] = row) -> int:
+            value = row.get(key)
+            return max(0, value) if isinstance(value, int) and not isinstance(value, bool) else 0
+        out.append({
+            "url": f"https://bsky.app/profile/{match[1]}/post/{match[2]}",
+            "title": textutil.truncate(body, 180), "summary": textutil.truncate(body, 1600),
+            "published_at": timeutil.iso(published), "lang": "en",
+            "publisher": f"Bluesky @{author.get('handle') or match[1]}",
+            "signals": {"bsky_likes": count("likeCount"), "bsky_reposts": count("repostCount"),
+                        "bsky_replies": count("replyCount"), "social_observed_at": timeutil.now_iso(),
+                        "discovery_platform": "bluesky"},
+        })
+    return out
 
 
 _PICTURE_HOSTS = ("i.redd.it", "v.redd.it", "i.imgur.com", "imgur.com", "reddit.com/gallery")

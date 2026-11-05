@@ -50,8 +50,10 @@ class FakeProvider:
         handler = self.handlers.get(req.task) or self.handlers["default"]
         out = handler(req, data)
         text = out if isinstance(out, str) else json.dumps(out, ensure_ascii=False)
+        grounding = [{"url": url, "title": c["topic"]} for c in out.get("conversations", [])
+                     for url in c.get("examples", [])] if req.grounding and isinstance(out, dict) else []
         return LLMResponse(text=text, provider=self.name, model=self.current_model, tokens_in=len(req.prompt) // 4,
-                           tokens_out=len(text) // 4)
+                           tokens_out=len(text) // 4, grounding=grounding)
 
 
 # ---------------------------------------------------------------------------

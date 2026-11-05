@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 from functools import cache
 from importlib import resources
 from typing import Any
@@ -16,7 +17,7 @@ from ..store import Store
 SEED_FIELDS = ("name", "kind", "url", "query", "lang", "hl", "gl", "ceid", "scout", "pillar_hints", "tier",
                "best_effort", "max_items")
 # Per-kind options kept in a source's `extra`: a Google News topic, a subreddit's score floor, where a trend is.
-EXTRA_FIELDS = ("topic", "min_score", "geo", "region")
+EXTRA_FIELDS = ("topic", "min_score", "geo", "region", "social_platform")
 
 
 @cache
@@ -40,6 +41,13 @@ AUTO_PAUSE = "No successful fetch for"  # the start of the reason scouting gives
 def sync_seeds(store: Store) -> int:
     """Add new seed sources; never overwrite Ankit's edits or health history. Returns count added."""
     now = timeutil.now_iso()
+    if not store.get_setting("source_yield_recovery_v1"):
+        # Old reports confused "not selected" with "bad source" and removed healthy primary coverage.
+        # Only undo that exact automatic reason; user pauses and HTTP failure pauses remain intact.
+        for source in store.select("sources", "active = 0"):
+            if re.fullmatch(r"No picked cards from \d+ items in \d+ weeks", source.get("paused_reason") or ""):
+                store.update("sources", source["id"], active=True, paused_reason=None, updated_at=now)
+        store.set_setting("source_yield_recovery_v1", True)
     added = 0
     deleted = set(store.get_setting("deleted_sources", []) or [])
     for seed in seed_sources():
@@ -62,7 +70,7 @@ def sync_seeds(store: Store) -> int:
             })
             store.insert("sources", row)
             added += 1
-        elif existing.get("added_by") == "seed":
+        elif existing.get("added_by") == "seed":  # noqa: SIM102 - keep seed ownership separate from user edits
             # Refresh seed-owned fields (URL fixes ship with code) unless Ankit edited the source.
             if not (existing.get("extra") or {}).get("user_edited"):
                 patch = {k: seed.get(k) for k in ("name", "kind", "url", "query", "hl", "gl", "ceid", "pillar_hints",
@@ -86,6 +94,11 @@ def sync_seeds(store: Store) -> int:
 def fetch_url(source: dict[str, Any], local_date: str | None = None) -> str:
     """The URL to fetch for a source (Google News queries, arXiv queries and OTD are built here)."""
     kind = source.get("kind")
+    if kind == "bsky_search":
+        since = timeutil.iso(timeutil.now() - dt.timedelta(hours=72))
+        return "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?" + urlencode({
+            "q": source.get("query") or "AI", "sort": "top", "limit": 25, "since": since, "lang": "en",
+        })
     if kind == "gnews":
         params = {"hl": source.get("hl") or "en-US", "gl": source.get("gl") or "US",
                   "ceid": source.get("ceid") or "US:en"}

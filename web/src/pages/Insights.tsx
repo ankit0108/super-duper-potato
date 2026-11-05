@@ -857,13 +857,14 @@ type Tab = "overview" | "playbook" | "proposals" | "report" | "voice" | "learnin
 
 /** What the social pulse found taking off on LinkedIn and X this week, and why (pbs/pulse.py). */
 type PulseView = NonNullable<DeskState["pulse"]>;
+const socialNames: Record<string, string> = { linkedin: "LinkedIn", x: "X", bluesky: "Bluesky", mastodon: "Mastodon", hackernews: "Hacker News" };
 
 /** Why "What's working" has nothing new, in words (null when the last search worked). */
 export function pulseNote(p: PulseView | null | undefined, tz?: string): string | null {
   if (p?.paused) return "The daily search is paused on the Sources page (Buzz tab): switch “Social pulse” back on.";
   const st = p?.status;
   if (!(p?.engines ?? []).length && (!st || !st.ok))
-    return "No web search is available to the pipeline today. Gemini's free tier usually has no Google Search, so it uses Groq's search (the GROQ_API_KEY secret, free); when that's missing or out of today's free searches, it tries again tomorrow.";
+    return "No web search is available to the pipeline today. Public feeds still scout LinkedIn/X indexed coverage, Bluesky, Hacker News and Mastodon. Coverage depends on what those sources make publicly available; missing data is never treated as poor performance.";
   if (!st) return "The first search runs with the next morning set. Search now to run it straight away.";
   if (st.ok) return null;
   const when = formatDate(st.at, tz);
@@ -889,22 +890,22 @@ function WorkingTab({ view }: { view: NonNullable<ReturnType<typeof useDesk.getS
         type: "request.create",
         request_id: newId("req"),
         query: c.topic,
-        platforms: { [c.platform]: 1 },
-        notes: [`What's working on ${c.platform === "linkedin" ? "LinkedIn" : "X"}: ${c.said}`, c.why && `Why it works: ${c.why}`, c.angle && `My angle: ${c.angle}`].filter(Boolean).join("\n").slice(0, 2000),
+        platforms: { [c.platform === "linkedin" ? "linkedin" : "x"]: 1 },
+        notes: [`Observed on ${socialNames[c.platform]}: ${c.said}`, c.url && `Source: ${c.url}`, c.why && `Angle hypothesis: ${c.why}`, c.angle && `My angle: ${c.angle}`, c.limitation].filter(Boolean).join("\n").slice(0, 2000),
       },
       { toast: "Drafting it: the card appears on your board in a few minutes, with the sources it found." },
     );
   if (!rows.length)
     return (
-      <Panel title="What's working on LinkedIn and X" actions={searchNow}>
+      <Panel title="Social evidence" actions={searchNow}>
         <p className="text-[13.5px] text-muted">{note ?? "Nothing this week yet."}</p>
-        <p className="mt-2 text-[13px] text-muted">Once a day the pipeline searches public LinkedIn and X posts on your topics for the conversations taking off and why they work. They show here, the best reach your board marked “Trending”, and any of them can become a draft.</p>
+        <p className="mt-2 text-[13px] text-muted">Daily scouting combines public feeds with search-cited LinkedIn and X posts when search is available. Observed counts, indexed coverage and suggested angles are labelled separately.</p>
       </Panel>
     );
   return (
     <Panel
-      title="What's working on LinkedIn and X"
-      description="Conversations taking off on your topics this week, from a daily web search of public posts. The best of them reach your board marked “Trending”; Draft a post makes a card from any of them now."
+      title="Social evidence"
+      description="Public conversations and activity on your topics. Counts show attention on that platform; they do not prove why a post worked or predict your results."
       actions={searchNow}
     >
       {note && <p className="mb-3 text-[13px] text-muted">{note}</p>}
@@ -912,12 +913,15 @@ function WorkingTab({ view }: { view: NonNullable<ReturnType<typeof useDesk.getS
         {rows.map((c, i) => (
           <li key={`${c.date}-${i}`} className="space-y-1 py-3 first:pt-0 last:pb-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={c.platform === "linkedin" ? "linkedin" : "x"}>{c.platform === "linkedin" ? "LinkedIn" : "X"}</Badge>
+              <Badge tone={c.platform === "linkedin" ? "linkedin" : "x"}>{socialNames[c.platform]}</Badge>
+              <span className="text-xs text-muted">{c.evidence === "observed_activity" ? "Observed activity" : c.evidence === "search_cited" ? "Search-cited post" : c.evidence === "indexed_coverage" ? "Indexed coverage" : "Legacy observation · unverified"}</span>
               <span className="text-[14px] font-medium">{c.topic}</span>
               <span className="text-xs text-muted">{c.date}</span>
             </div>
             {c.said && <p className="text-[13px]">{c.said}</p>}
-            {c.why && <p className="text-[13px] text-muted">Why it works: {c.why}</p>}
+            {Object.keys(c.metrics ?? {}).length > 0 && <p className="text-[13px] tabular-nums">{Object.entries(c.metrics ?? {}).map(([key, value]) => `${value.toLocaleString()} ${key.replaceAll("_", " ")}`).join(" · ")}</p>}
+            {c.limitation && <p className="text-xs text-muted">{c.limitation}</p>}
+            {c.why && <p className="text-[13px] text-muted">Angle hypothesis: {c.why}</p>}
             {c.angle && <p className="text-[13px] text-muted">Your angle: {c.angle}</p>}
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <Button size="sm" variant="soft" icon={<Plus className="size-4" />} onClick={() => draft(c)}>

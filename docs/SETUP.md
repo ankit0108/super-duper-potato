@@ -57,6 +57,7 @@ In **this** repo: **Settings → Secrets and variables → Actions → Secrets �
 | `GROQ_API_KEY` | Recommended | The Groq key from step 4: the fallback, and the first choice for your own words |
 | `PBS_BLOCKLIST` | Strongly recommended | One term per line: your employer, clients, colleagues, internal system names and code names, with common variants. Drafts containing a term are blocked (never reworded), and the terms are redacted from every model call |
 | `OPENROUTER_API_KEY` | Optional | A last free fallback ([openrouter.ai](https://openrouter.ai) → Keys) |
+| `CEREBRAS_API_KEY` | Optional | Another independent fallback; create a key on the Free Trial plan at [Cerebras](https://cloud.cerebras.ai) |
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | Optional | Free AI images for visuals: see [AI images](#ai-images-optional-free) below |
 | `GEMINI_IMAGE_API_KEY`, `XAI_API_KEY` | Optional | Paid AI images (Gemini or Grok), used after Cloudflare: see below |
 | `PBS_NTFY_TOPIC` | Optional | A long random [ntfy](https://ntfy.sh) topic name for "drafts are ready" pings (content-free) |

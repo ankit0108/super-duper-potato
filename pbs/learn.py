@@ -257,6 +257,10 @@ def latest_metrics(ctx: Ctx) -> dict[str, dict[str, Any]]:
 
 def update_rewards(ctx: Ctx) -> int:
     lm = latest_metrics(ctx)
+    # Rejecting or unmatching a metric must also remove its old influence on future recommendations.
+    for post in ctx.store.select("posts", "perf IS NOT NULL"):
+        if post["id"] not in lm:
+            ctx.store.update("posts", post["id"], reward=None, reward_parts=None, perf=None)
     window = ctx.settings.learning.median_window
     updated = 0
     for platform in ("linkedin", "x"):
@@ -277,6 +281,7 @@ def update_rewards(ctx: Ctx) -> int:
                 num += w * score
                 den += w
             if den == 0:
+                ctx.store.update("posts", post["id"], reward=None, reward_parts=None, perf=None)
                 continue
             reward = num / den
             ctx.store.update("posts", post["id"], reward=round(reward, 4), reward_parts=parts,

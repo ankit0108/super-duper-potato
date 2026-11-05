@@ -8,6 +8,8 @@ the daily interview cap.
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
+import json
 import math
 import os
 import random
@@ -184,7 +186,11 @@ def prescore(ctx: Ctx, topic: dict[str, Any], platform: str, memory: Memory) -> 
         return None
     interview_keys = {k for k, p in ctx.settings.pillars(platform).items() if p.mode == "interview"}
     external = {k: v for k, v in fits.items() if k not in interview_keys}
-    pool = external or fits
+    # Zero weight is an explicit opt-out, including saved private-data overrides.
+    pool = {k: v for k, v in (external or fits).items()
+            if (spec := ctx.settings.pillar(platform, k)) and spec.weight > 0}
+    if not pool:
+        return None
     pillar = max(pool, key=lambda k: pool[k])
     fit = pool[pillar]
     if fit < 0.3:
@@ -211,6 +217,7 @@ def discussion(sig: dict[str, Any]) -> float:
     Mastodon, searches on Google."""
     return max(min(1.0, (sig.get("hn_comments") or 0) / 300), min(1.0, (sig.get("reddit_comments") or 0) / 600),
                min(1.0, (sig.get("reddit_score") or 0) / 6000), min(1.0, (sig.get("mastodon_accounts") or 0) / 120),
+               min(1.0, ((sig.get("bsky_replies") or 0) + (sig.get("bsky_reposts") or 0)) / 100),
                min(1.0, (sig.get("search_traffic") or 0) / 200_000))
 
 
@@ -256,9 +263,10 @@ def triage(ctx: Ctx, topics: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     hours = ctx.settings.ranking.triage_reuse_hours
     since = timeutil.iso(timeutil.now() - dt.timedelta(hours=hours))
     fresh = []
+    signature = _triage_signature(ctx)
     for t in topics:
         cached = t.get("triage") or {}
-        if hours > 0 and cached.get("at") and cached["at"] >= since:
+        if hours > 0 and cached.get("at") and cached["at"] >= since and cached.get("signature") == signature:
             out[t["id"]] = cached
         else:
             fresh.append(t)
@@ -282,6 +290,12 @@ def triage(ctx: Ctx, topics: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     if batches and len(out) == len(topics) - len(fresh):
         ctx.run.note("Triage used the deterministic fallback (model unavailable)")
     return out
+
+
+def _triage_signature(ctx: Ctx) -> str:
+    material = {"feedback": feedback.recent_feedback(ctx, notes_first=True),
+                "strategy": ctx.settings.model_dump()["strategy"], "prompt": prompting.version("triage")}
+    return hashlib.sha256(json.dumps(material, sort_keys=True).encode()).hexdigest()[:16]
 
 
 def _triage_batch(ctx: Ctx, topics: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -308,7 +322,7 @@ def _triage_batch(ctx: Ctx, topics: list[dict[str, Any]]) -> dict[str, dict[str,
     for row in json_rows(data, "topics"):
         t = ref.get(str(row.get("id")))
         if t is not None:
-            row = {**row, "at": at}
+            row = {**row, "at": at, "signature": _triage_signature(ctx)}
             out[t["id"]] = row
             ctx.store.update("topics", t["id"], triage=row)
     return out
@@ -448,7 +462,7 @@ def _news_candidate(ctx: Ctx, platform: str, topic: dict[str, Any], t: dict[str,
             return None
     else:
         pillar = det_pillar
-    if ctx.settings.pillar(platform, pillar) is None:
+    if (chosen := ctx.settings.pillar(platform, pillar)) is None or chosen.weight <= 0:
         return None
     ap = _angle_potential(p.get("angle_potential"))
     det_sensitive, det_reason = guardrails.sensitive_check(topic.get("title_en") or topic.get("title"),
@@ -524,7 +538,7 @@ POOL_FIT = 0.7  # what a pool entry starts from, next to a news topic's fit; the
 def _pool_candidate(ctx: Ctx, platform: str, topic: dict[str, Any], post_type: str, memory: Memory) -> Candidate | None:
     pillar = posttypes.pillar_for(ctx.settings, platform, post_type)
     spec = ctx.settings.pillar(platform, pillar or "")
-    if spec is None or spec.mode != "external" or topic["id"] in memory.recent_topics.get(platform, set()):
+    if spec is None or spec.weight <= 0 or spec.mode != "external" or topic["id"] in memory.recent_topics.get(platform, set()):
         return None
     new = novelty(frozenset(textutil.sim_tokens(topic_text(topic))), platform, memory)
     parts, base = _combine(ctx, POOL_FIT, 1.0, 0.0, new)
@@ -583,7 +597,7 @@ def bank_candidates(ctx: Ctx, platform: str, per_pillar: int = 1) -> list[Candid
         if entry.get("platform") != platform or f"bank:{entry['id']}" in used:
             continue
         spec = ctx.settings.pillar(platform, entry["pillar"])
-        if spec is None or counts[entry["pillar"]] >= per_pillar:
+        if spec is None or spec.weight <= 0 or counts[entry["pillar"]] >= per_pillar:
             continue
         counts[entry["pillar"]] += 1
         fmt = spec.formats[0]

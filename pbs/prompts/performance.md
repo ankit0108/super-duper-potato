@@ -17,6 +17,11 @@ Write like a sharp analyst who has read every row, for someone busy:
 - "caveats": what the data can't say yet (too few posts, missing text for exported posts, a short period). At most 3.
 
 Rules:
+- "coverage" shows published, measured and missing posts per platform. Missing measurements are unknown, never zero performance. If a platform has no measurements, do not say what works or fails there.
+- Groups marked "insufficient" have fewer than five measured posts. Describe them as early observations and propose a test; never recommend abandoning a day, topic or format on this basis. Even larger groups are observational, not causal evidence.
+- Account for exposure: posts of different ages, snapshots taken on different dates, and export-period counts are not equivalent lifetime results. Do not infer that posting time caused the outcome. Compare posting windows only with at least five measured posts both inside and outside; otherwise report that more measurements are needed.
+- Distinguish median per-post engagement rate from weighted engagement rate. Missing engagement is excluded, not treated as zero. Raw likes without impressions do not give a rate. Never compare reach or raw engagement counts across platforms.
+- A useful experiment specifies one change, a baseline from the data, a collection window and at least five posts per condition. Favor repeatable hooks and subject choices over claims about a platform's secret algorithm.
 - Every claim must come from the input. Never invent a number, a post or a reason. When a pattern rests on one or two posts, say so.
 - Engagement rate means engagements divided by impressions. Compare like with like: LinkedIn with LinkedIn, X with X.
 - Be specific. "Post more consistently" or "use engaging hooks" are not findings.

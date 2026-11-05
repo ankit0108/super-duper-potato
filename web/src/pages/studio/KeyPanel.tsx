@@ -5,6 +5,7 @@ import { cachedModels, clearStudioKey, getStudioKey, keyHint, setStudioKey, spen
 import { useDesk } from "@/state/store";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
+import { backupProviders, getBackupKeys, setBackupKey, type BackupProvider } from "@/lib/studio/settings";
 
 /** The Studio's Gemini key: checked against Gemini, then kept on this device only. */
 export function StudioKeyPanel({ onReady, compact }: { onReady?: (models: string[]) => void; compact?: boolean }) {
@@ -13,6 +14,8 @@ export function StudioKeyPanel({ onReady, compact }: { onReady?: (models: string
   const [key, setKey] = useState("");
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [backups, setBackups] = useState(getBackupKeys);
+  const [backupDrafts, setBackupDrafts] = useState<Partial<Record<BackupProvider, string>>>({});
   const check = async () => {
     const k = key.trim();
     if (!k) return;
@@ -58,7 +61,7 @@ export function StudioKeyPanel({ onReady, compact }: { onReady?: (models: string
           </Button>
         </div>
       ) : (
-        !compact && <p className="text-[13.5px] text-muted">The Studio talks to Gemini straight from this device, so replies start in a second or two. It needs a free Gemini API key.</p>
+        !compact && <p className="text-[13.5px] text-muted">Studio talks to AI providers straight from this device. Add a free Gemini key for text, pictures and search, or a text-only backup key below.</p>
       )}
       <form
         className="flex flex-wrap items-end gap-2"
@@ -80,11 +83,22 @@ export function StudioKeyPanel({ onReady, compact }: { onReady?: (models: string
           <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="text-accent hover:underline">
             aistudio.google.com/apikey
           </a>
-          . Make it in a different Google Cloud project from the pipeline's <code>GEMINI_API_KEY</code>, so chatting never uses up the morning's free quota.
+          . Studio and the pipeline share the provider's quota when they use the same project.
         </li>
         <li>The key stays in this browser, like your GitHub token. Your chats stay on this device too, unless you save a post to the board.</li>
         <li>What you send goes to Google's Gemini API. On the free tier Google may use it to improve its models, so don't paste anything confidential. Your guard terms are replaced with “[redacted]” before anything is sent.</li>
       </ul>
+      <details className="rounded-xl border border-border p-3" open={!saved}>
+        <summary className="cursor-pointer text-sm font-medium">Backup AI providers</summary>
+        <p className="my-2 text-xs text-muted">Optional text-only fallbacks: Groq → Cerebras → OpenRouter's free models. Keys stay on this device. Use free-tier accounts with billing disabled. Backups receive your chat when Gemini is unavailable; they cannot search or read images.</p>
+        {backupProviders.map((provider) => <div key={provider} className="my-2 flex flex-wrap items-end gap-2">
+          <Field label={`${provider}${backups[provider] ? ` · saved ${keyHint(backups[provider]!)}` : ""}`} htmlFor={`backup-${provider}`} className="min-w-0 flex-1">
+            <Input id={`backup-${provider}`} type="password" autoComplete="off" value={backupDrafts[provider] ?? ""} onChange={(e) => setBackupDrafts((old) => ({ ...old, [provider]: e.target.value }))} />
+          </Field>
+          <Button size="sm" disabled={!backupDrafts[provider]?.trim()} onClick={() => { setBackupKey(provider, backupDrafts[provider] ?? ""); setBackups(getBackupKeys()); setBackupDrafts((old) => ({ ...old, [provider]: "" })); onReady?.([]); }}>Save key</Button>
+          {backups[provider] && <Button size="sm" variant="ghost" onClick={() => { setBackupKey(provider, ""); setBackups(getBackupKeys()); onReady?.([]); }}>Remove</Button>}
+        </div>)}
+      </details>
     </div>
   );
 }

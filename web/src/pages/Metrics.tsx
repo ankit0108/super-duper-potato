@@ -337,6 +337,14 @@ function Performance() {
     <Panel title={title} actions={again}>
       <div className="space-y-4">
         <p className="text-[15px] font-medium leading-snug">{review.headline}</p>
+        {Object.keys(review.coverage ?? {}).length > 0 && <div className="grid gap-3 sm:grid-cols-2">
+          {Object.entries(review.coverage ?? {}).map(([platform, c]) => <div key={platform} className="rounded-xl border border-border p-3 text-[13px]">
+            <p className="font-semibold">{platform === "linkedin" ? "LinkedIn" : "X"} data coverage</p>
+            <p>{c.measured} of {c.published} PBS posts have confirmed impressions. {c.missing} unmeasured; {c.needs_review} measurements to review.</p>
+            {c.measured === 0 && <p className="mt-1 text-muted">Upload this platform's analytics before drawing performance conclusions.</p>}
+            {c.latest_capture && <p className="mt-1 text-xs text-muted">Last measured {formatDate(c.latest_capture, tz)}</p>}
+          </div>)}
+        </div>}
         {(review.findings?.length ?? 0) > 0 && (
           <ol className="space-y-3">
             {review.findings!.map((f, i) => (

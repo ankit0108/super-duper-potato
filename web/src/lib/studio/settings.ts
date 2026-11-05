@@ -51,3 +51,13 @@ export function markSpent(model: string, now = new Date()): void {
 }
 
 export const keyHint = (key: string) => (key ? `…${key.slice(-4)}` : "");
+
+export type BackupProvider = "groq" | "cerebras" | "openrouter";
+export const backupProviders: BackupProvider[] = ["groq", "cerebras", "openrouter"];
+export const getBackupKeys = (): Partial<Record<BackupProvider, string>> => readJSON("pbs.studio.backup-keys", {});
+export function setBackupKey(provider: BackupProvider, value: string): void {
+  const keys = getBackupKeys();
+  if (value.trim()) keys[provider] = value.trim();
+  else delete keys[provider];
+  writeJSON("pbs.studio.backup-keys", keys);
+}
