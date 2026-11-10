@@ -21,7 +21,8 @@ def test_morning_delivery_fills_slots_with_caps(make_ctx):
         assert sum(1 for c in mine if c["mode"] == "interview") <= 1
         assert len({c["topic_id"] for c in mine}) == len(mine)  # no topic twice on a platform
     x_formats = [c["format"] for c in cards if c["platform"] == "x"]
-    assert 2 <= x_formats.count("x_reply") <= 3  # small account: reply angles on the biggest news, capped
+    # A small account is seen through replies and quote-posts: about half the set, capped.
+    assert 4 <= sum(f in ("x_reply", "x_quote") for f in x_formats) <= 6
     for c in cards:
         assert c["status"] in ("suggested", "needs_input", "blocked")
         if c["status"] == "suggested":
@@ -52,7 +53,7 @@ def test_reply_slots_are_reserved_only_while_x_account_is_small(make_ctx):
     ctx = make_ctx()
     arms = bandit.compute_arms(ctx.store, ctx.settings)
     small = allocate(ctx, "x", _single_candidates(10), arms, random.Random(1))
-    assert [c.fmt for c in small].count("x_reply") == 2
+    assert [c.fmt for c in small].count("x_reply") == ctx.settings.platforms.x.reply_slots == 5
     ctx.store.upsert("account_stats", {"id": "acs_x_2026-09-27", "date": "2026-09-27", "platform": "x",
                                        "followers": 900})
     big = allocate(ctx, "x", _single_candidates(10), arms, random.Random(1))

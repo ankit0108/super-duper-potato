@@ -393,6 +393,40 @@ def _card_draft_now(ctx: Ctx, ev: C.CardDraftNowEvent) -> None:
     ctx.hints.add("work")
 
 
+def _scout_draft(ctx: Ctx, ev: C.ScoutDraftEvent) -> None:
+    """Draft an opportunity from a scout's report that didn't make the morning set: a card from the stored story,
+    with the scout's read, drafted on this run like any "Draft this"."""
+    from . import deliver
+    from .agents import scout as scouts
+
+    report = ctx.store.get("scout_reports", ev.report_id)
+    if not report:
+        raise Reject(f"unknown scout report {ev.report_id}")
+    opps = list(report.get("opportunities") or [])
+    opp = next((o for o in opps if o.get("id") == ev.topic_id), None)
+    if opp is None:
+        raise Reject("the report has no such opportunity")
+    if opp.get("card_id") and ctx.store.get("cards", opp["card_id"]):
+        raise Reject("this opportunity already has a card")
+    topic = ctx.store.get("topics", ev.topic_id)
+    if not topic:
+        raise Reject("the story is no longer stored")
+    cand = scouts.candidate_for(ctx, report["platform"], opp, topic)
+    if cand is None:
+        raise Reject(f"no lane {opp.get('lane')} on {report['platform']} to draft it in")
+    at = _event_time(ev)
+    card = deliver.card_from_candidate(ctx, cand, None, rank=int(opp.get("rank") or 0))
+    card["work"] = {"kind": "draft", "requested_at": at, "attempts": 0}
+    # He asked for it: it stays as long as a requested post, not until the next morning.
+    card["expires_at"] = timeutil.iso(timeutil.now() + _minutes(ctx.settings.expiry.request_days * 24 * 60))
+    _touch(card, at)
+    draft.save_card(ctx, card)
+    ctx.store.update("scout_reports", report["id"],
+                     opportunities=[{**o, "card_id": card["id"]} if o.get("id") == ev.topic_id else o for o in opps])
+    draft.log_interaction(ctx, "scout_drafted", card, pillar=card.get("pillar"))
+    ctx.hints.add("work")
+
+
 def _card_hook(ctx: Ctx, ev: C.CardHookEvent) -> None:
     card = _card(ctx, ev.card_id)
     original = card.get("hooks") or []
@@ -695,6 +729,7 @@ APPLY = {
     "card.restore": _card_restore,
     "card.draft_now": _card_draft_now,
     "card.hook": _card_hook,
+    "scout.draft": _scout_draft,
     "post.update": _post_update,
     "post.metrics": _post_metrics,
     "metrics.upload": _metrics_upload,

@@ -67,7 +67,8 @@ visuals in your voice, researched with Google Search, to copy, share or save to 
 the browser with a key kept on the device; the pipeline exports the style it follows) · card editor (editable hooks, hashtag chips, the first comment, visuals with PNG and PDF download, live
 checks and platform tips, thread tools, rewrite, cross-post or move to the other platform, optional questions,
 dictation) · Requests (the search
-says what it understood) · Stances · Metrics (LinkedIn's .xlsx and X's .csv analytics exports read exactly, or screenshots; review queue, check-in,
+says what it understood) · **Scouts** (a LinkedIn scout and an X scout report each morning what's worth posting, with the
+evidence apart from their guess, and any find can be drafted) · Stances · Metrics (LinkedIn's .xlsx and X's .csv analytics exports read exactly, or screenshots; review queue, check-in,
 and a performance review by the strongest model the keys allow) · Insights (charts,
 playbook, the platform guide and its research, proposals, weekly report, voice and how AI-sounding the drafts are,
 the skip reasons and cross-posts the ranking uses, posts with and without a visual) · Sources · History · Settings · System.

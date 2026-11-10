@@ -73,7 +73,7 @@ class XPlatform(_Strict):
     premium_char_limit: int = Field(25000, ge=280, le=25000)
     thread_min: int = Field(3, ge=2, le=10)
     thread_max: int = Field(7, ge=2, le=15)
-    reply_slots: int = Field(2, ge=0, le=6)
+    reply_slots: int = Field(5, ge=0, le=6)
     reply_until_followers: int = Field(500, ge=0)
 
 
@@ -121,6 +121,25 @@ class Pulse(_Strict):
     the conversations taking off and why they work."""
     enabled: bool = True
     per_platform: int = Field(4, ge=1, le=8)
+
+
+class Agents(_Strict):
+    """A scout and a writer for each platform (pbs/agents). The scouts search, score the day's stories for how far
+    they could travel on their platform and write a report; the writers review it and plan each draft."""
+    enabled: bool = True
+    candidates: int = Field(14, ge=4, le=24)  # stories each scout scores
+    opportunities: int = Field(8, ge=3, le=12)  # shown in its report
+    probes: int = Field(5, ge=0, le=8)  # searches each scout plans a morning (needs the search key)
+    # Skipped when fewer model calls than the day's drafts plus this are left: drafts come first.
+    reserve: int = Field(6, ge=0, le=40)
+    # Searches a scout runs when no model can plan the day's.
+    standing_probes: dict[str, list[str]] = {}
+
+
+class WebSearch(_Strict):
+    """The scouts' web search (pbs/scout/websearch.py): Tavily's free tier, with the TAVILY_API_KEY secret."""
+    monthly_cap: int = Field(900, ge=0, le=20000)
+    results: int = Field(6, ge=1, le=10)
 
 
 class Humor(_Strict):
@@ -334,6 +353,8 @@ class Settings(BaseModel):
     affairs: Affairs
     pools: Pools = Pools()
     pulse: Pulse = Pulse()
+    agents: Agents = Agents()
+    websearch: WebSearch = WebSearch()
     humor: Humor = Humor()
     hooks: Hooks
     watchlist: dict[str, list[str]] = {}

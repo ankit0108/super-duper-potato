@@ -9,6 +9,8 @@
 #        reddit_json (a subreddit's top posts with score and comments; min_score), hn_ask (Ask HN),
 #        mastodon_links (links trending on Mastodon), gtrends (Google Trends daily searches; geo),
 #        trends24 and bsky_trends (trending words on X and Bluesky: they lift matching stories, they aren't stories)
+#        bsky_feed (an account's public Bluesky posts, with their counts), hf_models (models trending on Hugging
+#        Face), websearch (a platform scout's own searches: nothing to fetch; pause it to stop the searches)
 # Some outlets refuse GitHub's servers or retire their feeds; a "site:" Google News query for the same outlet
 # is the dependable replacement (it is how the sources that failed on the first live runs are fetched now).
 
@@ -81,6 +83,32 @@ tech:
     query: '(cat:cs.AI OR cat:cs.CL OR cat:cs.SE OR cat:cs.MA) AND (abs:"business process" OR abs:"process mining" OR abs:"robotic process automation" OR abs:"workflow automation" OR abs:"document understanding")'
     max_items: 20
     pillar_hints: [research, receipts]
+  # The week in AI as people in the field recap it (AINews is a daily digest of what AI people on X discussed).
+  - {id: ainews, name: "AINews (the day on AI Twitter, recapped)", kind: rss, url: "https://news.smol.ai/rss.xml", best_effort: true, pillar_hints: [industry, research]}
+  - {id: tldr-ai, name: TLDR AI, kind: rss, url: "https://tldr.tech/api/rss/ai", best_effort: true, pillar_hints: [industry, learning]}
+  - {id: last-week-in-ai, name: Last Week in AI, kind: rss, url: "https://lastweekin.ai/feed", best_effort: true, pillar_hints: [industry]}
+  - {id: top-ai-papers, name: "Top AI Papers of the Week (DAIR.AI)", kind: rss, url: "https://nlp.elvissaravia.com/feed", best_effort: true, pillar_hints: [research]}
+  - {id: hf-trending-models, name: "Hugging Face: trending models", kind: hf_models, url: "https://huggingface.co/api/models?sort=trendingScore&direction=-1&limit=25", best_effort: true, max_items: 10, pillar_hints: [research, learning]}
+  # Engineers and researchers whose writing other engineers share: lessons from real work, explained well.
+  - {id: pragmatic-engineer, name: The Pragmatic Engineer, kind: rss, url: "https://newsletter.pragmaticengineer.com/feed", best_effort: true, pillar_hints: [learning, industry]}
+  - {id: bytebytego, name: ByteByteGo, kind: rss, url: "https://blog.bytebytego.com/feed", best_effort: true, pillar_hints: [learning]}
+  - {id: one-useful-thing, name: "One Useful Thing (Ethan Mollick)", kind: rss, url: "https://www.oneusefulthing.org/feed", best_effort: true, pillar_hints: [industry, learning]}
+  - {id: ahead-of-ai, name: "Ahead of AI (Sebastian Raschka)", kind: rss, url: "https://magazine.sebastianraschka.com/feed", best_effort: true, pillar_hints: [research, learning]}
+  - {id: hamel-husain, name: Hamel Husain, kind: rss, url: "https://hamel.dev/index.xml", best_effort: true, pillar_hints: [learning]}
+  - {id: eugene-yan, name: Eugene Yan, kind: rss, url: "https://eugeneyan.com/rss/", best_effort: true, pillar_hints: [learning]}
+  - {id: chip-huyen, name: Chip Huyen, kind: rss, url: "https://huyenchip.com/feed.xml", best_effort: true, pillar_hints: [learning]}
+  - {id: martin-fowler, name: Martin Fowler, kind: rss, url: "https://martinfowler.com/feed.atom", best_effort: true, pillar_hints: [learning]}
+  - {id: stackoverflow-blog, name: Stack Overflow blog, kind: rss, url: "https://stackoverflow.blog/feed/", best_effort: true, pillar_hints: [learning, industry]}
+  - {id: thoughtworks-insights, name: Thoughtworks insights, kind: rss, url: "https://www.thoughtworks.com/rss/insights.xml", best_effort: true, pillar_hints: [learning, receipts]}
+  # Arguments and numbers: the sceptics, the analysts and the surveys a practitioner can agree or disagree with.
+  - {id: gary-marcus, name: "Gary Marcus (Marcus on AI)", kind: rss, url: "https://garymarcus.substack.com/feed", best_effort: true, pillar_hints: [industry]}
+  - {id: ai-normal-technology, name: AI as Normal Technology, kind: rss, url: "https://www.normaltech.ai/feed", best_effort: true, pillar_hints: [industry, research]}
+  - {id: benedict-evans, name: Benedict Evans, kind: rss, url: "https://www.ben-evans.com/benedictevans?format=rss", best_effort: true, pillar_hints: [industry]}
+  - {id: stratechery, name: Stratechery, kind: rss, url: "https://stratechery.com/feed/", best_effort: true, pillar_hints: [industry]}
+  - {id: mit-sloan-review, name: MIT Sloan Management Review, kind: rss, url: "https://sloanreview.mit.edu/feed/", best_effort: true, pillar_hints: [receipts, industry]}
+  - {id: hbr, name: Harvard Business Review, kind: rss, url: "https://feeds.hbr.org/harvardbusiness", best_effort: true, pillar_hints: [receipts, industry]}
+  - {id: gnews-gartner-ai, name: "Google News: Gartner on AI and automation", kind: gnews, query: 'Gartner (AI OR automation OR agents) survey OR forecast OR predicts OR "hype cycle" when:7d', best_effort: true, pillar_hints: [receipts, industry]}
+  - {id: gnews-ai-surveys, name: "Google News: AI surveys and reports", kind: gnews, query: '(McKinsey OR BCG OR Deloitte OR Stanford OR MIT) ("generative AI" OR "AI agents") survey OR report OR study when:7d', best_effort: true, pillar_hints: [receipts, industry]}
   - {id: reddit-localllama, name: r/LocalLLaMA, kind: reddit, url: "https://www.reddit.com/r/LocalLLaMA/top/.rss?t=day", best_effort: true, pillar_hints: [learning, research]}
   - {id: reddit-machinelearning, name: r/MachineLearning, kind: reddit, url: "https://www.reddit.com/r/MachineLearning/top/.rss?t=day", best_effort: true, pillar_hints: [research]}
 
@@ -138,6 +166,12 @@ buzz:
   - {id: reddit-artificial, name: r/artificial, kind: reddit_json, url: "https://www.reddit.com/r/artificial/top.json?t=day&limit=30", best_effort: true, min_score: 150, pillar_hints: [industry]}
   - {id: reddit-developersindia, name: r/developersIndia, kind: reddit_json, url: "https://www.reddit.com/r/developersIndia/top.json?t=day&limit=30", best_effort: true, min_score: 200, pillar_hints: [humor, industry]}
   - {id: reddit-cscareerquestions, name: r/cscareerquestions, kind: reddit_json, url: "https://www.reddit.com/r/cscareerquestions/top.json?t=day&limit=30", best_effort: true, min_score: 300, pillar_hints: [humor]}
+  # Where practitioners in his fields argue and compare notes (scores and comment counts are observed).
+  - {id: reddit-ai-agents, name: r/AI_Agents, kind: reddit_json, url: "https://www.reddit.com/r/AI_Agents/top.json?t=day&limit=30", best_effort: true, min_score: 80, pillar_hints: [learning, industry]}
+  - {id: reddit-llmdevs, name: r/LLMDevs, kind: reddit_json, url: "https://www.reddit.com/r/LLMDevs/top.json?t=day&limit=30", best_effort: true, min_score: 50, pillar_hints: [learning]}
+  - {id: reddit-experienceddevs, name: r/ExperiencedDevs, kind: reddit_json, url: "https://www.reddit.com/r/ExperiencedDevs/top.json?t=day&limit=30", best_effort: true, min_score: 250, pillar_hints: [learning, industry]}
+  - {id: reddit-dataengineering, name: r/dataengineering, kind: reddit_json, url: "https://www.reddit.com/r/dataengineering/top.json?t=day&limit=30", best_effort: true, min_score: 120, pillar_hints: [learning]}
+  - {id: reddit-rpa, name: r/rpa, kind: reddit_json, url: "https://www.reddit.com/r/rpa/top.json?t=week&limit=20", best_effort: true, min_score: 15, pillar_hints: [receipts, learning]}
   - {id: hn-ask, name: Ask HN, kind: hn_ask, url: "https://hn.algolia.com/api/v1/search_by_date?tags=ask_hn&numericFilters=points%3E40&hitsPerPage=30", pillar_hints: [learning, industry]}
   - {id: hn-heated, name: "Hacker News: most discussed", kind: hn_front, url: "https://hn.algolia.com/api/v1/search_by_date?tags=story&numericFilters=num_comments%3E250&hitsPerPage=30", pillar_hints: [industry]}
   - {id: techmeme, name: Techmeme, kind: rss, url: "https://www.techmeme.com/feed.xml", pillar_hints: [industry]}
@@ -167,6 +201,20 @@ buzz:
   # Public indexed LinkedIn/X coverage: discovery only, never a claim of measured engagement.
   - {id: linkedin-public-ai, name: "LinkedIn: public AI and engineering posts", kind: gnews, query: 'site:linkedin.com/posts (AI OR software OR engineering) when:3d', social_platform: linkedin, best_effort: true, max_items: 12}
   - {id: x-public-ai, name: "X: public AI and engineering posts", kind: gnews, query: '(site:x.com OR site:twitter.com) (AI OR software OR engineering) when:3d', social_platform: x, best_effort: true, max_items: 12}
+  - {id: linkedin-public-agents, name: "LinkedIn: public posts on AI agents", kind: gnews, query: 'site:linkedin.com/posts ("AI agents" OR "agentic AI" OR "AI agent") when:3d', social_platform: linkedin, best_effort: true, max_items: 10}
+  - {id: linkedin-public-automation, name: "LinkedIn: public posts on automation", kind: gnews, query: 'site:linkedin.com/posts (RPA OR "intelligent automation" OR "process automation" OR "workflow automation") when:7d', social_platform: linkedin, best_effort: true, max_items: 10}
+  - {id: linkedin-public-llm, name: "LinkedIn: public posts on building with LLMs", kind: gnews, query: 'site:linkedin.com/posts (LLM OR evals OR RAG OR "Model Context Protocol" OR "context engineering") when:3d', social_platform: linkedin, best_effort: true, max_items: 10}
+  - {id: linkedin-public-data, name: "LinkedIn: public posts on data engineering", kind: gnews, query: 'site:linkedin.com/posts ("data engineering" OR "data platform" OR "data pipeline") when:7d', social_platform: linkedin, best_effort: true, max_items: 8}
+  - {id: x-public-agents, name: "X: public posts on AI agents", kind: gnews, query: '(site:x.com OR site:twitter.com) ("AI agents" OR agentic OR "coding agent") when:2d', social_platform: x, best_effort: true, max_items: 10}
+  - {id: x-public-llm, name: "X: public posts on building with LLMs", kind: gnews, query: '(site:x.com OR site:twitter.com) (LLM OR evals OR MCP OR "Claude Code" OR Codex OR Gemini) when:2d', social_platform: x, best_effort: true, max_items: 10}
+  # The platform scouts' own searches (pbs/agents/scout.py), run each morning when the TAVILY_API_KEY secret is
+  # set: what they find is stored under these. Nothing is fetched from them; pause one to stop that scout's searches.
+  - {id: scout-linkedin, name: "LinkedIn scout: searches of public LinkedIn posts", kind: websearch, social_platform: linkedin, best_effort: true}
+  - {id: scout-x, name: "X scout: searches of public X posts", kind: websearch, social_platform: x, best_effort: true}
+  # Researchers who post publicly on Bluesky as well as X: their posts come with real counts.
+  - {id: bsky-emollick, name: "Bluesky: Ethan Mollick", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=emollick.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
+  - {id: bsky-natolambert, name: "Bluesky: Nathan Lambert", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=natolambert.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
+  - {id: bsky-fchollet, name: "Bluesky: François Chollet", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=fchollet.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
   - {id: bsky-engineering-posts, name: "Bluesky: Simon Willison's public AI posts", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=simonwillison.net&limit=25&filter=posts_no_replies', best_effort: true, max_items: 15}
 
 life: []

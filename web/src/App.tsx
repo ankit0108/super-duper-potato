@@ -12,6 +12,7 @@ import { History } from "@/pages/History";
 import { Insights } from "@/pages/Insights";
 import { Metrics } from "@/pages/Metrics";
 import { Requests } from "@/pages/Requests";
+import { Scouts } from "@/pages/Scouts";
 import { Settings } from "@/pages/Settings";
 import { Sources } from "@/pages/Sources";
 import { Stances } from "@/pages/Stances";
@@ -23,6 +24,7 @@ const TITLES: Record<string, string> = {
   card: "Card",
   studio: "Studio",
   requests: "Requests",
+  scouts: "Scouts",
   stances: "Stances",
   metrics: "Metrics",
   insights: "Insights",
@@ -43,6 +45,8 @@ function Page({ parts }: { parts: string[] }) {
       return <Studio />;
     case "requests":
       return <Requests />;
+    case "scouts":
+      return <Scouts />;
     case "stances":
       return <Stances />;
     case "metrics":

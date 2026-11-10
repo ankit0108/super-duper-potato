@@ -227,6 +227,8 @@ export type Kind2 =
       | "bsky_search"
       | "bsky_feed"
       | "pulse"
+      | "websearch"
+      | "hf_models"
     )
   | null;
 export type Lang = ("en" | "hi") | null;
@@ -331,6 +333,11 @@ export type Kind3 = "carousel" | "flow" | "compare" | "list" | "stat" | "quote" 
 export type Photo = number | null;
 export type Subtitle1 = string | null;
 export type Title4 = string;
+export type At30 = string;
+export type Id30 = string;
+export type ReportId = string;
+export type TopicId = string;
+export type Type31 = "scout.draft";
 export type Events = (
   | CardStatusEvent
   | CardEditEvent
@@ -362,12 +369,13 @@ export type Events = (
   | PlaybookRuleEvent
   | RunRequestEvent
   | StudioSaveEvent
+  | ScoutDraftEvent
 )[];
-export type Id30 = string;
+export type Id31 = string;
 export type V = 1;
 export type Date1 = string;
 export type Followers1 = number | null;
-export type Id31 = string;
+export type Id32 = string;
 export type Platform3 = "linkedin" | "x";
 export type ProfileViews2 = number | null;
 export type Source = string | null;
@@ -376,7 +384,7 @@ export type ArchiveMonths = string[];
 export type Alpha = number;
 export type Beta = number;
 export type Format1 = string;
-export type Id32 = string;
+export type Id33 = string;
 export type Mean = number;
 export type NObs = number;
 export type Pillar2 = string;
@@ -390,7 +398,7 @@ export type AffairsType = string | null;
 export type Alternatives = string[];
 export type Angle = string | null;
 export type Answer2 = string;
-export type At30 = string | null;
+export type At31 = string | null;
 export type QuestionId1 = string;
 export type Answers1 = Answer1[];
 export type Arm1 = string | null;
@@ -476,13 +484,13 @@ export type FormatNote = string | null;
 export type Hashtags3 = string[];
 export type HookType = string | null;
 export type Text13 = string;
-export type Type31 = string;
+export type Type32 = string;
 export type Hooks2 = Hook[];
 export type Device1 = string | null;
 export type Note6 = string | null;
 export type Options = number;
 export type Verdict = ("strong" | "ok" | "weak") | null;
-export type Id33 = string;
+export type Id34 = string;
 export type IssueKey = string | null;
 export type Kind5 = "news" | "evergreen" | "interview" | "request" | "adapt" | "studio";
 /**
@@ -517,7 +525,7 @@ export type PostId3 = string | null;
  * A humour or ideas pillar's kind of post: funny_take, observation, quote, excerpt or thought (labels in the pillar's post_types)
  */
 export type PostType1 = string | null;
-export type Id34 = string;
+export type Id35 = string;
 export type Kind6 = string | null;
 export type Q = string;
 export type Why = string | null;
@@ -526,14 +534,33 @@ export type Rank = number | null;
 export type RequestId2 = string | null;
 export type Revision = number;
 export type RewriteCount = number;
-export type At31 = string;
+export type At32 = string;
 /**
  * The day he wants to post it (his local date)
  */
 export type RemindOn1 = string | null;
 export type Reminded = boolean;
 export type Score = number | null;
-export type At32 = string | null;
+export type Evidence1 = string[];
+export type EvidenceLevel = "observed" | "indexed" | "hypothesis";
+export type Opening = string;
+/**
+ * Its place in the scout's report
+ */
+export type Rank1 = number | null;
+export type ReplyTo = string | null;
+export type Risk = string | null;
+/**
+ * 0 to 1, from its six marks
+ */
+export type Score1 = number;
+export type Visual = string | null;
+/**
+ * Why it could travel: the scout's hypothesis, not a measurement
+ */
+export type Why1 = string;
+export type Window = ("today" | "this_week" | "evergreen") | null;
+export type At33 = string | null;
 export type Note7 = string | null;
 export type Reason2 =
   | "not_interesting"
@@ -561,10 +588,10 @@ export type StatusChangedAt = string | null;
  */
 export type Story = ("news" | "conversation" | "bizarre" | "funny" | "launch" | "research") | null;
 export type Title6 = string;
-export type TopicId = string | null;
+export type TopicId1 = string | null;
 export type On = "linkedin" | "x" | "bluesky";
 export type Term = string | null;
-export type Why1 = string | null;
+export type Why2 = string | null;
 export type UpdatedAt = string | null;
 export type Playbook = string | null;
 export type Prompt = string | null;
@@ -632,7 +659,7 @@ export type UpdatedAt1 = string | null;
 export type Cards = Card[];
 export type Degraded = string | null;
 export type DeliveredAt1 = string | null;
-export type Id35 = string;
+export type Id36 = string;
 export type Kind9 = string | null;
 export type LocalDate = string;
 export type Notes2 = string[];
@@ -641,10 +668,10 @@ export type Name1 = string;
 export type Status3 = "ok" | "warn" | "fail" | "skip";
 export type Checks = DoctorCheck[];
 export type CreatedAt4 = string;
-export type Id36 = string;
+export type Id37 = string;
 export type CreatedAt5 = string;
 export type Hypothesis = string | null;
-export type Id37 = string;
+export type Id38 = string;
 export type Instruction = string;
 export type Picks = number;
 export type Pillar4 = string | null;
@@ -673,7 +700,7 @@ export type CreatedAt6 = string | null;
 export type Engagements = number | null;
 export type ExtractionConfidence = number | null;
 export type FollowersGained1 = number | null;
-export type Id38 = string;
+export type Id39 = string;
 export type Impressions1 = number | null;
 export type LinkClicks1 = number | null;
 export type MatchConfidence = number | null;
@@ -693,7 +720,7 @@ export type Source2 = "manual" | "screenshot" | "csv" | "file";
 export type Status5 = "confirmed" | "needs_review" | "rejected" | "history";
 export type UploadId1 = string | null;
 export type Metrics = Metric[];
-export type At33 = string;
+export type At34 = string;
 export type Audience = string;
 export type Caveats = string[];
 export type LatestCapture = string | null;
@@ -703,7 +730,7 @@ export type NeedsReview = number;
 export type Published = number;
 export type Error = string | null;
 export type Detail1 = string;
-export type Evidence1 = string;
+export type Evidence2 = string;
 export type Title9 = string;
 export type Findings = PerformanceFinding[];
 export type Headline = string;
@@ -741,11 +768,11 @@ export type Changes = {
 }[];
 export type CreatedAt7 = string;
 export type Experiments1 = string[];
-export type Id39 = string;
+export type Id40 = string;
 export type AddedIn = string | null;
 export type Confidence = "low" | "medium" | "high";
-export type Evidence2 = string[];
-export type Id40 = string;
+export type Evidence3 = string[];
+export type Id41 = string;
 export type Pillar5 = string | null;
 export type Platform8 = ("linkedin" | "x") | null;
 export type Reversal = string | null;
@@ -767,7 +794,7 @@ export type Hashtags5 = string[];
 export type HookUsed = {
   [k: string]: unknown;
 } | null;
-export type Id41 = string;
+export type Id42 = string;
 export type Pillar6 = string | null;
 export type Platform9 = "linkedin" | "x";
 export type PostUrl2 = string | null;
@@ -786,8 +813,8 @@ export type Detail2 = string | null;
  * Why approving it couldn't change anything (status failed)
  */
 export type Error1 = string | null;
-export type Evidence3 = string[];
-export type Id42 = string;
+export type Evidence4 = string[];
+export type Id43 = string;
 export type Kind10 = string;
 export type Source5 = string | null;
 /**
@@ -798,21 +825,21 @@ export type Title11 = string;
 export type Proposals = Proposal[];
 export type Angle1 = string;
 export type Date2 = string;
-export type Evidence4 = ("observed_activity" | "indexed_coverage" | "search_cited") | null;
+export type Evidence5 = ("observed_activity" | "indexed_coverage" | "search_cited") | null;
 export type Limitation = string;
 export type ObservedAt = string | null;
 export type Platform10 = "linkedin" | "x" | "bluesky" | "mastodon" | "hackernews";
 export type Said = string;
 export type Topic = string;
 export type Url3 = string | null;
-export type Why2 = string;
+export type Why3 = string;
 export type Conversations = PulseConversation[];
 /**
  * Providers that can search the web today
  */
 export type Engines = string[];
 export type Paused = boolean;
-export type At34 = string;
+export type At35 = string;
 /**
  * The model that searched
  */
@@ -833,16 +860,16 @@ export type Requests = number;
 export type TokensIn = number;
 export type TokensOut = number;
 export type Quota = Quota1[];
-export type At35 = string | null;
+export type At36 = string | null;
 export type Error3 = string | null;
-export type Id43 = string;
-export type Type32 = string | null;
+export type Id44 = string;
+export type Type33 = string | null;
 export type RejectedEvents = RejectedEvent[];
 export type Actions = {
   [k: string]: unknown;
 }[];
 export type CreatedAt9 = string;
-export type Id44 = string;
+export type Id45 = string;
 export type Proposals1 = string[];
 export type Week1 = string;
 export type ReportsIndex = {
@@ -852,7 +879,7 @@ export type CardIds = string[];
 export type CompletedAt = string | null;
 export type CreatedAt10 = string | null;
 export type Error4 = string | null;
-export type Id45 = string;
+export type Id46 = string;
 export type Notes4 = string | null;
 export type Query2 = string;
 /**
@@ -865,12 +892,12 @@ export type Status9 = "queued" | "running" | "done" | "partial" | "failed" | "ca
 export type Requests1 = Request[];
 export type Degraded1 = string | null;
 export type EndedAt = string | null;
-export type At36 = string | null;
+export type At37 = string | null;
 export type Message = string | null;
-export type Type33 = string;
+export type Type34 = string;
 export type Where = string;
 export type Errors = RunError[];
-export type Id46 = string;
+export type Id47 = string;
 export type Notes5 = string[];
 export type StartedAt = string;
 export type Status10 = "running" | "ok" | "partial" | "failed";
@@ -880,6 +907,65 @@ export type Steps = {
 export type Task = string;
 export type Trigger = string | null;
 export type Runs = Run[];
+export type Available1 = boolean;
+export type Cap = number;
+export type Error5 = string | null;
+export type Used = number;
+export type CreatedAt11 = string;
+export type Error6 = string | null;
+export type Id48 = string;
+export type LocalDate1 = string;
+export type Model5 = string | null;
+export type Note9 = string;
+export type Angle2 = string;
+/**
+ * The card drafted from it, if any
+ */
+export type CardId14 = string | null;
+export type Evidence6 = string[];
+export type EvidenceLevel1 = "observed" | "indexed" | "hypothesis";
+export type Format4 = string | null;
+/**
+ * The topic
+ */
+export type Id49 = string;
+export type Lane = string | null;
+export type Opening1 = string;
+/**
+ * Its place in the scout's report
+ */
+export type Rank2 = number | null;
+export type ReplyTo1 = string | null;
+export type Risk1 = string | null;
+/**
+ * 0 to 1, from its six marks
+ */
+export type Score2 = number;
+export type Title12 = string;
+export type Url4 = string | null;
+export type Visual2 = string | null;
+/**
+ * Why it could travel: the scout's hypothesis, not a measurement
+ */
+export type Why4 = string;
+export type Window1 = ("today" | "this_week" | "evergreen") | null;
+export type Opportunities = ScoutOpportunity[];
+export type Id50 = string;
+export type Reason3 = string;
+export type Title13 = string;
+export type Passed = ScoutPass[];
+export type Platform11 = "linkedin" | "x";
+export type Found1 = number;
+export type Query3 = string;
+export type Where1 = "linkedin" | "x" | "web";
+export type Probes = ScoutProbe[];
+export type Provider5 = string | null;
+export type Searched = boolean;
+export type Status11 = "ok" | "fallback" | "skipped";
+/**
+ * The scouts' reports from the last few days, newest first
+ */
+export type Scouts = ScoutReport[];
 export type Active1 = boolean;
 export type AddedBy = string | null;
 export type BestEffort = boolean;
@@ -889,21 +975,21 @@ export type ItemsTotal = number | null;
 export type LastError3 = string | null;
 export type LastFetchAt = string | null;
 export type LastSuccessAt = string | null;
-export type Id47 = string;
+export type Id51 = string;
 export type Kind11 = string;
 export type Lang2 = string;
 export type Name2 = string;
 export type PausedReason = string | null;
-export type Query3 = string | null;
+export type Query4 = string | null;
 export type Scout1 = string;
 export type Tier3 = string | null;
-export type Url4 = string | null;
+export type Url5 = string | null;
 export type Sources3 = Source6[];
 export type CustomText1 = string | null;
 export type PositionKey = string | null;
 export type Context2 = string | null;
 export type CreatedBy = string | null;
-export type Id48 = string;
+export type Id52 = string;
 export type Issue2 = string;
 export type Keywords1 = string[];
 export type Key1 = string;
@@ -911,7 +997,7 @@ export type Label1 = string;
 export type Text16 = string;
 export type Positions1 = Position[];
 export type Sources4 = SourceRef[];
-export type Status11 = "proposed" | "active" | "archived";
+export type Status12 = "proposed" | "active" | "archived";
 export type Tier4 = "world" | "india" | "bihar" | "other";
 export type UpdatedAt2 = string | null;
 export type Stances = Stance[];
@@ -921,31 +1007,31 @@ export type Fold = number;
 export type System = string;
 export type Version1 = string;
 export type XLimit = number;
-export type CreatedAt11 = string | null;
-export type Error5 = string | null;
-export type Id49 = string;
-export type Note9 = string | null;
+export type CreatedAt12 = string | null;
+export type Error7 = string | null;
+export type Id53 = string;
+export type Note10 = string | null;
 export type Paths1 = string[];
 export type ProcessedAt = string | null;
 export type Results = {
   [k: string]: unknown;
 } | null;
-export type Status12 = "pending" | "processed" | "failed";
+export type Status13 = "pending" | "processed" | "failed";
 export type Week2 = string | null;
 export type Uploads = MetricUpload[];
 export type AddedPhrases = {
   [k: string]: unknown;
 }[];
 export type Avoid1 = string[];
-export type CreatedAt12 = string;
+export type CreatedAt13 = string;
 export type CutPhrases = {
   [k: string]: unknown;
 }[];
-export type Id50 = string;
+export type Id54 = string;
 export type Rules1 = string[];
 export type Summary3 = string | null;
 export type Version2 = number;
-export type At37 = string | null;
+export type At38 = string | null;
 export type Code = string;
 export type Level = "info" | "warn" | "error";
 export type Message1 = string;
@@ -963,7 +1049,7 @@ export interface InboxBatch {
   created_at: CreatedAt;
   device?: Device;
   events: Events;
-  id: Id30;
+  id: Id31;
   v?: V;
 }
 /**
@@ -1481,6 +1567,19 @@ export interface StudioVisualIn {
   title?: Title4;
 }
 /**
+ * Draft an opportunity from a scout's report that didn't become a card.
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "ScoutDraftEvent".
+ */
+export interface ScoutDraftEvent {
+  at: At30;
+  id: Id30;
+  report_id: ReportId;
+  topic_id: TopicId;
+  type: Type31;
+}
+/**
  * This interface was referenced by `Contracts`'s JSON-Schema
  * via the `definition` "DeskState".
  */
@@ -1509,6 +1608,8 @@ export interface DeskState {
   reports_index?: ReportsIndex;
   requests?: Requests1;
   runs?: Runs;
+  scout_search?: SearchStatus | null;
+  scouts?: Scouts;
   settings: Settings;
   settings_overrides?: SettingsOverrides;
   sources?: Sources3;
@@ -1526,7 +1627,7 @@ export interface DeskState {
 export interface AccountStat {
   date: Date1;
   followers?: Followers1;
-  id: Id31;
+  id: Id32;
   platform: Platform3;
   profile_views?: ProfileViews2;
   source?: Source;
@@ -1539,7 +1640,7 @@ export interface Arm {
   alpha: Alpha;
   beta: Beta;
   format: Format1;
-  id: Id32;
+  id: Id33;
   mean: Mean;
   n_obs: NObs;
   pillar: Pillar2;
@@ -1577,7 +1678,7 @@ export interface Card {
   hook_type?: HookType;
   hooks?: Hooks2;
   humor?: HumorInfo | null;
-  id: Id33;
+  id: Id34;
   issue_key?: IssueKey;
   kind?: Kind5;
   llm?: LLMInfo | null;
@@ -1597,17 +1698,18 @@ export interface Card {
   saved?: Saved1 | null;
   score?: Score;
   score_parts?: ScoreParts;
+  scout?: ScoutNote | null;
   skip?: Skip | null;
   sources?: Sources1;
   status: Status2;
   status_changed_at?: StatusChangedAt;
   story?: Story;
   title: Title6;
-  topic_id?: TopicId;
+  topic_id?: TopicId1;
   trending?: TrendInfo | null;
   updated_at?: UpdatedAt;
   versions?: Versions;
-  visual?: Visual | null;
+  visual?: Visual1 | null;
   why_now?: WhyNow;
   work?: Work | null;
   working?: Working | null;
@@ -1618,7 +1720,7 @@ export interface Card {
  */
 export interface Answer1 {
   answer: Answer2;
-  at?: At30;
+  at?: At31;
   question_id: QuestionId1;
 }
 /**
@@ -1691,7 +1793,7 @@ export interface AiTell {
  */
 export interface Hook {
   text: Text13;
-  type?: Type31;
+  type?: Type32;
 }
 /**
  * How a funny post was written (pbs/humor.py): the writers' room's options and the critic's verdict.
@@ -1734,7 +1836,7 @@ export interface EditInfo {
  * via the `definition` "Question".
  */
 export interface Question {
-  id: Id34;
+  id: Id35;
   kind?: Kind6;
   q: Q;
   why?: Why;
@@ -1744,7 +1846,7 @@ export interface Question {
  * via the `definition` "Saved".
  */
 export interface Saved1 {
-  at: At31;
+  at: At32;
   remind_on?: RemindOn1;
   reminded?: Reminded;
 }
@@ -1752,11 +1854,33 @@ export interface ScoreParts {
   [k: string]: unknown;
 }
 /**
+ * The scout's read of a story, kept on the card (pbs/agents/scout.py).
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "ScoutNote".
+ */
+export interface ScoutNote {
+  evidence?: Evidence1;
+  evidence_level?: EvidenceLevel;
+  marks?: Marks;
+  opening?: Opening;
+  rank?: Rank1;
+  reply_to?: ReplyTo;
+  risk?: Risk;
+  score?: Score1;
+  visual?: Visual;
+  why?: Why1;
+  window?: Window;
+}
+export interface Marks {
+  [k: string]: number;
+}
+/**
  * This interface was referenced by `Contracts`'s JSON-Schema
  * via the `definition` "Skip".
  */
 export interface Skip {
-  at?: At32;
+  at?: At33;
   note?: Note7;
   reason: Reason2;
 }
@@ -1783,7 +1907,7 @@ export interface SourceRef {
 export interface TrendInfo {
   on: On;
   term?: Term;
-  why?: Why1;
+  why?: Why2;
 }
 export interface Versions {
   playbook?: Playbook;
@@ -1796,7 +1920,7 @@ export interface Versions {
  * This interface was referenced by `Contracts`'s JSON-Schema
  * via the `definition` "Visual".
  */
-export interface Visual {
+export interface Visual1 {
   alt_text?: AltText2;
   caption?: Caption2;
   created_at?: CreatedAt2;
@@ -1863,7 +1987,7 @@ export interface Working {
   /**
    * The visual as he edited it
    */
-  visual?: Visual | null;
+  visual?: Visual1 | null;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -1873,7 +1997,7 @@ export interface DeliveryInfo {
   counts?: Counts;
   degraded?: Degraded;
   delivered_at?: DeliveredAt1;
-  id: Id35;
+  id: Id36;
   kind?: Kind9;
   local_date: LocalDate;
   notes?: Notes2;
@@ -1888,7 +2012,7 @@ export interface Counts {
 export interface DoctorReport {
   checks?: Checks;
   created_at: CreatedAt4;
-  id: Id36;
+  id: Id37;
   summary?: Summary1;
 }
 /**
@@ -1910,7 +2034,7 @@ export interface Summary1 {
 export interface Experiment {
   created_at: CreatedAt5;
   hypothesis?: Hypothesis;
-  id: Id37;
+  id: Id38;
   instruction: Instruction;
   picks?: Picks;
   pillar?: Pillar4;
@@ -1959,7 +2083,7 @@ export interface Metric {
   engagements?: Engagements;
   extraction_confidence?: ExtractionConfidence;
   followers_gained?: FollowersGained1;
-  id: Id38;
+  id: Id39;
   impressions?: Impressions1;
   link_clicks?: LinkClicks1;
   match_confidence?: MatchConfidence;
@@ -1984,7 +2108,7 @@ export interface Metric {
  * via the `definition` "PerformanceInfo".
  */
 export interface PerformanceInfo {
-  at: At33;
+  at: At34;
   audience?: Audience;
   caveats?: Caveats;
   coverage?: Coverage;
@@ -2024,7 +2148,7 @@ export interface MetricCoverage {
  */
 export interface PerformanceFinding {
   detail?: Detail1;
-  evidence?: Evidence1;
+  evidence?: Evidence2;
   title: Title9;
 }
 /**
@@ -2035,7 +2159,7 @@ export interface Playbook1 {
   changes?: Changes;
   created_at: CreatedAt7;
   experiments?: Experiments1;
-  id: Id39;
+  id: Id40;
   rules?: Rules;
   source?: Source4;
   status?: Status7;
@@ -2049,8 +2173,8 @@ export interface Playbook1 {
 export interface PlaybookRule {
   added_in?: AddedIn;
   confidence?: Confidence;
-  evidence?: Evidence2;
-  id: Id40;
+  evidence?: Evidence3;
+  id: Id41;
   pillar?: Pillar5;
   platform?: Platform8;
   reversal?: Reversal;
@@ -2073,7 +2197,7 @@ export interface Post {
   guard?: Guard;
   hashtags?: Hashtags5;
   hook_used?: HookUsed;
-  id: Id41;
+  id: Id42;
   latest_metrics?: Metric | null;
   pillar?: Pillar6;
   platform: Platform9;
@@ -2107,8 +2231,8 @@ export interface Proposal {
   decision_note?: DecisionNote;
   detail?: Detail2;
   error?: Error1;
-  evidence?: Evidence3;
-  id: Id42;
+  evidence?: Evidence4;
+  id: Id43;
   kind: Kind10;
   payload?: Payload;
   source?: Source5;
@@ -2138,7 +2262,7 @@ export interface PulseInfo {
 export interface PulseConversation {
   angle?: Angle1;
   date: Date2;
-  evidence?: Evidence4;
+  evidence?: Evidence5;
   limitation?: Limitation;
   metrics?: Metrics1;
   observed_at?: ObservedAt;
@@ -2146,7 +2270,7 @@ export interface PulseConversation {
   said?: Said;
   topic: Topic;
   url?: Url3;
-  why?: Why2;
+  why?: Why3;
 }
 export interface Metrics1 {
   [k: string]: number;
@@ -2156,7 +2280,7 @@ export interface Metrics1 {
  * via the `definition` "PulseStatus".
  */
 export interface PulseStatus {
-  at: At34;
+  at: At35;
   engine?: Engine;
   error?: Error2;
   found?: Found;
@@ -2184,10 +2308,10 @@ export interface Quota1 {
  * via the `definition` "RejectedEvent".
  */
 export interface RejectedEvent {
-  at?: At35;
+  at?: At36;
   error?: Error3;
-  id: Id43;
-  type?: Type32;
+  id: Id44;
+  type?: Type33;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -2196,7 +2320,7 @@ export interface RejectedEvent {
 export interface SystemReport {
   actions?: Actions;
   created_at: CreatedAt9;
-  id: Id44;
+  id: Id45;
   period?: Period1;
   proposals?: Proposals1;
   sections?: Sections;
@@ -2217,7 +2341,7 @@ export interface Request {
   completed_at?: CompletedAt;
   created_at?: CreatedAt10;
   error?: Error4;
-  id: Id45;
+  id: Id46;
   notes?: Notes4;
   platforms?: Platforms3;
   query: Query2;
@@ -2235,7 +2359,7 @@ export interface Run {
   degraded?: Degraded1;
   ended_at?: EndedAt;
   errors?: Errors;
-  id: Id46;
+  id: Id47;
   llm?: Llm;
   notes?: Notes5;
   started_at: StartedAt;
@@ -2249,13 +2373,91 @@ export interface Run {
  * via the `definition` "RunError".
  */
 export interface RunError {
-  at?: At36;
+  at?: At37;
   message?: Message;
-  type: Type33;
+  type: Type34;
   where: Where;
 }
 export interface Llm {
   [k: string]: unknown;
+}
+/**
+ * The scouts' web search (pbs/scout/websearch.py): whether the key is set and how much of the month is used.
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "SearchStatus".
+ */
+export interface SearchStatus {
+  available?: Available1;
+  cap?: Cap;
+  error?: Error5;
+  used?: Used;
+}
+/**
+ * One scout's morning report: what's worth posting on its platform, with the evidence.
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "ScoutReport".
+ */
+export interface ScoutReport {
+  created_at: CreatedAt11;
+  error?: Error6;
+  id: Id48;
+  local_date: LocalDate1;
+  model?: Model5;
+  note?: Note9;
+  opportunities?: Opportunities;
+  passed?: Passed;
+  platform: Platform11;
+  probes?: Probes;
+  provider?: Provider5;
+  searched?: Searched;
+  status?: Status11;
+}
+/**
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "ScoutOpportunity".
+ */
+export interface ScoutOpportunity {
+  angle?: Angle2;
+  card_id?: CardId14;
+  evidence?: Evidence6;
+  evidence_level?: EvidenceLevel1;
+  format?: Format4;
+  id: Id49;
+  lane?: Lane;
+  marks?: Marks1;
+  opening?: Opening1;
+  rank?: Rank2;
+  reply_to?: ReplyTo1;
+  risk?: Risk1;
+  score?: Score2;
+  title: Title12;
+  url?: Url4;
+  visual?: Visual2;
+  why?: Why4;
+  window?: Window1;
+}
+export interface Marks1 {
+  [k: string]: number;
+}
+/**
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "ScoutPass".
+ */
+export interface ScoutPass {
+  id: Id50;
+  reason?: Reason3;
+  title: Title13;
+}
+/**
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "ScoutProbe".
+ */
+export interface ScoutProbe {
+  found?: Found1;
+  query: Query3;
+  where?: Where1;
 }
 export interface Settings {
   [k: string]: unknown;
@@ -2272,15 +2474,15 @@ export interface Source6 {
   added_by?: AddedBy;
   best_effort?: BestEffort;
   health?: SourceHealth;
-  id: Id47;
+  id: Id51;
   kind: Kind11;
   lang?: Lang2;
   name: Name2;
   paused_reason?: PausedReason;
-  query?: Query3;
+  query?: Query4;
   scout: Scout1;
   tier?: Tier3;
-  url?: Url4;
+  url?: Url5;
   yield_stats?: YieldStats;
 }
 export interface SourceHealth {
@@ -2302,12 +2504,12 @@ export interface Stance {
   chosen?: StanceChoice | null;
   context?: Context2;
   created_by?: CreatedBy;
-  id: Id48;
+  id: Id52;
   issue: Issue2;
   keywords?: Keywords1;
   positions?: Positions1;
   sources?: Sources4;
-  status?: Status11;
+  status?: Status12;
   tier?: Tier4;
   updated_at?: UpdatedAt2;
 }
@@ -2357,14 +2559,14 @@ export interface Pillars {
  * via the `definition` "MetricUpload".
  */
 export interface MetricUpload {
-  created_at?: CreatedAt11;
-  error?: Error5;
-  id: Id49;
-  note?: Note9;
+  created_at?: CreatedAt12;
+  error?: Error7;
+  id: Id53;
+  note?: Note10;
   paths?: Paths1;
   processed_at?: ProcessedAt;
   results?: Results;
-  status?: Status12;
+  status?: Status13;
   week?: Week2;
 }
 /**
@@ -2374,10 +2576,10 @@ export interface MetricUpload {
 export interface VoiceProfile {
   added_phrases?: AddedPhrases;
   avoid?: Avoid1;
-  created_at: CreatedAt12;
+  created_at: CreatedAt13;
   cut_phrases?: CutPhrases;
   examples?: Examples;
-  id: Id50;
+  id: Id54;
   rules?: Rules1;
   stats?: Stats2;
   summary?: Summary3;
@@ -2394,7 +2596,7 @@ export interface Stats2 {
  * via the `definition` "DeskWarning".
  */
 export interface DeskWarning {
-  at?: At37;
+  at?: At38;
   code: Code;
   level?: Level;
   message: Message1;

@@ -6,6 +6,7 @@ import { expect, test, type Page } from "@playwright/test";
 const PAGES: Array<[string, RegExp]> = [
   ["/studio", /^Studio$/],
   ["/requests", /^Requests$/],
+  ["/scouts", /^Scouts$/],
   ["/stances", /^Stances$/],
   ["/metrics", /^Metrics$/],
   ["/insights", /^Insights$/],
@@ -78,7 +79,11 @@ test("answer interview questions and get a draft built from the answers", async 
 });
 
 test("a card with questions arrives drafted from sources; the questions are optional", async ({ page }) => {
-  const tile = page.getByRole("article", { name: /LinkedIn card: UiPath adds agentic orchestration/ });
+  // Whichever story the morning asked him about: a LinkedIn card drafted from its sources, with two questions.
+  const desk = demoDesk();
+  const asked = desk.cards.find((c) => c.platform === "linkedin" && c.delivery_id === desk.delivery?.id && c.status === "suggested" && c.mode === "interview" && c.draft && c.questions?.length === 2);
+  expect(asked, "the demo's morning has a LinkedIn card with optional questions").toBeTruthy();
+  const tile = todaySection(page).getByRole("article", { name: `LinkedIn card: ${asked!.title}`, exact: true });
   await expect(tile.getByText("2 optional questions")).toBeVisible();
   await tile.getByRole("button", { name: "Open" }).click();
   await expect(page.getByRole("textbox", { name: "LinkedIn post" })).not.toHaveValue("");
@@ -176,6 +181,7 @@ test("“Not written well” asks what was off, and says the topic isn't marked 
 test("“Other…” asks why on a tap, from the card page too", async ({ page }, testInfo) => {
   const press = (l: ReturnType<Page["locator"]>) => (testInfo.project.name === "mobile" ? l.tap() : l.click());
   await press(todaySection(page).locator("[data-tile]").nth(1).locator("h3"));
+  await page.waitForURL(/#\/card\//); // the card page, not the board's greeting, has the title
   const title = (await page.getByRole("heading", { level: 1 }).textContent())!;
   await press(page.getByRole("button", { name: "Skip", exact: true }));
   await press(page.getByRole("menuitem", { name: /^Other…/ }));
@@ -215,7 +221,7 @@ test("a newer deployed desk is noticed and offered as a reload, and System shows
   await expect(page.getByText("The desk was updated. Reload to get the new version (your edits are kept).")).toBeVisible();
 });
 
-type DemoCard = { title: string; platform: string; status: string; delivery_id?: string | null; post_type?: string | null; alternatives?: string[]; trending?: { on: string } | null; llm?: { edit?: { kept?: boolean; before?: number } | null } | null };
+type DemoCard = { title: string; platform: string; status: string; mode?: string; draft?: unknown; questions?: unknown[]; delivery_id?: string | null; post_type?: string | null; alternatives?: string[]; trending?: { on: string } | null; llm?: { edit?: { kept?: boolean; before?: number } | null } | null };
 /** The demo's own data (the pipeline's output), to find a card by what happened to it rather than by its title. */
 const demoDesk = () => JSON.parse(readFileSync("public/demo/desk.json", "utf-8")) as { delivery?: { id: string }; cards: DemoCard[] };
 
@@ -730,6 +736,32 @@ test("what's working on LinkedIn and X: the week's conversations in Insights", a
   await page.goto("/#/sources");
   await page.getByRole("tab", { name: /^Buzz/ }).click();
   await expect(page.getByText("Social pulse: what's working on LinkedIn and X").filter({ visible: true }).first()).toBeVisible();
+});
+
+test("the scouts' reports: evidence apart from the scout's guess, and Draft this for what wasn't drafted", async ({ page }) => {
+  await page.goto("/#/scouts");
+  await expect(page.getByRole("heading", { level: 1, name: "Scouts" })).toBeVisible();
+  await expect(page.getByText(/^Working from feeds only\./)).toBeVisible();
+  const rows = page.getByTestId("scout-opportunity");
+  await expect(rows.first()).toBeVisible();
+  await expect(rows.first().getByText("Observed activity")).toBeVisible();
+  await expect(rows.first().getByText(/points and \d+ comments on Hacker News/)).toBeVisible();
+  await expect(rows.first().getByText(/the scout's guess, not a measurement/)).toBeVisible();
+  await expect(rows.first().getByRole("link", { name: "Open the card" })).toBeVisible();
+  // One that didn't make the morning set: drafted on request.
+  const spare = rows.filter({ has: page.getByRole("button", { name: "Draft this" }) }).first();
+  await spare.getByRole("button", { name: "Draft this" }).click();
+  await expect(page.getByText("Drafting it now: the card will be on the board in a few minutes.")).toBeVisible();
+  await expect(page.getByText("Drafting: it will be on the board in a few minutes").first()).toBeVisible();
+  // The X scout names who to reply to; what it passed on is listed with the reason.
+  await page.getByRole("radio", { name: "X scout" }).click();
+  await expect(page.getByText(/^Who to reply to:/).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Passed on/ })).toBeVisible();
+  await noSidewaysScroll(page);
+  // A card the scout picked carries its read.
+  await page.goto("/#/scouts");
+  await rows.first().getByRole("link", { name: "Open the card" }).click();
+  await expect(page.getByText("Scout's read").filter({ visible: true }).first()).toBeVisible();
 });
 
 test("the Studio's key is checked with Gemini straight from the browser (the page may call it)", async ({ page }) => {

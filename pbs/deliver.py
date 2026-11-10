@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 from . import bandit, draft, ids, log, prompting, pulse, textutil, timeutil
+from .agents import scout as scouts
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest, json_rows, why_unavailable
 from .rank import Candidate, allocate, build_candidates, build_memory, interview_bank
@@ -75,6 +76,7 @@ def card_from_candidate(ctx: Ctx, cand: Candidate, dlv_id: str | None, rank: int
         "arm": cand.arm,
         "trending": cand.trend,
         "story": cand.story,
+        "scout": cand.scout,
         "discussion_url": textutil.http_url(((topic.get("why_now") or {}).get("signals") or {}).get("discussion_url")),
         "created_at": now,
         "updated_at": now,
@@ -148,9 +150,18 @@ def morning_delivery(ctx: Ctx, scout: bool = True, dlv_id: str | None = None, pl
     if ctx.store.get("deliveries", dlv_id):
         log.info(f"deliver: {dlv_id} already delivered")
         return None
+    agents_on = scouts.enabled(ctx)
+    probes: dict[str, list[dict[str, Any]]] = {}
     if scout:
         with ctx.run.step("scout"):
             run_scouts(ctx)
+        if agents_on:
+            # The platform scouts' own searches (with the search key): what they find joins the day's stories.
+            with ctx.run.step("scout_search") as s:
+                for platform in ("linkedin", "x"):
+                    if ctx.settings.platform_enabled(platform) and (not platforms or platform in platforms):
+                        probes[platform] = scouts.run_probes(ctx, platform)
+                s["searches"] = {p: len(v) for p, v in probes.items()}
         if pulse.due(ctx):
             with ctx.run.step("pulse") as s:
                 s["stats"] = pulse.run(ctx)
@@ -162,6 +173,19 @@ def morning_delivery(ctx: Ctx, scout: bool = True, dlv_id: str | None = None, pl
     bandit.snapshot(ctx.store, arms)
     memory = build_memory(ctx)
     cands = build_candidates(ctx, topics, memory, use_llm=ctx.llm.any_available("triage"))
+    if agents_on:
+        # Each platform's scout reads its candidates and reports; its marks move them inside the ranking.
+        with ctx.run.step("scout_reports") as s:
+            wanted = sum((per_platform or getattr(ctx.settings.platforms, p).slots) for p in ("linkedin", "x")
+                         if ctx.settings.platform_enabled(p) and (not platforms or p in platforms))
+            use_llm = ctx.llm.any_available("scout") and scouts.affordable(ctx, wanted)
+            if not use_llm:
+                ctx.run.note("Scouts reported from the ranking alone (model budget kept for the drafts)")
+            s["reports"] = {}
+            for platform in ("linkedin", "x"):
+                if ctx.settings.platform_enabled(platform) and (not platforms or platform in platforms):
+                    rep = scouts.report(ctx, platform, cands.get(platform, []), probes.get(platform), use_llm=use_llm)
+                    s["reports"][platform] = {"status": rep["status"], "opportunities": len(rep["opportunities"])}
     rng = random.Random(f"{local_date}:{ctx.run.id}")
     plan: dict[str, list[Candidate]] = {}
     taken: set[str] = set()
@@ -174,7 +198,10 @@ def morning_delivery(ctx: Ctx, scout: bool = True, dlv_id: str | None = None, pl
             plan[platform] = allocate(ctx, platform, cands.get(platform, []), arms, rng, taken_elsewhere=taken,
                                       slots=per_platform, exclude=seen)
             taken |= {c.topic_key for c in plan[platform]}
-    return deliver_plan(ctx, plan, dlv_id)
+    result = deliver_plan(ctx, plan, dlv_id)
+    if agents_on:
+        scouts.link_cards(ctx, result["card_ids"])
+    return result
 
 
 def deliver_plan(ctx: Ctx, plan: dict[str, list[Candidate]], dlv_id: str) -> dict[str, Any]:

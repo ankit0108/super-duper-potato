@@ -57,6 +57,7 @@ In **this** repo: **Settings → Secrets and variables → Actions → Secrets �
 | `GROQ_API_KEY` | Recommended | The Groq key from step 4: the fallback, and the first choice for your own words |
 | `PBS_BLOCKLIST` | Strongly recommended | One term per line: your employer, clients, colleagues, internal system names and code names, with common variants. Drafts containing a term are blocked (never reworded), and the terms are redacted from every model call |
 | `OPENROUTER_API_KEY` | Optional | A last free fallback ([openrouter.ai](https://openrouter.ai) → Keys) |
+| `TAVILY_API_KEY` | Recommended | Web search for the LinkedIn and X scouts: a free key from [tavily.com](https://tavily.com) (about 1,000 searches a month, no card). Without it the scouts work from feeds only |
 | `CEREBRAS_API_KEY` | Optional | Another independent fallback; create a key on the Free Trial plan at [Cerebras](https://cloud.cerebras.ai) |
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | Optional | Free AI images for visuals: see [AI images](#ai-images-optional-free) below |
 | `GEMINI_IMAGE_API_KEY`, `XAI_API_KEY` | Optional | Paid AI images (Gemini or Grok), used after Cloudflare: see below |
@@ -135,6 +136,20 @@ device (it never goes to GitHub).
 2. On the desk, **Settings → Studio** → paste it → **Check and save**. Do this once on each device you use.
 3. On Android, install the desk (Chrome → **⋮ → Add to Home screen** or **Install app**) so **PBS Desk** shows up
    when you **Share** a post or a screenshot from the LinkedIn or X app.
+
+## A second phone (two minutes)
+
+The desk is a web app, so another phone installs it from the browser: no APK file is needed.
+
+1. On that phone, open the desk URL in Chrome (`https://<you>.github.io/<repo name>/`).
+2. **⋮ → Install app** (some phones: **Add to Home screen → Install**). PBS Desk opens full screen from the home
+   screen and updates itself.
+3. Fill in **Connect your desk** as in step 8: the data repo, the pipeline repo and the `pbs-desk` token. If you
+   didn't keep the token, make another with the same access (step 3); each device keeps its own.
+4. **Settings → Studio**: paste a Gemini key and **Check and save** (the key is kept per device).
+5. Open the app once. After that, **Share** in the LinkedIn or X app lists PBS Desk.
+
+Both phones show the same cards and posts: the data lives in the data repo, not on the phone.
 
 ## What runs when (Melbourne time)
 

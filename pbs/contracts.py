@@ -199,6 +199,21 @@ class Skip(_Out):
     at: str | None = None
 
 
+class ScoutNote(_Out):
+    """The scout's read of a story, kept on the card (pbs/agents/scout.py)."""
+    score: float = Field(0, description="0 to 1, from its six marks")
+    marks: dict[str, int] = {}
+    evidence_level: Literal["observed", "indexed", "hypothesis"] = "hypothesis"
+    evidence: list[str] = []
+    why: str = Field("", description="Why it could travel: the scout's hypothesis, not a measurement")
+    opening: str = ""
+    risk: str | None = None
+    window: Literal["today", "this_week", "evergreen"] | None = None
+    reply_to: str | None = None
+    visual: str | None = None
+    rank: int | None = Field(None, description="Its place in the scout's report")
+
+
 class Saved(_Out):
     at: str
     remind_on: str | None = Field(None, description="The day he wants to post it (his local date)")
@@ -286,6 +301,7 @@ class Card(_Out):
     alternatives: list[str] = Field([], description="Funny posts: the writers' room's next-best versions")
     discussion_url: str | None = Field(None, description="The Hacker News or Reddit thread people are talking in")
     saved: Saved | None = Field(None, description="Saved to post later: it never expires while this is set")
+    scout: ScoutNote | None = None
     created_at: str
     updated_at: str | None = None
     revision: int = 0
@@ -679,6 +695,53 @@ class PerformanceInfo(_Out):
     retried: str | None = None
 
 
+class ScoutOpportunity(ScoutNote):
+    id: str = Field(description="The topic")
+    title: str
+    lane: str | None = None
+    format: str | None = None
+    angle: str = ""
+    url: str | None = None
+    card_id: str | None = Field(None, description="The card drafted from it, if any")
+
+
+class ScoutPass(_Out):
+    id: str
+    title: str
+    reason: str = ""
+
+
+class ScoutProbe(_Out):
+    query: str
+    where: Literal["linkedin", "x", "web"] = "web"
+    found: int = 0
+
+
+class SearchStatus(_Out):
+    """The scouts' web search (pbs/scout/websearch.py): whether the key is set and how much of the month is used."""
+    available: bool = False
+    used: int = 0
+    cap: int = 0
+    error: str | None = None
+
+
+class ScoutReport(_Out):
+    """One scout's morning report: what's worth posting on its platform, with the evidence."""
+    id: str
+    platform: PlatformName
+    local_date: str
+    created_at: str
+    status: Literal["ok", "fallback", "skipped"] = "ok"
+    model: str | None = None
+    provider: str | None = None
+    note: str = ""
+    searched: bool = False
+    probes: list[ScoutProbe] = []
+    opportunities: list[ScoutOpportunity] = []
+    passed: list[ScoutPass] = []
+    error: str | None = None
+
+
 class PulseStatus(_Out):
     at: str
     ok: bool = False
@@ -732,6 +795,8 @@ class DeskState(_Out):
     studio: StudioKit | None = None
     pulse: PulseInfo | None = None
     performance: PerformanceInfo | None = None
+    scouts: list[ScoutReport] = Field([], description="The scouts' reports from the last few days, newest first")
+    scout_search: SearchStatus | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -807,6 +872,13 @@ class CardSaveEvent(_Event):
     card_id: str
     saved: bool = True
     remind_on: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
+class ScoutDraftEvent(_Event):
+    """Draft an opportunity from a scout's report that didn't become a card."""
+    type: Literal["scout.draft"]
+    report_id: str
+    topic_id: str
 
 
 class CardRewriteEvent(_Event):
@@ -976,7 +1048,7 @@ class SourceUpsertEvent(_Event):
     name: str | None = Field(None, max_length=120)
     kind: Literal["rss", "gnews", "arxiv", "hf_papers", "hn_front", "hn_show", "hn_ask", "wikipedia_otd",
                   "wikipedia_pool", "wikiquote_pool", "reddit", "reddit_json", "mastodon_links", "gtrends",
-                  "trends24", "bsky_trends", "bsky_search", "bsky_feed", "pulse"] | None = None
+                  "trends24", "bsky_trends", "bsky_search", "bsky_feed", "pulse", "websearch", "hf_models"] | None = None
     url: str | None = Field(None, max_length=1000)
     query: str | None = Field(None, max_length=300)
     scout: Literal["tech", "affairs", "startups", "life", "humor", "ideas", "buzz"] | None = None
@@ -1073,7 +1145,7 @@ InboxEvent = Annotated[
     | MetricsUploadEvent | MetricsReviewEvent | AccountStatsEvent | RequestCreateEvent | RequestCancelEvent
     | StanceUpsertEvent | StanceDeleteEvent | StanceProposeEvent | SourceUpsertEvent | SourceDeleteEvent
     | SettingsUpdateEvent | ProfileUpdateEvent | ProposalDecideEvent | PlaybookRuleEvent | RunRequestEvent
-    | StudioSaveEvent,
+    | StudioSaveEvent | ScoutDraftEvent,
     Field(discriminator="type"),
 ]
 

@@ -7,6 +7,7 @@ import { formatDateTime } from "@/lib/time";
 import { useTz } from "@/state/hooks";
 import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
+import { ScoutRead } from "@/pages/Scouts";
 
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -39,6 +40,11 @@ export function WhyAngle({ card }: { card: Card }) {
       {card.post_type && (
         <Block title="Post type">
           <Badge tone="info">{postTypeLabel(card.post_type)}</Badge>
+        </Block>
+      )}
+      {card.scout && (card.scout.why || card.scout.evidence?.length || card.scout.opening) && (
+        <Block title="Scout's read">
+          <ScoutRead note={card.scout} platform={card.platform} />
         </Block>
       )}
       {card.format_note && (
