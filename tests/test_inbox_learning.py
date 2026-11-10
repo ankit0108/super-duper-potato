@@ -320,3 +320,53 @@ def test_voice_learns_phrases_not_function_words_or_punctuation():
                     "It ' s a really important shift")
     assert {"bottom line", "details matter", "really", "important shift"} <= grams
     assert not {"does your", "your team", "more than", "line : the details", "s a really", "matter more"} & grams
+
+
+def test_a_saved_card_waits_until_he_posts_it(make_ctx):
+    ctx = _delivered(make_ctx)
+    card = _card(ctx, "linkedin")
+    assert card["expires_at"]
+    write_inbox(ctx.data_root, [{"id": "s1", "type": "card.save", "card_id": card["id"], "remind_on": "2026-09-30"}])
+    inbox.ingest(ctx)
+    saved = ctx.store.get("cards", card["id"])
+    assert saved["saved"]["remind_on"] == "2026-09-30" and saved["expires_at"] is None and saved["status"] == "suggested"
+
+    # Days later it's still there: neither the daily expiry nor the editing-idle rule touches it.
+    ctx.store.update("cards", card["id"], status="editing", updated_at="2026-09-20T00:00:00Z")
+    timeutil.freeze("2026-10-20T19:45:00Z")
+    learn.expire_cards(ctx)
+    assert ctx.store.get("cards", card["id"])["status"] == "editing"
+    # The learner hears nothing about it until he posts or skips it.
+    from pbs import bandit
+
+    assert bandit.observation_value(ctx.store.get("cards", card["id"]), None, ctx.settings, set(), {}) is None
+
+    # His day has come: told once.
+    assert [c["id"] for c in learn.saved_due(ctx)] == [card["id"]]
+    assert learn.saved_due(ctx) == []
+
+    # Taking it out of saved gives it a day, then it expires like any other card.
+    ctx.store.update("cards", card["id"], status="suggested")
+    write_inbox(ctx.data_root, [{"id": "s2", "type": "card.save", "card_id": card["id"], "saved": False}], name="unsave")
+    inbox.ingest(ctx)
+    out = ctx.store.get("cards", card["id"])
+    assert out["saved"] is None and out["expires_at"]
+    timeutil.freeze("2026-10-22T19:45:00Z")
+    learn.expire_cards(ctx)
+    assert ctx.store.get("cards", card["id"])["status"] == "expired"
+
+
+def test_saving_brings_back_an_expired_card_and_a_skip_ends_it(make_ctx):
+    ctx = _delivered(make_ctx)
+    card = _card(ctx, "x")
+    ctx.store.update("cards", card["id"], status="expired")
+    write_inbox(ctx.data_root, [{"id": "s1", "type": "card.save", "card_id": card["id"]}])
+    inbox.ingest(ctx)
+    back = ctx.store.get("cards", card["id"])
+    assert back["status"] == "suggested" and back["saved"]["remind_on"] is None
+    assert learn.saved_due(ctx) == []  # no day picked: no reminder
+    write_inbox(ctx.data_root, [{"id": "k1", "type": "card.skip", "card_id": card["id"], "reason": "wrong_timing"}],
+                name="skip")
+    inbox.ingest(ctx)
+    gone = ctx.store.get("cards", card["id"])
+    assert gone["status"] == "skipped" and gone["saved"] is None

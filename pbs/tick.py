@@ -66,6 +66,10 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
         s["expired"] = learn.expire_cards(ctx)
     with ctx.run.step("work") as s:
         s["stats"] = draft.process_work(ctx)
+    due = learn.saved_due(ctx)
+    if due and send_notifications:
+        notify.send(ctx, "A saved post is due today" if len(due) == 1 else f"{len(due)} saved posts are due today",
+                    "They're at the top of today's picks on your desk.", tags="bookmark")
     with ctx.run.step("requests") as s:
         s["stats"] = requests.handle_requests(ctx)
         done = s["stats"]["done"]

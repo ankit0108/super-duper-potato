@@ -199,6 +199,12 @@ class Skip(_Out):
     at: str | None = None
 
 
+class Saved(_Out):
+    at: str
+    remind_on: str | None = Field(None, description="The day he wants to post it (his local date)")
+    reminded: bool = False
+
+
 class Versions(_Out):
     playbook: str | None = None
     prompt: str | None = None
@@ -279,6 +285,7 @@ class Card(_Out):
     humor: HumorInfo | None = None
     alternatives: list[str] = Field([], description="Funny posts: the writers' room's next-best versions")
     discussion_url: str | None = Field(None, description="The Hacker News or Reddit thread people are talking in")
+    saved: Saved | None = Field(None, description="Saved to post later: it never expires while this is set")
     created_at: str
     updated_at: str | None = None
     revision: int = 0
@@ -794,6 +801,14 @@ class CardSkipEvent(_Event):
     note: str | None = Field(None, max_length=1000)
 
 
+class CardSaveEvent(_Event):
+    """Save a card to post later (it stops expiring), optionally for a day; saved false takes it out again."""
+    type: Literal["card.save"]
+    card_id: str
+    saved: bool = True
+    remind_on: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
 class CardRewriteEvent(_Event):
     type: Literal["card.rewrite"]
     card_id: str
@@ -1052,7 +1067,8 @@ class RunRequestEvent(_Event):
 
 
 InboxEvent = Annotated[
-    CardStatusEvent | CardEditEvent | CardPostedEvent | CardSkipEvent | CardRewriteEvent | CardCrosspostEvent
+    CardStatusEvent | CardEditEvent | CardPostedEvent | CardSkipEvent | CardSaveEvent | CardRewriteEvent
+    | CardCrosspostEvent
     | CardVisualEvent | CardAnswersEvent | CardRestoreEvent | CardDraftNowEvent | CardHookEvent | PostUpdateEvent | PostMetricsEvent
     | MetricsUploadEvent | MetricsReviewEvent | AccountStatsEvent | RequestCreateEvent | RequestCancelEvent
     | StanceUpsertEvent | StanceDeleteEvent | StanceProposeEvent | SourceUpsertEvent | SourceDeleteEvent

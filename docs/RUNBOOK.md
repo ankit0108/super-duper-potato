@@ -14,6 +14,13 @@ can get a reason afterwards (**Add why** on the toast). The next morning's ranki
 reads your reasons; **Insights → Learning** lists the ones in use. Cards you don't touch expire when the next
 morning's set arrives, and that's fine.
 
+**Save for later.** The bookmark on a card (or **Save** on its page) keeps it: it moves to **Saved for later** on
+the board and never expires. Pick a day (Tomorrow, In 3 days, Next Monday or a date) and it comes back to the top
+of that day's picks marked *Saved for today*, with a phone notification if notifications are set up. A skipped
+or expired card can be saved from its page, which brings it back. A saved news post older than three days says
+so: check it's still current, or tap **Rewrite**. The learner hears nothing about a saved card until you post or
+skip it; **Remove from saved** gives it a day before it expires like the rest.
+
 **Copying and opening the app.** **Copy draft**, under the editor, copies just the draft text. **Copy** in the
 bottom bar copies the whole post, with your hashtags at the end. On a computer, **Open LinkedIn** and **Open X**
 open a new post with the text already in it. On a phone, **Open X** does the same. **Open LinkedIn** opens the

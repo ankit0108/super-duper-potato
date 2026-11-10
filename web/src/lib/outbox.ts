@@ -25,6 +25,7 @@ export const STARTS_RUN: Record<InboxEvent["type"], boolean> = {
   "card.edit": false,
   "card.posted": false,
   "card.skip": false,
+  "card.save": false,
   "card.rewrite": true,
   "card.crosspost": true,
   "card.visual": true,

@@ -177,10 +177,24 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
         updateCard(ev.card_id, (c) => ({
           ...c,
           status: "skipped",
+          saved: null,
           skip: { reason: ev.reason, note: ev.note ?? null, at: ev.at },
           status_changed_at: ev.at,
           work: null,
         }));
+        break;
+      case "card.save":
+        updateCard(ev.card_id, (c) =>
+          ev.saved === false
+            ? { ...c, saved: null }
+            : {
+                ...c,
+                saved: { at: c.saved?.at ?? ev.at, remind_on: ev.remind_on ?? null, reminded: false },
+                expires_at: null,
+                skip: ["skipped", "expired"].includes(c.status) ? null : c.skip,
+                status: ["skipped", "expired"].includes(c.status) ? (c.mode === "interview" && !c.draft ? "needs_input" : "suggested") : c.status,
+              },
+        );
         break;
       case "card.rewrite":
         updateCard(ev.card_id, (c) => ({
