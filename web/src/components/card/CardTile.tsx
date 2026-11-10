@@ -1,13 +1,17 @@
-import type { KeyboardEvent, ReactNode } from "react";
-import { Bot, Compass, FlaskConical, Loader2, MessageCircleQuestion, OctagonAlert, Quote, ShieldAlert, Sigma, UserRound, HeartHandshake, Ruler } from "lucide-react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { Bookmark, BookmarkCheck, Bot, Compass, FlaskConical, Loader2, MessageCircleQuestion, OctagonAlert, Quote, ShieldAlert, Sigma, UserRound, HeartHandshake, Ruler } from "lucide-react";
 import type { Card } from "@/types";
 import { FORMAT_LABEL, MENU_SKIP_REASONS, PLATFORM_LABEL, STORY_LABEL, TREND_PLACE, draftText, postTypeLabel } from "@/lib/format";
 import { tellSummary } from "@/lib/guard";
 import { navigate } from "@/lib/router";
+import { dayLabel, isSaved, saveChoices, savedLabel } from "@/lib/save";
+import { localDateKey } from "@/lib/time";
 import { useDesk } from "@/state/store";
-import { useNow, usePillarLabels } from "@/state/hooks";
+import { useNow, usePillarLabels, useTz } from "@/state/hooks";
 import { Badge, PlatformMark, StatusBadge } from "../ui/Badge";
 import { Button, cx } from "../ui/Button";
+import { Dialog } from "../ui/Dialog";
+import { Field, Input } from "../ui/Field";
 import { Menu } from "../ui/Menu";
 
 export function workLabel(card: Card): string | null {
@@ -107,8 +111,64 @@ export function SkipMenu({ card, size = "sm", side = "bottom" }: { card: Card; s
   );
 }
 
+/** Save a card to post later, with or without a day; on a saved card, change the day or take it out. */
+export function SaveMenu({ card, size = "sm", side = "bottom", label }: { card: Card; size?: "sm" | "md"; side?: "top" | "bottom"; label?: boolean }) {
+  const act = useDesk((s) => s.act);
+  const tz = useTz();
+  const today = localDateKey(new Date(), tz);
+  const saved = isSaved(card);
+  const [picking, setPicking] = useState(false);
+  const [day, setDay] = useState("");
+  const save = (remindOn: string | null) =>
+    act(
+      { type: "card.save", card_id: card.id, saved: true, remind_on: remindOn },
+      { toast: remindOn ? `Saved for ${dayLabel(remindOn)}. It comes back to the top of that day's picks.` : "Saved for later. It stays on the board until you post it." },
+    );
+  const Icon = saved ? BookmarkCheck : Bookmark;
+  return (
+    <>
+      <Menu
+        label="Save for later"
+        side={side}
+        trigger={(p) => (
+          <Button size={size} variant="ghost" icon={<Icon className={cx("size-4", saved && "text-accent")} />} aria-label={saved ? "Saved: change or remove" : "Save for later"} {...p} onClick={(e) => { e.stopPropagation(); p.onClick(); }}>
+            {label ? (saved ? "Saved" : "Save") : null}
+          </Button>
+        )}
+        items={[
+          ...saveChoices(today).map((c) => ({ label: c.label, hint: c.hint, onSelect: () => save(c.day) })),
+          { label: "Pick a day…", hint: "Any date", onSelect: () => { setDay(card.saved?.remind_on ?? ""); setPicking(true); } },
+          ...(saved ? [{ label: "Remove from saved", hint: "It expires tomorrow like other cards", onSelect: () => act({ type: "card.save", card_id: card.id, saved: false, remind_on: null }, { toast: "Removed from saved." }) }] : []),
+        ]}
+      />
+      <Dialog
+        open={picking}
+        onClose={() => setPicking(false)}
+        title="Save for which day?"
+        description={card.title}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setPicking(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" disabled={!day || day <= today} onClick={() => { save(day); setPicking(false); }}>
+              Save for that day
+            </Button>
+          </>
+        }
+      >
+        <Field label="Day" htmlFor="save-day" hint="The card comes back to the top of that day's picks.">
+          <Input id="save-day" type="date" min={today} value={day} onChange={(e) => setDay(e.target.value)} />
+        </Field>
+      </Dialog>
+    </>
+  );
+}
+
 export function CardTile({ card, pending }: { card: Card; pending?: boolean }) {
   const pillar = usePillarLabels();
+  const tz = useTz();
+  const today = localDateKey(new Date(), tz);
   const work = workLabel(card);
   const text = draftText(card);
   const open = () => navigate(`/card/${card.id}`);
@@ -154,6 +214,11 @@ export function CardTile({ card, pending }: { card: Card; pending?: boolean }) {
           </Badge>
         )}
         {card.status !== "suggested" && <StatusBadge status={card.status} />}
+        {isSaved(card) && (
+          <Badge tone="accent" icon={<BookmarkCheck className="size-3" />}>
+            {savedLabel(card, today)}
+          </Badge>
+        )}
         {pending && <Badge tone="neutral">Syncing</Badge>}
         <span className="ml-auto">
           <FlagIcons card={card} />
@@ -190,6 +255,7 @@ export function CardTile({ card, pending }: { card: Card; pending?: boolean }) {
           <span className="truncate">{card.angle && !brief ? `Angle: ${card.angle}` : ""}</span>
         </span>
         <div className="flex shrink-0 items-center gap-1">
+          {["suggested", "needs_input", "blocked", "editing"].includes(card.status) && <SaveMenu card={card} />}
           {["suggested", "needs_input", "blocked", "editing"].includes(card.status) && <SkipMenu card={card} />}
           <Button size="sm" variant={card.status === "needs_input" ? "primary" : "secondary"} onClick={open}>
             {card.status === "needs_input" ? "Answer" : card.status === "blocked" ? "Review" : card.status === "editing" ? "Continue" : "Open"}

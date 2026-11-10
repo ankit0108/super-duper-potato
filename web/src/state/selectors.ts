@@ -1,10 +1,12 @@
 import type { Card, DeskState, Platform } from "@/types";
+import { isDue, isSaved } from "@/lib/save";
 import { localDateKey } from "@/lib/time";
 
 export type BoardSections = {
   needsYou: Card[];
   today: Record<Platform, Card[]>;
   inProgress: Card[];
+  saved: Card[];
   thisWeek: Card[];
   doneToday: Card[];
   counts: Record<"all" | Platform, number>;
@@ -23,17 +25,18 @@ export function setNumber(c: Card, today: string): number {
   return m ? Number(m[1]) : 1;
 }
 
-export type TodaySet = { key: string; kind: "morning" | "fresh" | "crossposts"; at: string | null; cards: Card[] };
+export type TodaySet = { key: string; kind: "morning" | "fresh" | "crossposts" | "saved"; at: string | null; cards: Card[] };
 
 /** Today's cards for one platform, split into sets, newest set first (they arrive sorted that way). */
 export function todaySets(cards: Card[], today: string): TodaySet[] {
   const out: TodaySet[] = [];
   for (const c of cards) {
+    const due = isDue(c, today);
     const n = setNumber(c, today);
-    const key = String(n);
+    const key = due ? "saved" : String(n);
     let set = out.find((s) => s.key === key);
     if (!set) {
-      set = { key, kind: n === Number.POSITIVE_INFINITY ? "crossposts" : n === 1 ? "morning" : "fresh", at: c.delivered_at ?? c.created_at ?? null, cards: [] };
+      set = { key, kind: due ? "saved" : n === Number.POSITIVE_INFINITY ? "crossposts" : n === 1 ? "morning" : "fresh", at: c.delivered_at ?? c.created_at ?? null, cards: [] };
       out.push(set);
     }
     set.cards.push(c);
@@ -52,6 +55,7 @@ export function boardSections(view: DeskState | null, today: string, tz: string,
   const needsYou: Card[] = [];
   const today_: Record<Platform, Card[]> = { linkedin: [], x: [] };
   const inProgress: Card[] = [];
+  const saved: Card[] = [];
   const thisWeek: Card[] = [];
   const doneToday: Card[] = [];
   const postedToday: Record<Platform, number> = { linkedin: 0, x: 0 };
@@ -70,6 +74,12 @@ export function boardSections(view: DeskState | null, today: string, tz: string,
       continue;
     }
     if (!active) continue;
+    // Saved for later: out of the day's picks until its day comes (or for good, with no day).
+    if (isSaved(c)) {
+      if (isDue(c, today)) today_[c.platform].push(c);
+      else saved.push(c);
+      continue;
+    }
     // Today's set stays together in rank order, whatever state each card is in.
     if (deliveredToday(c)) today_[c.platform].push(c);
     else if (c.status === "blocked" || c.status === "failed") needsYou.push(c);
@@ -78,13 +88,17 @@ export function boardSections(view: DeskState | null, today: string, tz: string,
   }
   needsYou.sort(byNewest);
   // Newest set first (a fresh set above the morning's), each in rank order; cross-posts and Studio posts on top.
-  const newestSetFirst = (a: Card, b: Card) => setNumber(b, today) - setNumber(a, today) || byRank(a, b) || byNewest(a, b);
+  // Posts he saved for today come first of all.
+  const newestSetFirst = (a: Card, b: Card) =>
+    Number(isDue(b, today)) - Number(isDue(a, today)) || setNumber(b, today) - setNumber(a, today) || byRank(a, b) || byNewest(a, b);
+  // Saved: the ones with a day first, soonest first; then the newest saved.
+  saved.sort((a, b) => (a.saved?.remind_on ?? "9999").localeCompare(b.saved?.remind_on ?? "9999") || (b.saved?.at ?? "").localeCompare(a.saved?.at ?? ""));
   today_.linkedin.sort(newestSetFirst);
   today_.x.sort(newestSetFirst);
   inProgress.sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""));
   thisWeek.sort((a, b) => Number(b.status === "needs_input") - Number(a.status === "needs_input") || byNewest(a, b));
   doneToday.sort((a, b) => (b.status_changed_at ?? "").localeCompare(a.status_changed_at ?? ""));
-  return { needsYou, today: today_, inProgress, thisWeek, doneToday, counts, postedToday };
+  return { needsYou, today: today_, inProgress, saved, thisWeek, doneToday, counts, postedToday };
 }
 
 export function evidenceFor(card: Card): string {

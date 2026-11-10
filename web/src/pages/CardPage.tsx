@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowLeftRight, ChevronDown, Copy, ExternalLink, GitCompare, Loader2, MessageCircleQuestion, RotateCcw, Send, Sparkle, Undo2, WandSparkles } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, Bookmark, ChevronDown, Copy, ExternalLink, GitCompare, Loader2, MessageCircleQuestion, RotateCcw, Send, Sparkle, Undo2, WandSparkles } from "lucide-react";
 import type { Card, EventInput } from "@/types";
 import { FORMAT_LABEL, PLATFORM_LABEL, SKIP_REASONS, STORY_LABEL, TREND_PLACE, draftText, pct, postingWindow } from "@/lib/format";
 import { copyText, linkedInComposeUrl, linkedInViaShareSheet, safeUrl, shareText, xComposeUrl } from "@/lib/compose";
@@ -7,7 +7,7 @@ import { liveFlags, parseTerms } from "@/lib/guard";
 import { withHashtags, withoutHashtags } from "@/lib/hashtags";
 import { navigate, Link } from "@/lib/router";
 import { editRatio } from "@/lib/text";
-import { formatDateTime } from "@/lib/time";
+import { formatDateTime, localDateKey } from "@/lib/time";
 import { useDesk } from "@/state/store";
 import { useCard, useEditingTimer, usePillarLabels, useTz } from "@/state/hooks";
 import { evidenceFor } from "@/state/selectors";
@@ -15,7 +15,8 @@ import { Badge, PlatformMark, StatusBadge } from "@/components/ui/Badge";
 import { Button, LinkButton, cx } from "@/components/ui/Button";
 import { Banner, Empty, Panel } from "@/components/ui/Feedback";
 import { Tabs } from "@/components/ui/Tabs";
-import { FlagIcons, SkipMenu, StillWaiting, workLabel } from "@/components/card/CardTile";
+import { FlagIcons, SaveMenu, SkipMenu, StillWaiting, workLabel } from "@/components/card/CardTile";
+import { isSaved, savedDaysAgo, savedLabel } from "@/lib/save";
 import { DiffPanel, HooksPanel, LinkedInEditor, LiveChecks, ThreadEditor, XPostEditor, numbered, replaceOpening, swapOpening } from "./card/Editor";
 import { Details, PipelineFlags, ReplyHelper, Sources, WhyAngle } from "./card/Context";
 import { CrosspostDialog, PostedDialog, RewriteDialog, type CrosspostPayload, type PostedPayload } from "./card/Dialogs";
@@ -448,9 +449,16 @@ function CardView({ card }: { card: Card }) {
               title={card.status === "skipped" ? "Skipped" : card.status === "failed" ? "Drafting failed" : "Expired"}
               description={card.status === "skipped" ? SKIP_REASONS.find((r) => r.value === card.skip?.reason)?.label + (card.skip?.note ? ` — ${card.skip.note}` : "") : undefined}
               actions={
-                <Button size="sm" icon={<Undo2 className="size-4" />} onClick={() => act({ type: "card.restore", card_id: card.id }, { toast: "Restored." })}>
-                  Restore
-                </Button>
+                <>
+                  {card.status !== "failed" && (
+                    <Button size="sm" variant="ghost" icon={<Bookmark className="size-4" />} onClick={() => act({ type: "card.save", card_id: card.id, saved: true, remind_on: null }, { toast: "Saved for later. It's back on the board." })}>
+                      Save for later
+                    </Button>
+                  )}
+                  <Button size="sm" icon={<Undo2 className="size-4" />} onClick={() => act({ type: "card.restore", card_id: card.id }, { toast: "Restored." })}>
+                    Restore
+                  </Button>
+                </>
               }
             >
               <p className="draft-text text-[14px] text-muted">{baseline || card.angle}</p>
@@ -547,11 +555,18 @@ function CardView({ card }: { card: Card }) {
             <Button variant="ghost" icon={<ArrowLeftRight className="size-4" />} onClick={() => setCrossposting(true)} disabled={!!card.work}>
               {card.platform === "linkedin" ? "Also for X" : "Also for LinkedIn"}
             </Button>
-            <span className="ml-auto">
+            <span className="ml-auto flex items-center gap-1">
+              <SaveMenu card={card} size="md" side="top" label />
               <SkipMenu card={card} size="md" side="top" />
             </span>
           </div>
           {card.format === "x_thread" && <p className="mx-auto mt-1 max-w-6xl text-xs text-muted">Open X posts the first post; add the rest as replies to it, using each post's copy button.</p>}
+          {isSaved(card) && (
+            <p className="mx-auto mt-1 max-w-6xl text-xs text-muted">
+              <span className="font-medium text-text">{savedLabel(card, localDateKey(new Date(), tz))}.</span>
+              {card.kind === "news" && savedDaysAgo(card) >= 3 ? ` You saved it ${savedDaysAgo(card)} days ago: check the news hasn't moved on, or tap Rewrite to refresh it.` : " It won't expire."}
+            </p>
+          )}
           {postingWindow(postWindow?.window) && (
             <p className="mx-auto mt-1 max-w-6xl text-xs text-muted">
               Best time to post: <span className="font-medium text-text">{postingWindow(postWindow?.window)}</span>

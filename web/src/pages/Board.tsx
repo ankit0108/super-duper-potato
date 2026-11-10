@@ -33,7 +33,7 @@ function SetLabel({ set, tz }: { set: TodaySet; tz: string }) {
   const at = set.at ? formatTime(set.at, tz) : "";
   const studio = set.cards.filter((c) => c.kind === "studio").length;
   const yours = studio === set.cards.length ? "From the Studio" : studio ? "Cross-posts and Studio posts" : "Cross-posts you made";
-  const label = set.kind === "crossposts" ? yours : set.kind === "fresh" ? `Fresh set${at ? ` · ${at}` : ""}` : `Morning set${at ? ` · ${at}` : ""}`;
+  const label = set.kind === "saved" ? "Saved for today" : set.kind === "crossposts" ? yours : set.kind === "fresh" ? `Fresh set${at ? ` · ${at}` : ""}` : `Morning set${at ? ` · ${at}` : ""}`;
   return (
     <p className="mb-2 flex items-center gap-2 text-[12px] font-medium tracking-wide text-muted uppercase">
       {set.kind === "fresh" && <Sparkles className="size-3.5 text-accent" aria-hidden />}
@@ -217,6 +217,12 @@ export function Board() {
       {sections.inProgress.length > 0 && (
         <Section id="sec-progress" title="In progress" count={sections.inProgress.length} hint="Editing cards stay for 72 hours after your last change">
           {renderTiles(sections.inProgress)}
+        </Section>
+      )}
+
+      {sections.saved.length > 0 && (
+        <Section id="sec-saved" title="Saved for later" count={sections.saved.length} hint="They stay until you post or remove them">
+          {renderTiles(sections.saved)}
         </Section>
       )}
 

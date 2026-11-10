@@ -714,6 +714,18 @@
      "title": "Rewrite Count",
      "type": "integer"
     },
+    "saved": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Saved"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Saved to post later: it never expires while this is set"
+    },
     "score": {
      "anyOf": [
       {
@@ -1497,6 +1509,57 @@
     "card_id"
    ],
    "title": "CardRewriteEvent",
+   "type": "object"
+  },
+  "CardSaveEvent": {
+   "additionalProperties": false,
+   "description": "Save a card to post later (it stops expiring), optionally for a day; saved false takes it out again.",
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "remind_on": {
+     "anyOf": [
+      {
+       "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Remind On"
+    },
+    "saved": {
+     "default": true,
+     "title": "Saved",
+     "type": "boolean"
+    },
+    "type": {
+     "const": "card.save",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id"
+   ],
+   "title": "CardSaveEvent",
    "type": "object"
   },
   "CardSkipEvent": {
@@ -2734,6 +2797,7 @@
         "card.posted": "#/$defs/CardPostedEvent",
         "card.restore": "#/$defs/CardRestoreEvent",
         "card.rewrite": "#/$defs/CardRewriteEvent",
+        "card.save": "#/$defs/CardSaveEvent",
         "card.skip": "#/$defs/CardSkipEvent",
         "card.status": "#/$defs/CardStatusEvent",
         "card.visual": "#/$defs/CardVisualEvent",
@@ -2769,6 +2833,9 @@
        },
        {
         "$ref": "#/$defs/CardSkipEvent"
+       },
+       {
+        "$ref": "#/$defs/CardSaveEvent"
        },
        {
         "$ref": "#/$defs/CardRewriteEvent"
@@ -5514,6 +5581,37 @@
     "type"
    ],
    "title": "RunRequestEvent",
+   "type": "object"
+  },
+  "Saved": {
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "remind_on": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The day he wants to post it (his local date)",
+     "title": "Remind On"
+    },
+    "reminded": {
+     "default": false,
+     "title": "Reminded",
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "at"
+   ],
+   "title": "Saved",
    "type": "object"
   },
   "SettingsUpdateEvent": {

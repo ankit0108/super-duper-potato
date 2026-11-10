@@ -224,9 +224,41 @@ def _card_skip(ctx: Ctx, ev: C.CardSkipEvent) -> None:
         return
     card["skip"] = {"reason": ev.reason, "note": note, "at": at}
     card["work"] = None
+    card["saved"] = None
     _touch(card, at, "skipped")
     draft.save_card(ctx, card)
     draft.log_interaction(ctx, "skipped", card, reason=ev.reason, note=note, rank=card.get("rank"))
+
+
+def _card_save(ctx: Ctx, ev: C.CardSaveEvent) -> None:
+    """Save a card to post later: it stops expiring and waits on the board (a skipped or expired one comes back).
+    Taking it out of saved gives it a day before it expires like any other card."""
+    card = _card(ctx, ev.card_id)
+    at = _event_time(ev)
+    if card["status"] == "posted":
+        raise Reject("card is already posted")
+    if not ev.saved:
+        if not card.get("saved"):
+            return
+        card["saved"] = None
+        card["expires_at"] = timeutil.iso(timeutil.now() + _minutes(24 * 60))
+        _touch(card, at)
+        draft.save_card(ctx, card)
+        draft.log_interaction(ctx, "unsaved", card)
+        return
+    earlier = card.get("saved") or {}
+    same_day = earlier.get("remind_on") == ev.remind_on
+    card["saved"] = {"at": earlier.get("at") or at, "remind_on": ev.remind_on,
+                     "reminded": bool(earlier.get("reminded")) and same_day}
+    card["expires_at"] = None
+    status = None
+    if card["status"] in ("skipped", "expired"):
+        status = "needs_input" if card.get("mode") == "interview" and not card.get("draft") else "suggested"
+        card["skip"] = None
+    _touch(card, at, status)
+    draft.save_card(ctx, card)
+    if not earlier:
+        draft.log_interaction(ctx, "saved", card, rank=card.get("rank"), remind=bool(ev.remind_on))
 
 
 def _card_rewrite(ctx: Ctx, ev: C.CardRewriteEvent) -> None:
@@ -655,6 +687,7 @@ APPLY = {
     "card.edit": _card_edit,
     "card.posted": _card_posted,
     "card.skip": _card_skip,
+    "card.save": _card_save,
     "card.rewrite": _card_rewrite,
     "card.crosspost": _card_crosspost,
     "card.visual": _card_visual,

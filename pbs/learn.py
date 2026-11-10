@@ -316,6 +316,8 @@ def expire_cards(ctx: Ctx) -> int:
         n += 1
     idle = timeutil.iso(now - dt.timedelta(hours=ctx.settings.expiry.editing_idle_hours))
     for card in ctx.store.select("cards", "status = 'editing' AND updated_at <= ?", (idle,)):
+        if card.get("saved"):
+            continue  # saved to post later: it waits for him
         _expire(ctx, card, now_iso, reason="idle")
         n += 1
     # Cards left 'drafting' by an interrupted run become brief cards with a 'Draft this' button.
@@ -333,6 +335,18 @@ def _expire(ctx: Ctx, card: dict[str, Any], at: str, reason: str = "time") -> No
     card["updated_at"] = at
     draft.save_card(ctx, card)
     draft.log_interaction(ctx, "expired", card, reason=reason, rank=card.get("rank"))
+
+
+def saved_due(ctx: Ctx) -> list[dict[str, Any]]:
+    """Saved cards whose day has come and that he hasn't been told about; each is marked as told."""
+    today = ctx.local_date_str()
+    due = [c for c in ctx.store.select("cards", "saved IS NOT NULL AND status NOT IN ('posted', 'skipped')")
+           if (c.get("saved") or {}).get("remind_on") and c["saved"]["remind_on"] <= today
+           and not c["saved"].get("reminded")]
+    for card in due:
+        card["saved"] = {**card["saved"], "reminded": True}
+        draft.save_card(ctx, card)
+    return due
 
 
 def prune(ctx: Ctx) -> dict[str, int]:

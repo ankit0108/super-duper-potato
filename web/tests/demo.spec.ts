@@ -106,6 +106,34 @@ test("skip a card from the board with a reason", async ({ page }) => {
   await expect(doneSection(page).getByText("Wrong timing")).toBeVisible();
 });
 
+test("save a card for later, with a day, and take it out again", async ({ page }) => {
+  const tile = todaySection(page).locator("[data-tile]").nth(1);
+  const name = (await tile.getAttribute("aria-label"))!;
+  await tile.getByRole("button", { name: "Save for later" }).click();
+  await page.getByRole("menuitem", { name: /^Tomorrow/ }).click();
+  await expect(page.getByText(/^Saved for .*\. It comes back to the top of that day's picks\.$/)).toBeVisible();
+  await expect(todaySection(page).getByRole("article", { name, exact: true })).toHaveCount(0);
+  const saved = page.locator("section", { has: page.locator("#sec-saved") });
+  const savedTile = saved.getByRole("article", { name, exact: true });
+  await expect(savedTile).toBeVisible();
+  await expect(savedTile.getByText(/^Saved for /)).toBeVisible();
+
+  // No day at all: it just stays.
+  await savedTile.getByRole("button", { name: "Saved: change or remove" }).click();
+  await page.getByRole("menuitem", { name: /^Save for later/ }).click();
+  await expect(savedTile.getByText("Saved", { exact: true })).toBeVisible();
+
+  // The card page says it won't expire, and can take it out of saved.
+  await savedTile.getByRole("button", { name: "Open" }).click();
+  await expect(page.getByText("It won't expire.")).toBeVisible();
+  await page.getByRole("button", { name: "Saved: change or remove" }).click();
+  await page.getByRole("menuitem", { name: /^Remove from saved/ }).click();
+  await expect(page.getByText("Removed from saved.")).toBeVisible();
+  await page.goto("/#/");
+  await expect(page.locator("#sec-saved")).toHaveCount(0);
+  await expect(todaySection(page).getByRole("article", { name, exact: true })).toBeVisible();
+});
+
 test("skipping for another reason asks why, and the reason shows in what the ranking learns from", async ({ page }) => {
   const tile = todaySection(page).locator("[data-tile]").nth(2);
   const title = (await tile.locator("h3").textContent())!;
