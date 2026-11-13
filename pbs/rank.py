@@ -58,6 +58,8 @@ class Candidate:
     # of story triage says it is (conversation, bizarre, funny, launch, research, news).
     trend: dict[str, Any] | None = None
     story: str | None = None
+    # The platform scout's read of it (pbs/agents/scout.py): marks, evidence level, why, opening, who to reply to.
+    scout: dict[str, Any] | None = None
 
     @property
     def arm(self) -> str:
@@ -204,7 +206,8 @@ def prescore(ctx: Ctx, topic: dict[str, Any], platform: str, memory: Memory) -> 
     sig = why.get("signals") or {}
     outlets = int(why.get("n_outlets") or topic.get("n_sources") or 1)
     momentum = max(1 - math.exp(-(outlets - 1) / 2.5), min(1.0, (sig.get("hn_points") or 0) / 400),
-                   min(1.0, (sig.get("hf_upvotes") or 0) / 120), discussion(sig))
+                   min(1.0, (sig.get("hf_upvotes") or 0) / 120),
+                   0.7 if 0 < (sig.get("hf_model_rank") or 0) <= 5 else 0.0, discussion(sig))
     if trend_for(topic, memory):
         momentum = max(momentum, 0.85 if sig.get("trending_on") else 0.75)
     new = novelty(frozenset(textutil.sim_tokens(topic_text(topic))), platform, memory)
@@ -700,24 +703,32 @@ def allocate(ctx: Ctx, platform: str, cands: list[Candidate], arms: dict[str, Ar
             max_replies = reply_slots + 1
             pool = [c for c in cands if c.kind == "news" and not c.sensitive and c.mode == "external"
                     and c.affairs_type != "story" and "x_reply" in (ctx.settings.pillar("x", c.pillar).formats if ctx.settings.pillar("x", c.pillar) else [])]
-            pool.sort(key=lambda c: -(c.base * (0.6 + 0.4 * c.parts.get("momentum", 0))))
-            for c in pool:
-                if len([x for x in chosen if x.fmt == "x_reply"]) >= reply_slots:
+            # The X scout's reply and quote picks first (it names who to reply to), then the day's biggest stories,
+            # spread over the lanes like the rest of the set.
+            while len([x for x in chosen if x.fmt in ("x_reply", "x_quote")]) < reply_slots:
+                rest = [c for c in pool if c.topic_key not in used_topics]
+                if not rest:
                     break
-                if c.topic_key in used_topics:
-                    continue
-                reply = Candidate(**{**c.__dict__, "fmt": "x_reply"})
+                c = max(rest, key=lambda c: (c.fmt in ("x_reply", "x_quote"),
+                                             c.base * (0.6 + 0.4 * c.parts.get("momentum", 0)) * mix(c)))
+                reply = Candidate(**{**c.__dict__, "fmt": c.fmt if c.fmt == "x_quote" else "x_reply"})
                 reply.score = reply.base * arms.get(reply.arm, _neutral(reply)).mean
                 take(reply)
 
     def reserve(pool: list[Candidate], count: int) -> None:
-        """Take the best `count` of a pool before the open slots are filled."""
-        for c in sorted(pool, key=lambda c: (-c.base * (arms[c.arm].mean if c.arm in arms else 0.5), c.topic_key)):
-            if count <= 0 or len(chosen) >= n:
+        """Take the best `count` of a pool before the open slots are filled, varying the kind of post (a lane that
+        keeps two slots gets a quote and a thought, not two thoughts)."""
+        def worth(c: Candidate) -> float:
+            return c.base * (arms[c.arm].mean if c.arm in arms else 0.5)
+
+        while count > 0 and len(chosen) < n:
+            rest = [c for c in pool if c.topic_key not in used_topics
+                    and (c.mode != "interview" or interviews < cap_interview)]
+            if not rest:
                 break
-            if c.topic_key in used_topics or (c.mode == "interview" and interviews >= cap_interview):
-                continue
-            c.score = round(c.base * (arms[c.arm].mean if c.arm in arms else 0.5), 4)
+            c = min(rest, key=lambda c: (-worth(c) * (penalty ** type_counts[c.post_type] if c.post_type else 1.0),
+                                         c.topic_key))
+            c.score = round(worth(c), 4)
             take(c)
             count -= 1
 
@@ -732,10 +743,10 @@ def allocate(ctx: Ctx, platform: str, cands: list[Candidate], arms: dict[str, Ar
                 reserve([c for c in cands if c.pillar == key], spec.min_per_day - pillar_counts[key])
 
     while len(chosen) < n:
-        replies = sum(1 for c in chosen if c.fmt == "x_reply")
+        replies = sum(1 for c in chosen if c.fmt in ("x_reply", "x_quote"))
         pool = [c for c in cands if c.topic_key not in used_topics
                 and (c.mode != "interview" or interviews < cap_interview)
-                and (c.fmt != "x_reply" or replies < max_replies)]
+                and (c.fmt not in ("x_reply", "x_quote") or replies < max_replies)]
         if not pool:
             break
         explore = rng.random() < rate

@@ -213,9 +213,9 @@ def why_now(items: list[dict[str, Any]], publishers: list[str]) -> dict[str, Any
     signals: dict[str, Any] = {}
     for it in items:
         for k, v in (it.get("signals") or {}).items():
-            if isinstance(v, (int, float)) and k != "hf_rank" and v > (signals.get(k) or 0):
+            if isinstance(v, (int, float)) and k not in ("hf_rank", "hf_model_rank") and v > (signals.get(k) or 0):
                 signals[k] = v
-            if k == "hf_rank" and (signals.get(k) is None or v < signals[k]):
+            if k in ("hf_rank", "hf_model_rank") and (signals.get(k) is None or v < signals[k]):
                 signals[k] = v
             if k == "otd_year":
                 signals[k] = v
@@ -259,6 +259,9 @@ def why_now(items: list[dict[str, Any]], publishers: list[str]) -> dict[str, Any
         rank = signals.get("hf_rank")
         parts.append(f"#{rank} on Hugging Face daily papers ({int(signals['hf_upvotes'])} upvotes)" if rank
                      else f"{int(signals['hf_upvotes'])} upvotes on Hugging Face papers")
+    if signals.get("hf_model_rank"):
+        parts.append(f"#{int(signals['hf_model_rank'])} on Hugging Face's trending models "
+                     f"({int(signals.get('hf_model_likes') or 0):,} likes)")
     if signals.get("otd_year"):
         parts.append(f"on this day in {signals['otd_year']}")
     if any(it.get("lang") == "hi" for it in items):

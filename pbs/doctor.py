@@ -24,6 +24,25 @@ def _check(name: str, status: str, detail: str | None = None, private: str | Non
     return out
 
 
+def _search_check(ctx: Ctx, probe: bool) -> dict[str, Any]:
+    """The scouts' web search (pbs/scout/websearch.py). A live check uses one of the month's searches."""
+    from .scout import websearch
+
+    label = "Web search for the scouts (Tavily)"
+    if not websearch.available():
+        return _check(label, "warn", "TAVILY_API_KEY is not set, so the scouts work from feeds only. Optional: a free "
+                      "key from tavily.com lets them search public LinkedIn and X posts each morning.")
+    state = websearch.status(ctx)
+    used = f"{state['used']} of {state['cap']} searches used this month"
+    if not probe:
+        return _check(label, "ok", used)
+    try:
+        rows = websearch.search(ctx, "AI agents in production", where="web", days=7, max_results=2)
+        return _check(label, "ok" if rows else "warn", f"{len(rows)} results returned; {used}")
+    except websearch.SearchUnavailable as exc:
+        return _check(label, "warn", f"Not available ({exc}); {used}.")
+
+
 def _image_checks(ctx: Ctx) -> list[dict[str, Any]]:
     """One small test image per image service with its secrets set (each counts toward today's image limit)."""
     if not ctx.settings.images.enabled:
@@ -120,6 +139,7 @@ def run_doctor(ctx: Ctx, probe_llm: bool = True, probe_sources: bool = True) -> 
 
     if probe_llm:
         checks.extend(_image_checks(ctx))
+    checks.append(_search_check(ctx, probe_llm))
 
     if probe_sources:
         sync_seeds(ctx.store)

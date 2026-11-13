@@ -249,7 +249,9 @@ class Simulation:
     def run(self) -> None:
         # The demo's Ankit chose one funny LinkedIn post every morning (off by default), so the writers' room shows.
         store = self.store()
-        store.set_setting("overrides", {"strategy": {"linkedin": {"humor": {"min_per_day": 1}}}})
+        # ... and two posts a day from the ideas lane on X (a quote and a thought), beside the replies.
+        store.set_setting("overrides", {"strategy": {"linkedin": {"humor": {"min_per_day": 1}},
+                                                     "x": {"ideas": {"min_per_day": 2}}}})
         store.save()
         start = TODAY - dt.timedelta(days=DAYS)
         for i in range(DAYS):
@@ -681,7 +683,8 @@ class Simulation:
         self.tick(now, "schedule", web=MockWeb(world=world, filler=True))
         cards = self.delivered(TODAY)
         x_top = next((c for c in cards["x"] if c["status"] == "suggested" and c["format"] != "x_thread"), None)
-        skip = next((c for c in reversed(cards["linkedin"]) if c["status"] == "suggested" and not c.get("post_type")), None)
+        skip = next((c for c in reversed(cards["linkedin"]) if c["status"] == "suggested" and not c.get("post_type")
+                     and c.get("mode") != "interview"), None)
         li_top = next((c for c in cards["linkedin"] if c["status"] == "suggested" and c is not skip), None)
         li_next = next((c for c in cards["linkedin"] if c["status"] == "suggested" and c is not skip
                         and c is not li_top), None)

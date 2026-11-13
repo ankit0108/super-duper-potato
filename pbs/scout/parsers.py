@@ -35,6 +35,8 @@ def parse(source: dict[str, Any], content: bytes, local_date: str | None = None)
         return _parse_feed(source, content)
     if kind == "hf_papers":
         return _parse_hf(content)
+    if kind == "hf_models":
+        return _parse_hf_models(content)
     if kind in ("hn_front", "hn_show", "hn_ask"):
         return _parse_hn(source, content)
     if kind == "reddit_json":
@@ -130,6 +132,40 @@ def _parse_hf(content: bytes) -> list[RawItem]:
             "publisher": "Hugging Face papers",
             "signals": {"hf_upvotes": int(paper.get("upvotes") or 0), "hf_rank": rank,
                         "arxiv_url": f"https://arxiv.org/abs/{pid}"},
+        })
+    return items
+
+
+def _parse_hf_models(content: bytes) -> list[RawItem]:
+    """Models trending on Hugging Face (`/api/models?sort=trendingScore`), with the likes and downloads the hub
+    reports: what builders are trying this week."""
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError:
+        return []
+    rows = data if isinstance(data, list) else data.get("models", []) if isinstance(data, dict) else []
+    items: list[RawItem] = []
+    for rank, row in enumerate(rows, 1):
+        if not isinstance(row, dict) or row.get("private"):
+            continue
+        mid = str(row.get("id") or row.get("modelId") or "")
+        if not re.fullmatch(r"[\w.-]+/[\w.-]+", mid):
+            continue
+        def count(key: str, row: dict[str, Any] = row) -> int:
+            value = row.get(key)
+            return max(0, int(value)) if isinstance(value, (int, float)) and not isinstance(value, bool) else 0
+        task = str(row.get("pipeline_tag") or "").replace("-", " ")
+        org, name = mid.split("/", 1)
+        items.append({
+            "url": f"https://huggingface.co/{mid}",
+            "title": f"{name} by {org} is trending on Hugging Face" + (f" ({task})" if task else ""),
+            "summary": textutil.normalize_ws(
+                f"{mid}: {task + ' model' if task else 'a model'} with {count('likes'):,} likes and "
+                f"{count('downloads'):,} downloads, number {rank} on Hugging Face's trending list."),
+            "published_at": timeutil.iso(timeutil.parse(row.get("createdAt") or row.get("lastModified"))),
+            "lang": "en",
+            "publisher": "Hugging Face (trending models)",
+            "signals": {"hf_model_likes": count("likes"), "hf_model_rank": rank},
         })
     return items
 

@@ -618,7 +618,9 @@ def _with_tells(handler: Any) -> Any:
         if not isinstance(out, dict) or not isinstance(data, dict) or data.get("platform") != "linkedin":
             return out
         paras = (out.get("text") or "").split("\n\n")
-        if len(paras) >= 3 and not zlib.crc32((data.get("topic") or "").encode()) % 3:
+        topic = data.get("topic") or ""
+        # ... and the morning's benchmark paper always does, so today's set has one whatever the ranking picks.
+        if len(paras) >= 3 and (not zlib.crc32(topic.encode()) % 3 or topic.startswith("AgentBench-Enterprise")):
             paras[1] = f"Here's why: {paras[1]}"
             out["text"] = "\n\n".join(paras)
         return out

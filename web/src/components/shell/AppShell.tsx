@@ -1,22 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import {
-  Activity,
-  BarChart3,
-  Cloud,
-  CloudOff,
-  History,
-  LayoutGrid,
-  Loader2,
-  MoreHorizontal,
-  RefreshCw,
-  Rss,
-  Scale,
-  Search,
-  Settings,
-  Sparkles,
-  TriangleAlert,
-  WandSparkles,
-} from "lucide-react";
+import { Activity, BarChart3, Cloud, CloudOff, History, LayoutGrid, Loader2, MoreHorizontal, RefreshCw, Rss, Scale, Search, Settings, Sparkles, Telescope, TriangleAlert, WandSparkles } from "lucide-react";
 import { Link, useRoute } from "@/lib/router";
 import { relative } from "@/lib/time";
 import { useDesk } from "@/state/store";
@@ -46,6 +29,7 @@ function useNavItems(): NavItem[] {
       { to: "/requests", label: "Requests", icon: <Search className="size-5" />, match: (p) => p.startsWith("/requests"), mobile: true },
       { to: "/metrics", label: "Metrics", icon: <BarChart3 className="size-5" />, match: (p) => p.startsWith("/metrics"), count: review, mobile: true },
       { to: "/insights", label: "Insights", icon: <Sparkles className="size-5" />, match: (p) => p.startsWith("/insights"), count: proposals, mobile: true },
+      { to: "/scouts", label: "Scouts", icon: <Telescope className="size-5" />, match: (p) => p.startsWith("/scouts") },
       { to: "/stances", label: "Stances", icon: <Scale className="size-5" />, match: (p) => p.startsWith("/stances") },
       { to: "/sources", label: "Sources", icon: <Rss className="size-5" />, match: (p) => p.startsWith("/sources") },
       { to: "/history", label: "History", icon: <History className="size-5" />, match: (p) => p.startsWith("/history") },

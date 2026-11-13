@@ -136,6 +136,27 @@ and *Carousel*.
 ("Understood as: …"); if it's off, say what you mean in the notes and ask again. Stances: record or change a
 view; your wording shows under **Your stance** once saved.
 
+### The scouts (LinkedIn and X)
+
+Each morning, before the set is chosen, a LinkedIn scout and an X scout read the day's best stories and write a
+report (the **Scouts** page): up to eight opportunities each, what they passed on and why, and the searches they
+ran. A scout's marks move a story up or down inside your lanes; the lane mix and the learner stay as they are.
+
+- **Evidence comes first, and is labelled.** *Observed activity*: a public site reported counts (Hacker News,
+  Reddit, Bluesky, Mastodon, Hugging Face). *Found, reach unknown*: a public LinkedIn or X post or several outlets
+  were found; nothing is known about how far it went. *Scout's guess*: no sign of traction. The "why it could
+  travel" line is always the scout's guess. Code caps the traction mark by the evidence, so a model can't talk a
+  story up.
+- **Search.** With the `TAVILY_API_KEY` secret (free at tavily.com), each scout runs about five searches a morning
+  of public LinkedIn posts, public X posts and the web, capped at `websearch.monthly_cap` a month. Without the
+  key the scouts work from feeds only. Pause **LinkedIn scout** or **X scout** on the Sources page to stop one
+  scout's searches.
+- **X leans to replies.** While the X account is small, about half the X set is replies and quote-posts
+  (`platforms.x.reply_slots`); each names who to reply to.
+- **Draft this** on the Scouts page drafts an opportunity that didn't make the morning set.
+- **When models are short**, the day's drafts come first: the report is then the ranking with its evidence, and
+  says so. The scouts judge plain posts only, not funny takes, quotes, excerpts, thoughts or your question cards.
+
 ### Analytics exports and the performance review
 
 - **Where the files come from.** LinkedIn: your analytics (Me → Analytics, or **View analytics** under a post),

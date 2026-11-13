@@ -35,7 +35,8 @@ platforms:
     premium_char_limit: 25000
     thread_min: 3
     thread_max: 7
-    reply_slots: 2
+    # Replies and quote-posts are how a small account is seen: about half the X set until it grows.
+    reply_slots: 5
     reply_until_followers: 500
 
 formats:
@@ -210,6 +211,25 @@ pulse:
   # taking off, and why they work. They're ranked with the day's stories, marked "Trending on LinkedIn/X".
   enabled: true
   per_platform: 4
+
+agents:
+  # A scout and a writer for each platform (pbs/agents). Each morning the scouts search (with the free
+  # TAVILY_API_KEY secret), score the day's stories for how far they could travel on their platform, and write a
+  # report (the Scouts page); the writers review it and plan each draft. Drafts come first: when fewer model calls
+  # than the drafts plus `reserve` are left, the agents are skipped and the set is made the plain way.
+  enabled: true
+  candidates: 14
+  opportunities: 8
+  probes: 5
+  reserve: 6
+  standing_probes:
+    linkedin: ["AI agents in production", "LLM evals lessons", "enterprise automation AI"]
+    x: ["AI agents", "MCP servers", "LLM evals"]
+
+websearch:
+  # Tavily's free tier is about 1,000 searches a month: ten a morning stays well under it.
+  monthly_cap: 900
+  results: 6
 
 humor:
   # Funny posts are written in a writers' room: several jokes in different styles, then a critic keeps the best
@@ -485,6 +505,9 @@ llm:
     vision: [gemini, gemini_lite]
     search: [gemini]
     pulse: [gemini]
+    # The scouts: a cheap model plans the searches, the strongest one free writes the report.
+    scout_probes: [gemini_lite, groq, cerebras, gemini, openrouter, ollama]
+    scout: [gemini, groq, cerebras, gemini_lite, openrouter, ollama]
     humor_write: [gemini, groq, cerebras, gemini_lite, openrouter, ollama]
     humor_judge: [gemini, groq, cerebras, gemini_lite, openrouter, ollama]
     search_plan: [gemini_lite, groq, cerebras, gemini, openrouter, ollama]
@@ -497,7 +520,7 @@ llm:
   # minutes. Search with grounding and the weekly review get longer.
   timeouts: {default: 90, draft: 50, draft_personal: 50, edit: 40, triage: 75, translate: 45, questions: 45,
              visual: 60, search_plan: 40, search_rerank: 40, humor_write: 60, humor_judge: 45, pulse: 150, search: 120,
-             analysis: 180, reflect: 150}
+             analysis: 180, reflect: 150, scout: 90, scout_probes: 40}
   temperature:
     translate: 0.1
     triage: 0.2
@@ -511,6 +534,8 @@ llm:
     vision: 0.0
     search: 0.2
     pulse: 0.3
+    scout: 0.3
+    scout_probes: 0.2
     # The writers' room aims wide; the critic judges coldly.
     humor_write: 1.0
     humor_judge: 0.2

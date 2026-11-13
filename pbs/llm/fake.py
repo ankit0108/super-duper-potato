@@ -413,6 +413,46 @@ def _analysis(req: LLMRequest, data: Any) -> Any:
             "caveats": ["A few weeks of numbers: patterns that rest on two or three posts may not hold"]}
 
 
+def _scout_probes(req: LLMRequest, data: Any) -> Any:
+    platform = "linkedin" if '"where": "linkedin"' in req.prompt else "x"
+    return {"probes": [{"q": "AI agents in production", "where": platform, "days": 3},
+                       {"q": "agent evals lessons", "where": platform, "days": 7},
+                       {"q": "enterprise AI adoption survey", "where": "web", "days": 7}]}
+
+
+def _scout(req: LLMRequest, data: Any) -> Any:
+    """A scout's report from the candidates it was given: marks follow the evidence, best first."""
+    on_x = "X scout" in req.prompt
+    rows = data if isinstance(data, list) else []
+    opps = []
+    for i, c in enumerate(rows[:10]):
+        level = c.get("evidence_level")
+        traction = 3 if level == "observed" else 2 if level == "indexed" else 3  # an overclaim the code must cap
+        fresh = (c.get("age_hours") or 99) <= 24
+        title = str(c.get("title") or "")
+        if on_x:
+            marks = {"live": 3 if fresh else 1, "traction": traction, "hook": 2, "edge": 2, "quotable": 2 - i % 2,
+                     "standing": 2}
+            fmt = "x_quote" if c.get("x_post") else "x_reply" if i % 2 == 0 else "x_single"
+            opps.append({"id": c["id"], "marks": marks, "format": fmt,
+                         "reply_to": f"{(c.get('publishers') or ['the announcement'])[0]}; search X for "
+                                     f"\u201c{title[:40]}\u201d" if fmt != "x_single" else None,
+                         "why": "People in the field are reacting to it now, and a precise question would stand out.",
+                         "opening": "Lead with the one detail the announcement skips.",
+                         "angle": f"What {title[:60].lower()} leaves out for the people who have to run it",
+                         "risk": None if fresh else "late", "window": "today"})
+        else:
+            marks = {"timing": 3 if fresh else 2, "traction": traction, "stakes": 2, "conversation": 2 - i % 2,
+                     "keep": 2, "standing": 2}
+            opps.append({"id": c["id"], "marks": marks,
+                         "why": "It changes a decision his readers make at work, and few posts say what to do about it.",
+                         "opening": "Lead with the most specific number in the story, then what it changes.",
+                         "angle": f"What {title[:60].lower()} changes for teams running AI and automation",
+                         "visual": "carousel" if i == 1 else None, "risk": None, "window": "this_week"})
+    passed = [{"id": c["id"], "reason": "Covered everywhere already, with nothing specific to add."} for c in rows[10:12]]
+    return {"note": "A busy day for model launches; fewer first-hand lessons.", "opportunities": opps, "passed": passed}
+
+
 def _default(req: LLMRequest, data: Any) -> Any:
     return {"ok": True}
 
@@ -438,5 +478,7 @@ DEFAULT_HANDLERS: dict[str, Handler] = {
     "humor_write": _humor_write,
     "humor_judge": _humor_judge,
     "analysis": _analysis,
+    "scout": _scout,
+    "scout_probes": _scout_probes,
     "default": _default,
 }

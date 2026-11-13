@@ -744,6 +744,17 @@
      "title": "Score Parts",
      "type": "object"
     },
+    "scout": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/ScoutNote"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
     "skip": {
      "anyOf": [
       {
@@ -2102,6 +2113,26 @@
      "title": "Runs",
      "type": "array"
     },
+    "scout_search": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/SearchStatus"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "scouts": {
+     "default": [],
+     "description": "The scouts' reports from the last few days, newest first",
+     "items": {
+      "$ref": "#/$defs/ScoutReport"
+     },
+     "title": "Scouts",
+     "type": "array"
+    },
     "settings": {
      "additionalProperties": true,
      "title": "Settings",
@@ -2811,6 +2842,7 @@
         "request.cancel": "#/$defs/RequestCancelEvent",
         "request.create": "#/$defs/RequestCreateEvent",
         "run.request": "#/$defs/RunRequestEvent",
+        "scout.draft": "#/$defs/ScoutDraftEvent",
         "settings.update": "#/$defs/SettingsUpdateEvent",
         "source.delete": "#/$defs/SourceDeleteEvent",
         "source.upsert": "#/$defs/SourceUpsertEvent",
@@ -2911,6 +2943,9 @@
        },
        {
         "$ref": "#/$defs/StudioSaveEvent"
+       },
+       {
+        "$ref": "#/$defs/ScoutDraftEvent"
        }
       ]
      },
@@ -5614,6 +5649,540 @@
    "title": "Saved",
    "type": "object"
   },
+  "ScoutDraftEvent": {
+   "additionalProperties": false,
+   "description": "Draft an opportunity from a scout's report that didn't become a card.",
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "report_id": {
+     "title": "Report Id",
+     "type": "string"
+    },
+    "topic_id": {
+     "title": "Topic Id",
+     "type": "string"
+    },
+    "type": {
+     "const": "scout.draft",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "report_id",
+    "topic_id"
+   ],
+   "title": "ScoutDraftEvent",
+   "type": "object"
+  },
+  "ScoutNote": {
+   "description": "The scout's read of a story, kept on the card (pbs/agents/scout.py).",
+   "properties": {
+    "evidence": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Evidence",
+     "type": "array"
+    },
+    "evidence_level": {
+     "default": "hypothesis",
+     "enum": [
+      "observed",
+      "indexed",
+      "hypothesis"
+     ],
+     "title": "Evidence Level",
+     "type": "string"
+    },
+    "marks": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "default": {},
+     "title": "Marks",
+     "type": "object"
+    },
+    "opening": {
+     "default": "",
+     "title": "Opening",
+     "type": "string"
+    },
+    "rank": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Its place in the scout's report",
+     "title": "Rank"
+    },
+    "reply_to": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Reply To"
+    },
+    "risk": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Risk"
+    },
+    "score": {
+     "default": 0,
+     "description": "0 to 1, from its six marks",
+     "title": "Score",
+     "type": "number"
+    },
+    "visual": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Visual"
+    },
+    "why": {
+     "default": "",
+     "description": "Why it could travel: the scout's hypothesis, not a measurement",
+     "title": "Why",
+     "type": "string"
+    },
+    "window": {
+     "anyOf": [
+      {
+       "enum": [
+        "today",
+        "this_week",
+        "evergreen"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Window"
+    }
+   },
+   "title": "ScoutNote",
+   "type": "object"
+  },
+  "ScoutOpportunity": {
+   "properties": {
+    "angle": {
+     "default": "",
+     "title": "Angle",
+     "type": "string"
+    },
+    "card_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The card drafted from it, if any",
+     "title": "Card Id"
+    },
+    "evidence": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Evidence",
+     "type": "array"
+    },
+    "evidence_level": {
+     "default": "hypothesis",
+     "enum": [
+      "observed",
+      "indexed",
+      "hypothesis"
+     ],
+     "title": "Evidence Level",
+     "type": "string"
+    },
+    "format": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Format"
+    },
+    "id": {
+     "description": "The topic",
+     "title": "Id",
+     "type": "string"
+    },
+    "lane": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Lane"
+    },
+    "marks": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "default": {},
+     "title": "Marks",
+     "type": "object"
+    },
+    "opening": {
+     "default": "",
+     "title": "Opening",
+     "type": "string"
+    },
+    "rank": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Its place in the scout's report",
+     "title": "Rank"
+    },
+    "reply_to": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Reply To"
+    },
+    "risk": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Risk"
+    },
+    "score": {
+     "default": 0,
+     "description": "0 to 1, from its six marks",
+     "title": "Score",
+     "type": "number"
+    },
+    "title": {
+     "title": "Title",
+     "type": "string"
+    },
+    "url": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Url"
+    },
+    "visual": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Visual"
+    },
+    "why": {
+     "default": "",
+     "description": "Why it could travel: the scout's hypothesis, not a measurement",
+     "title": "Why",
+     "type": "string"
+    },
+    "window": {
+     "anyOf": [
+      {
+       "enum": [
+        "today",
+        "this_week",
+        "evergreen"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Window"
+    }
+   },
+   "required": [
+    "id",
+    "title"
+   ],
+   "title": "ScoutOpportunity",
+   "type": "object"
+  },
+  "ScoutPass": {
+   "properties": {
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "reason": {
+     "default": "",
+     "title": "Reason",
+     "type": "string"
+    },
+    "title": {
+     "title": "Title",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "title"
+   ],
+   "title": "ScoutPass",
+   "type": "object"
+  },
+  "ScoutProbe": {
+   "properties": {
+    "found": {
+     "default": 0,
+     "title": "Found",
+     "type": "integer"
+    },
+    "query": {
+     "title": "Query",
+     "type": "string"
+    },
+    "where": {
+     "default": "web",
+     "enum": [
+      "linkedin",
+      "x",
+      "web"
+     ],
+     "title": "Where",
+     "type": "string"
+    }
+   },
+   "required": [
+    "query"
+   ],
+   "title": "ScoutProbe",
+   "type": "object"
+  },
+  "ScoutReport": {
+   "description": "One scout's morning report: what's worth posting on its platform, with the evidence.",
+   "properties": {
+    "created_at": {
+     "title": "Created At",
+     "type": "string"
+    },
+    "error": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Error"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "local_date": {
+     "title": "Local Date",
+     "type": "string"
+    },
+    "model": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Model"
+    },
+    "note": {
+     "default": "",
+     "title": "Note",
+     "type": "string"
+    },
+    "opportunities": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/ScoutOpportunity"
+     },
+     "title": "Opportunities",
+     "type": "array"
+    },
+    "passed": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/ScoutPass"
+     },
+     "title": "Passed",
+     "type": "array"
+    },
+    "platform": {
+     "enum": [
+      "linkedin",
+      "x"
+     ],
+     "title": "Platform",
+     "type": "string"
+    },
+    "probes": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/ScoutProbe"
+     },
+     "title": "Probes",
+     "type": "array"
+    },
+    "provider": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Provider"
+    },
+    "searched": {
+     "default": false,
+     "title": "Searched",
+     "type": "boolean"
+    },
+    "status": {
+     "default": "ok",
+     "enum": [
+      "ok",
+      "fallback",
+      "skipped"
+     ],
+     "title": "Status",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "platform",
+    "local_date",
+    "created_at"
+   ],
+   "title": "ScoutReport",
+   "type": "object"
+  },
+  "SearchStatus": {
+   "description": "The scouts' web search (pbs/scout/websearch.py): whether the key is set and how much of the month is used.",
+   "properties": {
+    "available": {
+     "default": false,
+     "title": "Available",
+     "type": "boolean"
+    },
+    "cap": {
+     "default": 0,
+     "title": "Cap",
+     "type": "integer"
+    },
+    "error": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Error"
+    },
+    "used": {
+     "default": 0,
+     "title": "Used",
+     "type": "integer"
+    }
+   },
+   "title": "SearchStatus",
+   "type": "object"
+  },
   "SettingsUpdateEvent": {
    "additionalProperties": false,
    "properties": {
@@ -6036,7 +6605,9 @@
         "bsky_trends",
         "bsky_search",
         "bsky_feed",
-        "pulse"
+        "pulse",
+        "websearch",
+        "hf_models"
        ],
        "type": "string"
       },

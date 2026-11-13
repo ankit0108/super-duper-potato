@@ -9,8 +9,10 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__, images, log, performance, platform, pulse, stats, studio, timeutil
+from .agents import scout as scouts
 from .context import Ctx
 from .contracts import DESK_SCHEMA_VERSION, DeskState
+from .scout import websearch
 
 ACTIVE = ("drafting", "suggested", "needs_input", "editing", "blocked", "failed")
 
@@ -164,6 +166,8 @@ def build(ctx: Ctx) -> dict[str, Any]:
         "studio": _studio_kit(ctx),
         "pulse": pulse.recent(ctx),
         "performance": performance.latest(ctx),
+        "scouts": scouts.recent(ctx),
+        "scout_search": websearch.status(ctx),
     }
     validated = DeskState.model_validate(_drop_nones(state))
     return validated.model_dump(mode="json", exclude_none=True)

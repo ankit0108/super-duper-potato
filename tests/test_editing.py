@@ -243,7 +243,7 @@ def test_tells_taken_out_of_drafts_again_and_again_become_style_rules(make_ctx):
 def test_a_tell_that_keeps_going_into_posts_by_hand_is_left_alone(make_ctx):
     ctx = make_ctx()
     deliver.morning_delivery(ctx)
-    for card in ctx.store.select("cards", "platform = 'x' AND status = 'suggested' AND format = 'x_single'")[:3]:
+    for card in ctx.store.select("cards", "platform = 'x' AND status = 'suggested' AND format IN ('x_single', 'x_reply', 'x_quote')")[:3]:
         _post(ctx, card, "Approval steps first — then the agents — then the back office.")
     voice.update_voice(ctx)
     assert style.style_for(ctx, "x", "tech", "x_single").own_tells == ["dashes"]
@@ -257,7 +257,7 @@ def test_a_tell_that_keeps_going_into_posts_by_hand_is_left_alone(make_ctx):
 def test_voice_examples_are_the_posts_with_fewest_tells_and_most_words_written_by_hand(make_ctx):
     ctx = make_ctx()
     deliver.morning_delivery(ctx)
-    cards = ctx.store.select("cards", "platform = 'x' AND status = 'suggested' AND format = 'x_single'",
+    cards = ctx.store.select("cards", "platform = 'x' AND status = 'suggested' AND format IN ('x_single', 'x_reply', 'x_quote')",
                              order="rank")[:4]
     ai = _post(ctx, cards[0], "It's not about speed, it's about trust. Here's why: queues grow.",
                at="2026-09-27T20:00:00Z")

@@ -312,6 +312,12 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
           ...out.account_stats!.filter((a) => a.id !== `acs_${ev.platform}_${ev.date}`),
         ];
         break;
+      case "scout.draft":
+        // Shown as "Drafting" until the pipeline makes the card and links it on the report.
+        out.scouts = (out.scouts ?? []).map((r) =>
+          r.id === ev.report_id ? { ...r, opportunities: (r.opportunities ?? []).map((o) => (o.id === ev.topic_id && !o.card_id ? { ...o, card_id: "pending" } : o)) } : r,
+        );
+        break;
       case "request.create":
         if (!out.requests!.some((r) => r.id === ev.request_id)) {
           out.requests = [
