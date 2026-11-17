@@ -214,6 +214,19 @@ class ScoutNote(_Out):
     rank: int | None = Field(None, description="Its place in the scout's report")
 
 
+class WriterPlan(_Out):
+    """The platform writer's plan for a post, made before it was drafted (pbs/agents/writer.py)."""
+    job: str = Field("", description="The one thing the post must do for the reader")
+    opening: str = ""
+    shape: str | None = None
+    facts: list[str] = []
+    ending: str = ""
+    avoid: str = ""
+    swapped_for: str | None = Field(None, description="The pick the writer replaced with this story, same lane")
+    reason: str | None = None
+    by: str | None = None
+
+
 class Saved(_Out):
     at: str
     remind_on: str | None = Field(None, description="The day he wants to post it (his local date)")
@@ -231,7 +244,8 @@ class EditInfo(_Out):
     before: int = Field(0, description="AI tells in the draft as the model wrote it")
     after: int = Field(0, description="AI tells left (the same as before when the edit wasn't kept)")
     kept: bool = False
-    kinds: list[str] = Field([], description="The kinds of tell found (guardrails.AI_TELL_LABELS)")
+    kinds: list[str] = Field([], description="The kinds found: AI tells (guardrails.AI_TELL_LABELS) and the "
+                             "platform basics a draft missed (agents.writer.CRAFT_LABELS)")
     skipped: str | None = Field(None, description="Why no edit was tried: off, degraded run, run limit, budget, "
                                 "or the error")
     reason: str | None = Field(None, description="Why the edit wasn't kept")
@@ -302,6 +316,7 @@ class Card(_Out):
     discussion_url: str | None = Field(None, description="The Hacker News or Reddit thread people are talking in")
     saved: Saved | None = Field(None, description="Saved to post later: it never expires while this is set")
     scout: ScoutNote | None = None
+    brief: WriterPlan | None = None
     created_at: str
     updated_at: str | None = None
     revision: int = 0

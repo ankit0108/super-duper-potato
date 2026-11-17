@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from . import ids, learn, log, playbook, prompting, report, settings, textutil, timeutil, voice
+from . import ids, learn, log, playbook, prompting, report, settings, stats, textutil, timeutil, voice
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest
 
@@ -123,6 +123,9 @@ def _week_input(ctx: Ctx, start: dt.datetime, end: dt.datetime) -> dict[str, Any
                "tells_before_editor": sum(int(x.get("before") or 0) for x in edits),
                "tells_after_editor": sum(int(x.get("after") or 0) for x in edits)}
     return {"posts": posts, "skipped": skipped[:25], "rewrite_notes": notes[:20], "mix": mix, "writing": writing,
+            # Whether the scouts' scores match what he posted: the average score of posted cards against skipped
+            # or expired ones (an observation over a week's cards, not a verdict).
+            "scout_scores": stats.scout_calibration(cards),
             "post_ids": [p["id"] for p in posts]}
 
 

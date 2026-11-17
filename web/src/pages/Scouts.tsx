@@ -4,7 +4,7 @@ import type { Platform } from "@/types";
 import { FORMAT_LABEL, PLATFORM_LABEL, pct } from "@/lib/format";
 import { safeUrl } from "@/lib/compose";
 import { Link } from "@/lib/router";
-import { EVIDENCE_LABEL, PENDING_CARD, RISK_LABEL, WINDOW_LABEL, markRows, reportsFor, searchLine, type Opportunity, type ScoutNote, type ScoutReport } from "@/lib/scouts";
+import { EVIDENCE_LABEL, PENDING_CARD, RISK_LABEL, WINDOW_LABEL, calibrationLine, markRows, reportsFor, searchLine, type Opportunity, type ScoutNote, type ScoutReport } from "@/lib/scouts";
 import { dayLabel } from "@/lib/save";
 import { useDesk } from "@/state/store";
 import { usePillarLabels, useView } from "@/state/hooks";
@@ -209,6 +209,7 @@ export function Scouts() {
         )}
       </div>
       <p className="text-[13px] text-muted">{searchLine(view?.scout_search)}</p>
+      {calibrationLine(view?.stats, platform) && <p className="text-[13px] text-muted">{calibrationLine(view?.stats, platform)}</p>}
       {report ? (
         <Report report={report} />
       ) : (

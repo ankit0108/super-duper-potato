@@ -8,6 +8,7 @@ import { useTz } from "@/state/hooks";
 import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { ScoutRead } from "@/pages/Scouts";
+import { SHAPE_LABEL } from "@/lib/scouts";
 
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -45,6 +46,47 @@ export function WhyAngle({ card }: { card: Card }) {
       {card.scout && (card.scout.why || card.scout.evidence?.length || card.scout.opening) && (
         <Block title="Scout's read">
           <ScoutRead note={card.scout} platform={card.platform} />
+        </Block>
+      )}
+      {card.brief?.job && (
+        <Block title="Writer's plan">
+          <div className="space-y-1.5 text-[13.5px] leading-relaxed">
+            {card.brief.swapped_for && (
+              <p className="text-muted">
+                The writer chose this story over “{card.brief.swapped_for}”{card.brief.reason ? `: ${card.brief.reason}` : "."}
+              </p>
+            )}
+            <p>
+              <span className="font-medium">The post's job:</span> {card.brief.job}
+            </p>
+            {card.brief.opening && (
+              <p>
+                <span className="font-medium">Opening:</span> {card.brief.opening}
+              </p>
+            )}
+            {card.brief.shape && (
+              <p>
+                <span className="font-medium">Shape:</span> {SHAPE_LABEL[card.brief.shape] ?? card.brief.shape}
+              </p>
+            )}
+            {!!card.brief.facts?.length && (
+              <ul className="list-disc space-y-0.5 pl-5 text-[13px]">
+                {card.brief.facts.map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+            )}
+            {card.brief.ending && (
+              <p>
+                <span className="font-medium">Ending:</span> {card.brief.ending}
+              </p>
+            )}
+            {card.brief.avoid && (
+              <p>
+                <span className="font-medium">Avoid:</span> {card.brief.avoid}
+              </p>
+            )}
+          </div>
         </Block>
       )}
       {card.format_note && (

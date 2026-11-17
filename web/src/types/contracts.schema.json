@@ -365,6 +365,17 @@
      "title": "Attachments",
      "type": "array"
     },
+    "brief": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/WriterPlan"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
     "claims": {
      "default": [],
      "items": {
@@ -2397,7 +2408,7 @@
     },
     "kinds": {
      "default": [],
-     "description": "The kinds of tell found (guardrails.AI_TELL_LABELS)",
+     "description": "The kinds found: AI tells (guardrails.AI_TELL_LABELS) and the platform basics a draft missed (agents.writer.CRAFT_LABELS)",
      "items": {
       "type": "string"
      },
@@ -8315,6 +8326,91 @@
     }
    },
    "title": "Working",
+   "type": "object"
+  },
+  "WriterPlan": {
+   "description": "The platform writer's plan for a post, made before it was drafted (pbs/agents/writer.py).",
+   "properties": {
+    "avoid": {
+     "default": "",
+     "title": "Avoid",
+     "type": "string"
+    },
+    "by": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "By"
+    },
+    "ending": {
+     "default": "",
+     "title": "Ending",
+     "type": "string"
+    },
+    "facts": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Facts",
+     "type": "array"
+    },
+    "job": {
+     "default": "",
+     "description": "The one thing the post must do for the reader",
+     "title": "Job",
+     "type": "string"
+    },
+    "opening": {
+     "default": "",
+     "title": "Opening",
+     "type": "string"
+    },
+    "reason": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Reason"
+    },
+    "shape": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Shape"
+    },
+    "swapped_for": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The pick the writer replaced with this story, same lane",
+     "title": "Swapped For"
+    }
+   },
+   "title": "WriterPlan",
    "type": "object"
   }
  },

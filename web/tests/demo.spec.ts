@@ -221,7 +221,7 @@ test("a newer deployed desk is noticed and offered as a reload, and System shows
   await expect(page.getByText("The desk was updated. Reload to get the new version (your edits are kept).")).toBeVisible();
 });
 
-type DemoCard = { title: string; platform: string; status: string; mode?: string; draft?: unknown; questions?: unknown[]; delivery_id?: string | null; post_type?: string | null; alternatives?: string[]; trending?: { on: string } | null; llm?: { edit?: { kept?: boolean; before?: number } | null } | null };
+type DemoCard = { title: string; platform: string; status: string; mode?: string; draft?: unknown; brief?: { job?: string } | null; questions?: unknown[]; delivery_id?: string | null; post_type?: string | null; alternatives?: string[]; trending?: { on: string } | null; llm?: { edit?: { kept?: boolean; before?: number } | null } | null };
 /** The demo's own data (the pipeline's output), to find a card by what happened to it rather than by its title. */
 const demoDesk = () => JSON.parse(readFileSync("public/demo/desk.json", "utf-8")) as { delivery?: { id: string }; cards: DemoCard[] };
 
@@ -762,6 +762,16 @@ test("the scouts' reports: evidence apart from the scout's guess, and Draft this
   await page.goto("/#/scouts");
   await rows.first().getByRole("link", { name: "Open the card" }).click();
   await expect(page.getByText("Scout's read").filter({ visible: true }).first()).toBeVisible();
+});
+
+test("a planned card shows the writer's plan: the post's job, its opening and what to avoid", async ({ page }) => {
+  const desk = demoDesk();
+  const planned = desk.cards.find((c) => c.platform === "linkedin" && c.delivery_id === desk.delivery?.id && c.status === "suggested" && c.brief?.job);
+  expect(planned, "the demo's morning has a LinkedIn card the writer planned").toBeTruthy();
+  await todaySection(page).getByRole("article", { name: `LinkedIn card: ${planned!.title}`, exact: true }).click();
+  await expect(page.getByText("Writer's plan").filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByText(planned!.brief!.job!).filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByText(/^Avoid:/).filter({ visible: true }).first()).toBeVisible();
 });
 
 test("the Studio's key is checked with Gemini straight from the browser (the page may call it)", async ({ page }) => {

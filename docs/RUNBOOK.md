@@ -157,6 +157,27 @@ ran. A scout's marks move a story up or down inside your lanes; the lane mix and
 - **When models are short**, the day's drafts come first: the report is then the ranking with its evidence, and
   says so. The scouts judge plain posts only, not funny takes, quotes, excerpts, thoughts or your question cards.
 
+### The writers (LinkedIn and X)
+
+After the morning set is chosen and before it is drafted, a LinkedIn writer and an X writer each read their
+scout's report and the picks, and plan every plain post: the one job it has, which fact leads the opening, its
+shape, the facts that carry it, how it ends and what to avoid. The plan goes to the model that writes the draft
+and shows on the card as **Writer's plan**.
+
+- **One swap at most a morning.** A writer can replace a pick it has nothing specific to say about with a
+  stronger story from the scout's report, only in the same lane; the card says which story it replaced and why.
+- **Another model reviews.** The writers start on Groq, the scouts on Gemini, so a report isn't reviewed by the
+  model that wrote it.
+- **Checks after each draft.** Code looks for the platform's basics: a LinkedIn opening past the fold (about 210
+  characters), a preamble, a link in the post, a generic closing question, an X headline prefix, a reply that
+  opens with praise. What it finds goes to the editor pass with the AI tells, and the fix is kept only if it is
+  better by every existing check.
+- **Does the scout's score match what you post?** The Scouts page compares the average score of the cards you
+  posted with those you skipped or let expire, once there are three on each side; the weekly review gets the same.
+- **Budget.** Two more model calls a morning (six for all four agents). Like the scouts, the writers are skipped
+  when the day's drafts need the budget, and the drafts are written as before.
+- Funny takes, quotes, excerpts, thoughts and question cards keep their own craft: the writers don't plan them.
+
 ### Analytics exports and the performance review
 
 - **Where the files come from.** LinkedIn: your analytics (Me → Analytics, or **View analytics** under a post),

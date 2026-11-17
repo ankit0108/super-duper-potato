@@ -20,8 +20,9 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from . import guardrails, hashtags, log, posttypes, prompting, textutil
+from .agents import writer as writers
 from .context import Ctx
-from .guardrails import AI_TELL_LABELS, draft_text
+from .guardrails import draft_text
 from .llm.base import LLMRequest
 from .style import Style, render_examples
 
@@ -79,7 +80,7 @@ def reject_reason(ctx: Ctx, card: dict[str, Any], before: dict[str, Any], after:
         return "empty"
     if card["format"] == "x_thread" and len(after.get("posts") or []) != len(before.get("posts") or []):
         return "changed the thread's length"
-    if len(tells_in(new, style)) >= tells_before:
+    if len(writers.issues(card, after, tells_in(new, style))) >= tells_before:
         return "no fewer tells"
     if set(guardrails.unsourced_numbers(new, evidence)) - set(guardrails.unsourced_numbers(old, evidence)):
         return "added a figure the sources don't have"
@@ -109,7 +110,8 @@ def polish(ctx: Ctx, card: dict[str, Any], norm: dict[str, Any], style: Style, *
     from . import draft as drafting  # draft imports this module
 
     before = norm["draft"]
-    tells = tells_in(draft_text(before), style)
+    # The AI tells, and the platform's basics the draft misses (a buried opening, a link, a generic ending).
+    tells = writers.issues(card, before, tells_in(draft_text(before), style))
     if not tells or card.get("post_type") in posttypes.VERBATIM:  # someone else's words: never reworded
         norm["edit"] = None
         return norm
@@ -121,7 +123,7 @@ def polish(ctx: Ctx, card: dict[str, Any], norm: dict[str, Any], style: Style, *
         if why_not != "off":
             log.info(f"edit: skipped a {card['platform']} draft ({why_not})")
         return norm
-    listed = "\n".join(f"- {AI_TELL_LABELS.get(t['kind'], t['kind'])}: \"{t['text']}\"" for t in tells)
+    listed = "\n".join(f"- {writers.label(t['kind'])}: \"{t['text']}\"" for t in tells)
     fmt = ctx.settings.formats.get(card["format"])
     prompt = prompting.render(
         "edit",
@@ -150,7 +152,7 @@ def polish(ctx: Ctx, card: dict[str, Any], norm: dict[str, Any], style: Style, *
         after = {**before, "text": "", "posts": posts or [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]}
     else:
         after = {**before, "text": text or "\n\n".join(posts), "posts": []}
-    record.update(after=len(tells_in(draft_text(after), style)), provider=resp.provider)
+    record.update(after=len(writers.issues(card, after, tells_in(draft_text(after), style))), provider=resp.provider)
     reason = reject_reason(ctx, card, before, after, evidence=evidence, style=style, tells_before=len(tells))
     if reason:
         norm["edit"] = {**record, "reason": reason}

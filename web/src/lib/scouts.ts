@@ -49,3 +49,28 @@ export function searchLine(search: DeskState["scout_search"] | null | undefined)
   const used = `${(search.used ?? 0).toLocaleString("en")} of ${(search.cap ?? 0).toLocaleString("en")} searches used this month`;
   return search.error ? `Web search is set up, but the last search failed (${search.error}); ${used}.` : `Web search is on: ${used}.`;
 }
+
+export const SHAPE_LABEL: Record<string, string> = {
+  news_take: "News, then your take",
+  lesson: "A lesson from real work",
+  framework: "A framework worth saving",
+  disagreement: "A defensible disagreement",
+  number: "One number and what it means",
+  observation: "One distinctive observation",
+  reply: "A reply that adds one thing",
+  quote: "A quote-post that stands alone",
+  thread: "A thread",
+  question: "A question practitioners can answer",
+};
+
+type Group = { n?: number; avg?: number | null };
+/** Whether the scout's scores match what he posts, in a sentence; null until both groups have a few cards. */
+export function calibrationLine(stats: unknown, platform: string): string | null {
+  const row = ((stats as { scouts?: Record<string, { posted?: Group; passed?: Group }> } | null | undefined)?.scouts ?? {})[platform];
+  const posted = row?.posted;
+  const passed = row?.passed;
+  if (!posted?.n && !passed?.n) return null;
+  const pct = (g?: Group) => `${Math.round((g?.avg ?? 0) * 100)}%`;
+  if ((posted?.n ?? 0) < 3 || (passed?.n ?? 0) < 3) return "Too few cards yet to say whether the scout's score matches what you post.";
+  return `So far, the cards you posted had an average scout score of ${pct(posted)} (${posted!.n} cards); the ones you skipped or let expire, ${pct(passed)} (${passed!.n} cards).`;
+}

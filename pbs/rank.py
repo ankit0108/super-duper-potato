@@ -60,6 +60,8 @@ class Candidate:
     story: str | None = None
     # The platform scout's read of it (pbs/agents/scout.py): marks, evidence level, why, opening, who to reply to.
     scout: dict[str, Any] | None = None
+    # The platform writer's plan for the post (pbs/agents/writer.py): job, opening, shape, facts, ending, avoid.
+    brief: dict[str, Any] | None = None
 
     @property
     def arm(self) -> str:
