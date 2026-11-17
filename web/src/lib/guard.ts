@@ -90,6 +90,13 @@ export const AI_TELL_LABELS: Record<string, string> = {
   questions: "Stacked rhetorical questions",
   filler: "Filler phrases",
   rhythm: "Every sentence about the same length",
+  // The platform basics the writers check after each draft (pbs/agents/writer.py CRAFT_LABELS).
+  buried_opening: "An opening past LinkedIn's fold (about 210 characters)",
+  preamble: "A preamble before the point",
+  link_in_body: "A link in the post (it belongs in the first comment or a reply)",
+  generic_ending: "A generic closing question (“Thoughts?”)",
+  headline_prefix: "A headline prefix (“BREAKING:”)",
+  flattery: "A reply that opens with praise",
 };
 
 /** A tell kind's short name: "Contrast framing", "Summary closer", "Em dashes". */

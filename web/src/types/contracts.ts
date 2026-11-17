@@ -413,6 +413,21 @@ export type Width1 = number | null;
  * Pictures from the Studio that go with the post
  */
 export type Attachments = Attachment[];
+export type Avoid = string;
+export type By = string | null;
+export type Ending = string;
+export type Facts = string[];
+/**
+ * The one thing the post must do for the reader
+ */
+export type Job = string;
+export type Opening = string;
+export type Reason1 = string | null;
+export type Shape = string | null;
+/**
+ * The pick the writer replaced with this story, same lane
+ */
+export type SwappedFor = string | null;
 /**
  * Index into the card's sources (0-based)
  */
@@ -503,14 +518,14 @@ export type After = number;
 export type Before = number;
 export type Kept = boolean;
 /**
- * The kinds of tell found (guardrails.AI_TELL_LABELS)
+ * The kinds found: AI tells (guardrails.AI_TELL_LABELS) and the platform basics a draft missed (agents.writer.CRAFT_LABELS)
  */
 export type Kinds = string[];
 export type Provider = string | null;
 /**
  * Why the edit wasn't kept
  */
-export type Reason1 = string | null;
+export type Reason2 = string | null;
 /**
  * Why no edit was tried: off, degraded run, run limit, budget, or the error
  */
@@ -543,7 +558,7 @@ export type Reminded = boolean;
 export type Score = number | null;
 export type Evidence1 = string[];
 export type EvidenceLevel = "observed" | "indexed" | "hypothesis";
-export type Opening = string;
+export type Opening1 = string;
 /**
  * Its place in the scout's report
  */
@@ -562,7 +577,7 @@ export type Why1 = string;
 export type Window = ("today" | "this_week" | "evergreen") | null;
 export type At33 = string | null;
 export type Note7 = string | null;
-export type Reason2 =
+export type Reason3 =
   | "not_interesting"
   | "off_brand"
   | "wrong_timing"
@@ -930,7 +945,7 @@ export type Format4 = string | null;
  */
 export type Id49 = string;
 export type Lane = string | null;
-export type Opening1 = string;
+export type Opening2 = string;
 /**
  * Its place in the scout's report
  */
@@ -951,7 +966,7 @@ export type Why4 = string;
 export type Window1 = ("today" | "this_week" | "evergreen") | null;
 export type Opportunities = ScoutOpportunity[];
 export type Id50 = string;
-export type Reason3 = string;
+export type Reason4 = string;
 export type Title13 = string;
 export type Passed = ScoutPass[];
 export type Platform11 = "linkedin" | "x";
@@ -1001,7 +1016,7 @@ export type Status12 = "proposed" | "active" | "archived";
 export type Tier4 = "world" | "india" | "bihar" | "other";
 export type UpdatedAt2 = string | null;
 export type Stances = Stance[];
-export type Avoid = string[];
+export type Avoid1 = string[];
 export type Bait1 = string[];
 export type Fold = number;
 export type System = string;
@@ -1022,7 +1037,7 @@ export type Uploads = MetricUpload[];
 export type AddedPhrases = {
   [k: string]: unknown;
 }[];
-export type Avoid1 = string[];
+export type Avoid2 = string[];
 export type CreatedAt13 = string;
 export type CutPhrases = {
   [k: string]: unknown;
@@ -1658,6 +1673,7 @@ export interface Card {
   answers?: Answers1;
   arm?: Arm1;
   attachments?: Attachments;
+  brief?: WriterPlan | null;
   claims?: Claims;
   created_at: CreatedAt1;
   crosspost_of?: CrosspostOf;
@@ -1734,6 +1750,23 @@ export interface Attachment {
   height?: Height1;
   path: Path1;
   width?: Width1;
+}
+/**
+ * The platform writer's plan for a post, made before it was drafted (pbs/agents/writer.py).
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "WriterPlan".
+ */
+export interface WriterPlan {
+  avoid?: Avoid;
+  by?: By;
+  ending?: Ending;
+  facts?: Facts;
+  job?: Job;
+  opening?: Opening;
+  reason?: Reason1;
+  shape?: Shape;
+  swapped_for?: SwappedFor;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -1828,7 +1861,7 @@ export interface EditInfo {
   kept?: Kept;
   kinds?: Kinds;
   provider?: Provider;
-  reason?: Reason1;
+  reason?: Reason2;
   skipped?: Skipped;
 }
 /**
@@ -1863,7 +1896,7 @@ export interface ScoutNote {
   evidence?: Evidence1;
   evidence_level?: EvidenceLevel;
   marks?: Marks;
-  opening?: Opening;
+  opening?: Opening1;
   rank?: Rank1;
   reply_to?: ReplyTo;
   risk?: Risk;
@@ -1882,7 +1915,7 @@ export interface Marks {
 export interface Skip {
   at?: At33;
   note?: Note7;
-  reason: Reason2;
+  reason: Reason3;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -2427,7 +2460,7 @@ export interface ScoutOpportunity {
   id: Id49;
   lane?: Lane;
   marks?: Marks1;
-  opening?: Opening1;
+  opening?: Opening2;
   rank?: Rank2;
   reply_to?: ReplyTo1;
   risk?: Risk1;
@@ -2447,7 +2480,7 @@ export interface Marks1 {
  */
 export interface ScoutPass {
   id: Id50;
-  reason?: Reason3;
+  reason?: Reason4;
   title: Title13;
 }
 /**
@@ -2541,7 +2574,7 @@ export interface Stats1 {
  * via the `definition` "StudioKit".
  */
 export interface StudioKit {
-  avoid?: Avoid;
+  avoid?: Avoid1;
   bait?: Bait1;
   fold?: Fold;
   pillars?: Pillars;
@@ -2575,7 +2608,7 @@ export interface MetricUpload {
  */
 export interface VoiceProfile {
   added_phrases?: AddedPhrases;
-  avoid?: Avoid1;
+  avoid?: Avoid2;
   created_at: CreatedAt13;
   cut_phrases?: CutPhrases;
   examples?: Examples;

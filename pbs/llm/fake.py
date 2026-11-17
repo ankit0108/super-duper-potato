@@ -420,6 +420,27 @@ def _scout_probes(req: LLMRequest, data: Any) -> Any:
                        {"q": "enterprise AI adoption survey", "where": "web", "days": 7}]}
 
 
+def _brief(req: LLMRequest, data: Any) -> Any:
+    """A writer's plan for every pick, built from what the pick came with. No swaps."""
+    on_x = "X writer" in req.prompt
+    plans = []
+    for p in (data or {}).get("picks") or []:
+        title = str(p.get("title") or "")
+        facts = [str(e) for e in (p.get("evidence") or [])[:2]] or [str(p.get("summary") or title)[:120]]
+        reply = p.get("format") in ("x_reply", "x_quote")
+        plans.append({
+            "id": p["id"],
+            "job": (f"Add the one detail the original post leaves out about {title[:50].lower()}." if reply else
+                    f"Tell a practitioner what {title[:60].lower()} changes in their work this quarter."),
+            "opening": "Lead with the most specific fact in the story, not the announcement.",
+            "shape": ("reply" if reply else "observation") if on_x else "news_take",
+            "facts": facts,
+            "ending": "Stop when the point is made." if on_x else "End on the limitation a team should check first.",
+            "avoid": "Restating the headline.",
+        })
+    return {"plans": plans, "swaps": []}
+
+
 def _scout(req: LLMRequest, data: Any) -> Any:
     """A scout's report from the candidates it was given: marks follow the evidence, best first."""
     on_x = "X scout" in req.prompt
@@ -479,6 +500,7 @@ DEFAULT_HANDLERS: dict[str, Handler] = {
     "humor_judge": _humor_judge,
     "analysis": _analysis,
     "scout": _scout,
+    "brief": _brief,
     "scout_probes": _scout_probes,
     "default": _default,
 }

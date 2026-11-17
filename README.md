@@ -68,7 +68,8 @@ the browser with a key kept on the device; the pipeline exports the style it fol
 checks and platform tips, thread tools, rewrite, cross-post or move to the other platform, optional questions,
 dictation) · Requests (the search
 says what it understood) · **Scouts** (a LinkedIn scout and an X scout report each morning what's worth posting, with the
-evidence apart from their guess, and any find can be drafted) · Stances · Metrics (LinkedIn's .xlsx and X's .csv analytics exports read exactly, or screenshots; review queue, check-in,
+evidence apart from their guess, and any find can be drafted; a writer for each platform plans every post before
+it's drafted, shown on the card as the Writer's plan) · Stances · Metrics (LinkedIn's .xlsx and X's .csv analytics exports read exactly, or screenshots; review queue, check-in,
 and a performance review by the strongest model the keys allow) · Insights (charts,
 playbook, the platform guide and its research, proposals, weekly report, voice and how AI-sounding the drafts are,
 the skip reasons and cross-posts the ranking uses, posts with and without a visual) · Sources · History · Settings · System.

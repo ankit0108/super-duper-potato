@@ -1,13 +1,14 @@
 # What tends to work on each platform, sent with every draft, rewrite and adaptation (after his own style rules,
 # which win when they disagree). Written from widely reported platform guidance; the monthly research step
 # reads recent coverage of both platforms and proposes changes, each one waiting for Ankit's approval.
-reviewed: 2026-09
+reviewed: 2026-11
 
 linkedin:
   all:
     - {id: li-fold, text: "The first two lines (about 210 characters, before \"…see more\") decide whether anyone reads on: open with the most specific, surprising or useful line, not a preamble."}
     - {id: li-phone, text: "Short paragraphs of one to three lines with a blank line between them: most people read on a phone."}
-    - {id: li-save, text: "Write something worth saving or sending to a colleague (a practical lesson, a clear explanation, a useful framework): those signals count for more than likes."}
+    - {id: li-save, text: "Write something worth saving or sending to a colleague (a practical lesson, a clear explanation, a useful framework): saves, comments with substance and reading time count for far more than likes."}
+    - {id: li-topic, text: "LinkedIn shows a post to people by its topic and the author's shown expertise, not by follower count: stay on the subject you are known for and say something a practitioner can check against their own work."}
     - {id: li-links, text: "Keep outside links out of the post: LinkedIn tends to show posts with links to fewer people. The source link goes in the first comment."}
     - {id: li-end, text: "End on a specific takeaway or a question people can answer from their own work; never \"Agree?\" or other bait."}
     - {id: li-tags, text: "Three to five hashtags at the end: one or two broad ones people follow, the rest specific to the post."}
@@ -22,6 +23,8 @@ x:
     - {id: x-links, text: "Keep outside links out of the main post: X tends to show posts with links to fewer people. Put the link in a reply."}
     - {id: x-tags, text: "One or two hashtags at most, and only for a topic people actually follow; none is fine."}
     - {id: x-small, text: "For a small account, replies and quote posts that add one specific thing to a big conversation are how people find you."}
+    - {id: x-conversation, text: "X ranks a post by the replies, reposts, quotes and reading time it is likely to earn, and counts mutes and \"not interested\" against it: say one distinctive thing people can answer; no headline prefix, no bait."}
+    - {id: x-fresh, text: "Posts go stale within about two days: write about what is live now, and say when it happened."}
     - {id: x-visual, text: "An image, chart or diagram helps a post stop the scroll."}
   x_single: []
   x_thread:

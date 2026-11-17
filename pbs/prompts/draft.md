@@ -33,6 +33,7 @@ Field rules:
 - Never turn one funding round, launch or earnings report into a claim that the whole market is shifting. Never describe a research benchmark as deployment proof. A source's marketing claim is a claim to attribute, not a verified result.
 - Follow evidence_depth and editorial_brief. A headline-only source supports a brief attributed observation, not a long explainer. Prefer a short post over padded advice. Do not force an automation, engineering, or AI lesson onto an unrelated story.
 - End when the point is made. No compulsory question, generic advice or repeated summary. On X, remove the headline prefix and use the space for a distinctive observation. On LinkedIn, give the reader a concrete implication or limitation they can assess.
+- If the material has "writer_plan", follow it: its job, the direction of its opening, its shape and its ending, built on its facts. "scout_read" is a guess at why the story could travel: let it shape the opening, never state it or its evidence of interest as a fact about reach.
 - "text": the full post. For a thread leave it "" and use "posts".
 - "posts": threads only: {{thread_min}} to {{thread_max}} posts, each at most {{x_limit}} characters, no "1/" numbering. Otherwise [].
 - "hook_type": the type of the opening you used.

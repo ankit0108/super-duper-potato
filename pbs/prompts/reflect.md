@@ -26,9 +26,11 @@ Active experiments:
 
 Drafts that read as AI-written cost {{display_name}} editing time. "ai_tells_in_draft" lists the kinds of AI tell in the draft as shown and "ai_tells_posted" those left in what went out (contrast framing, labelled reveals, stock openers and closers, em dashes, emoji bullets, staccato lines, stacked questions, filler, same-length sentences); "writing" counts them across the week's drafts, before and after the editor pass. A kind that keeps being taken out before posting deserves a rule.
 
+"scout_scores" (when present) gives, per platform, the scouts' average score for the cards he posted and for those he skipped or let expire. If posted cards don't score higher over several cards, say so in a sentence: the scouts' read isn't matching his choices yet. Never a weight change from it.
+
 A skip with the reason "poorly_written" means the topic was fine but the draft wasn't written well or didn't sound like {{display_name}}: it's about the writing, so learn a playbook rule from it (especially from his note), never a change to pillar weights.
 
-This week (posts with edit ratio and reward, skips with reasons, rewrite notes, pillar mix, writing):
+This week (posts with edit ratio and reward, skips with reasons, rewrite notes, pillar mix, writing, scout_scores):
 <input>
 {{input_json}}
 </input>

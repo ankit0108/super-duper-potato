@@ -46,3 +46,14 @@ describe("the scouts' reports", () => {
     expect(opps.map((o) => o.card_id ?? null)).toEqual(["crd_1", PENDING_CARD]);
   });
 });
+
+describe("whether the scout's score matches what you post", () => {
+  it("waits for a few cards on each side, then compares", async () => {
+    const { calibrationLine } = await import("./scouts");
+    expect(calibrationLine({}, "x")).toBeNull();
+    expect(calibrationLine({ scouts: { x: { posted: { n: 1, avg: 0.7 }, passed: { n: 4, avg: 0.5 } } } }, "x")).toMatch(/^Too few cards yet/);
+    expect(calibrationLine({ scouts: { linkedin: { posted: { n: 3, avg: 0.712 }, passed: { n: 5, avg: 0.48 } } } }, "linkedin")).toBe(
+      "So far, the cards you posted had an average scout score of 71% (3 cards); the ones you skipped or let expire, 48% (5 cards).",
+    );
+  });
+});

@@ -1,6 +1,6 @@
-Task: edit this {{platform_label}} {{format_label}} by {{display_name}} so it reads like a person wrote it. Change only what reads as AI-written; keep everything else word for word.
+Task: edit this {{platform_label}} {{format_label}} by {{display_name}} so it reads like a person wrote it and meets the platform's basics. Change only what is listed; keep everything else word for word.
 
-What reads as AI-written in it (fix every one):
+What to fix (fix every one):
 {{tells}}
 
 How to fix them:
@@ -12,6 +12,12 @@ How to fix them:
 - Stacked rhetorical questions: keep at most one, or turn them into statements.
 - Filler phrases: delete them, or say the specific thing.
 - Every sentence the same length: merge two short ones, or split a long one, so the rhythm varies.
+- An opening past LinkedIn's fold: make the first line the specific claim or number, under about 200 characters, and move the rest down.
+- A preamble before the point: delete it, so the post opens on the point.
+- A link in the post: remove it (the source link goes in the first comment or a reply); keep the sentence around it if it still makes sense.
+- A generic closing question ("Thoughts?", "Agree?"): end on the clear position instead, or on one specific question a practitioner could answer from experience.
+- A headline prefix ("BREAKING:", "NEW:"): delete the label.
+- A reply that opens with praise: cut the praise and start with what the reply adds.
 
 Hard rules:
 - Keep every fact, figure, date, name and source reference exactly as it is. Add nothing new, and drop no fact.

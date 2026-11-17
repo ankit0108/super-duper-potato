@@ -117,7 +117,28 @@ def compute(ctx: Ctx) -> dict[str, Any]:
             "feedback": feedback.recent_feedback(ctx, days=30, limit=15, writing=True),
             "crossposts": _crossposts(ctx),
             "visuals": _visuals(ctx),
-            "writing": _writing(ctx, cards, posts, list(weeks), lday)}
+            "writing": _writing(ctx, cards, posts, list(weeks), lday),
+            "scouts": scout_calibration(cards)}
+
+
+def scout_calibration(cards: list[dict[str, Any]]) -> dict[str, Any]:
+    """Whether the scouts' scores match what he does: the average score of the cards he posted against those he
+    skipped or let expire, per platform. An observation over few cards, not a verdict on the scouts."""
+    out: dict[str, Any] = {}
+    for platform in ("linkedin", "x"):
+        groups: dict[str, list[float]] = {"posted": [], "passed": []}
+        for c in cards:
+            score = (c.get("score_parts") or {}).get("scout")
+            if c.get("platform") != platform or not isinstance(score, (int, float)) or not c.get("scout"):
+                continue
+            if c.get("status") == "posted":
+                groups["posted"].append(float(score))
+            elif c.get("status") in ("skipped", "expired"):
+                groups["passed"].append(float(score))
+        if groups["posted"] or groups["passed"]:
+            out[platform] = {k: {"n": len(v), "avg": round(sum(v) / len(v), 3) if v else None}
+                             for k, v in groups.items()}
+    return out
 
 
 def _crossposts(ctx: Ctx) -> dict[str, Any]:

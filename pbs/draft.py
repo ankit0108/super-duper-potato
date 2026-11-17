@@ -455,6 +455,14 @@ def _material(card: dict[str, Any], extra: dict[str, Any] | None = None) -> dict
         data["why_posts_about_it_are_working"] = f"On {PLATFORM_LABEL.get(trend.get('on'), trend.get('on'))}: {trend['why']}"
     elif trend.get("term"):
         data["trending"] = f"\u201c{trend['term']}\u201d is trending on {PLATFORM_LABEL.get(trend.get('on'), 'Bluesky')}"
+    brief = card.get("brief") or {}
+    if brief.get("job"):
+        data["writer_plan"] = {k: brief[k] for k in ("job", "opening", "shape", "facts", "ending", "avoid") if brief.get(k)}
+    scout = card.get("scout") or {}
+    if scout.get("why") or scout.get("opening") or scout.get("reply_to"):
+        data["scout_read"] = {k: v for k, v in {
+            "why_it_could_travel_a_guess": scout.get("why"), "opening_direction": scout.get("opening"),
+            "who_to_reply_to": scout.get("reply_to"), "evidence_of_interest": scout.get("evidence")}.items() if v}
     if card.get("story") in ("conversation", "bizarre", "funny"):
         data["story"] = {"conversation": "people are arguing or sharing experiences about it",
                          "bizarre": "people find it bizarre", "funny": "people are laughing at it"}[card["story"]]
