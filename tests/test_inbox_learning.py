@@ -259,23 +259,81 @@ def test_approving_never_bounces_a_proposal(make_ctx):
     assert ctx.store.get("proposals", bad)["status"] == "rejected" and not ctx.store.get("proposals", bad).get("error")
 
 
-def test_the_weekly_review_keeps_only_setting_changes_that_can_be_applied(make_ctx):
+def test_every_proposal_from_the_weekly_review_changes_something(make_ctx):
     def reflect_with_proposals(req, data):
-        assert "pillar keys: linkedin: receipts" in req.prompt.replace("(pillar keys: ", "pillar keys: ")
+        assert "lanes and their weights now: linkedin: receipts (now" in req.prompt
         return {"summary": "ok", "changes": [], "experiments": [], "proposals": [
             {"kind": "pillar_weights", "title": "More affairs", "patch": {"strategy": {"x": {"affairs": {"weight": 0.3}}}}},
+            # The shape the live review wrote on 18 Oct: repaired to a per-platform lane weight.
+            {"kind": "pillar_weights", "title": "Less receipts", "patch": {"strategy": {"pillar_weights": {"receipts": 0.1}}}},
+            {"kind": "guardrail", "title": "Limit stacked questions", "patch": {"rules": {"r10": {}}},
+             "rule": "End with at most one question.", "platform": "everywhere"},
             {"kind": "other", "title": "Post at lunch", "detail": "Lunchtime posts did better.",
-             "patch": {"posting": {"time": "12:00"}}}]}
+             "patch": {"posting": {"time": "12:00"}}}],
+            "advice": [{"title": "Try a carousel", "detail": "Two posts had steps."}]}
 
     ctx = _delivered(make_ctx)
     ctx.llm._providers.update(fake_providers(reflect=reflect_with_proposals))
     for card in ctx.store.select("cards", "status = 'suggested'")[:2]:
         learn.record_post(ctx, card, text="A post.", posts=None, post_url=None, posted_at=timeutil.now_iso(),
                           editing_seconds=None, hook_index=None)
-    reflect.weekly_reflection(ctx)
+    result = reflect.weekly_reflection(ctx)
     props = {p["title"]: p for p in ctx.store.select("proposals")}
     assert props["More affairs"]["payload"] == {"patch": {"strategy": {"x": {"affairs": {"weight": 0.3}}}}}
-    assert props["Post at lunch"]["payload"] == {}  # unknown setting: kept as advice, approving just notes it
+    assert props["Less receipts"]["payload"] == {"patch": {"strategy": {"linkedin": {"receipts": {"weight": 0.1}}}}}
+    assert props["Limit stacked questions"]["payload"]["rule"]["text"] == "End with at most one question."
+    assert props["Limit stacked questions"]["payload"]["rule"]["platform"] is None
+    assert "Post at lunch" not in props, "a change that can't be made is advice, not a proposal"
+    assert all(playbook.has_change(p) for p in props.values())
+    advice = ctx.store.get("system_reports", result["id"])["sections"]["reflection"]["advice"]
+    assert {a["title"] for a in advice} >= {"Post at lunch", "Try a carousel"}
+    # Approving each one changes what it says.
+    write_inbox(ctx.data_root, [{"id": f"d{i}", "type": "proposal.decide", "proposal_id": p["id"], "decision": "approve"}
+                                for i, p in enumerate(props.values())])
+    inbox.ingest(ctx)
+    assert {p["status"] for p in ctx.store.select("proposals")} == {"applied"}
+    assert ctx.settings.pillar("linkedin", "receipts").weight == 0.1
+    assert any(r["text"] == "End with at most one question." for r in playbook.active(ctx)["rules"])
+
+
+def test_a_weeks_playbook_change_can_be_undone_from_a_proposal(make_ctx):
+    from pbs import report
+
+    ctx = make_ctx()
+    playbook.ensure_seed(ctx)
+    before = [r["text"] for r in playbook.active(ctx)["rules"]]
+    changed = playbook.apply_changes(ctx, [{"op": "add", "text": "Open with a question.", "platform": "linkedin"},
+                                           {"op": "modify", "rule_id": "r2", "text": "Two ideas are fine."}],
+                                     source="reflection", summary="This week")
+    sections = {"drafter_quality": {"edit_ratio_median": {"linkedin": 0.2}, "edit_ratio_median_prev": {"linkedin": 0.05}},
+                "source_yield": []}
+    ids, advice = report.health_proposals(ctx, sections)
+    prop = ctx.store.get("proposals", ids[0])
+    assert prop["payload"] == {"revert_playbook": changed["id"]} and not advice
+    write_inbox(ctx.data_root, [{"id": "u1", "type": "proposal.decide", "proposal_id": prop["id"], "decision": "approve"}])
+    inbox.ingest(ctx)
+    assert ctx.store.get("proposals", prop["id"])["status"] == "applied"
+    assert sorted(r["text"] for r in playbook.active(ctx)["rules"]) == sorted(before)
+    # Nothing left to undo: the next rise is advice.
+    ids, advice = report.health_proposals(ctx, sections)
+    assert not ids and advice[0]["title"] == "LinkedIn drafts needed more editing"
+
+
+def test_proposals_that_cant_change_anything_are_closed_once(make_ctx):
+    ctx = make_ctx()
+    look = playbook.create_proposal(ctx, kind="model_upgrade", title="Consider a stronger drafter", detail=None,
+                                    payload={}, source="report")
+    bad = playbook.create_proposal(ctx, kind="pillar_weights", title="Reduce humor", detail=None,
+                                   payload={"patch": {"strategy": {"pillar_weights": {"humor": 0.05}}}})
+    ctx.store.update("proposals", bad, status="failed", error="the setting change isn't valid")
+    good = playbook.create_proposal(ctx, kind="pillar_weights", title="More affairs", detail=None,
+                                    payload={"patch": {"strategy": {"x": {"affairs": {"weight": 0.3}}}}})
+    assert playbook.tidy_proposals(ctx) == 2
+    assert ctx.store.get("proposals", look)["status"] == "expired"
+    assert ctx.store.get("proposals", bad)["status"] == "expired" and "isn't a valid setting" in ctx.store.get("proposals", bad)["error"]
+    assert ctx.store.get("proposals", good)["status"] == "pending"
+    again = playbook.create_proposal(ctx, kind="model_upgrade", title="Later", detail=None, payload={}, source="report")
+    assert playbook.tidy_proposals(ctx) == 0 and ctx.store.get("proposals", again)["status"] == "pending"
 
 
 def test_metrics_screenshot_extraction_matches_posts(make_ctx):

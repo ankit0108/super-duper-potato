@@ -89,8 +89,10 @@ answers plus the sources. A card with no recent sources waits for your answers.
 
 **Sunday (15 minutes).** Metrics: upload LinkedIn's analytics export (.xlsx) and X's (.csv), or screenshots,
 confirm anything the review queue flags, do the follower check-in, and read **What your numbers say**. Then **System → Run weekly review**. Monday morning, look at
-**Insights → Proposals** and approve or reject each one (a proposal that only asks you to look at something has
-**Got it** instead); the rest of the learning needs nothing from you.
+**Insights → Proposals** and approve or reject each one. Every proposal there changes something when you approve
+it (a setting, a rule for the drafts, the platform guide, or undoing a playbook change), and your decision starts a
+run, so it shows **Applying…** and then **Applied** within minutes. Suggestions that change nothing by themselves
+are under **Suggestions to consider** in the weekly report; the rest of the learning needs nothing from you.
 
 **Once a month (5 minutes).** The first run of the month reads recent coverage of how LinkedIn and X show posts
 and proposes changes to the platform guide the drafts follow, each citing its articles. Approve or reject them
@@ -248,7 +250,8 @@ desk is where to look first.
 | "Your data repo is public" | Make `pbs-data` private again (its Settings → General → Change visibility). The pipeline works the same with a private repo; it never needs it public |
 | Every LinkedIn take turns into a point about automation | Takes now fit each story: the technology, the business, the market, the people or the policy, with automation only when the story is about it. Check **Settings → Profile**: if your profile still says it "explains research for people automating real work", change that line, since the drafter reads it as a fact about you. **Insights → Playbook** shows the rules drafts follow; remove any that pushes every post toward automation |
 | A news source keeps failing | The doctor's `Sources` line names each failing source with its reason (HTTP 403 is usually a site refusing GitHub's servers). Swap it for a Google News query for the same outlet (`site:example.com when:2d`) on the Sources page |
-| A proposal says **Couldn't apply** | Its change can't be made as written (the reason is on the card: usually a setting that doesn't exist or is out of range). Make the change yourself in Settings and **Dismiss** it, or **Try again** after fixing what it names. A proposal that only asked you to look at something is recorded as *Noted* when you tap **Got it** |
+| A proposal says **Couldn't apply** | Its change couldn't be made (the reason is on the card) and nothing was changed. Trying again would fail the same way, so **Dismiss** it, and make the change yourself in Settings if you still want it. The weekly review checks each change before showing it, so this should be rare |
+| A proposal says **Applying…** for a long time | Your decision is waiting for a run. Check **System** for a run in progress or a failed one; it applies on the next run either way |
 | Fresh posts are slow, or the run log says `no answer within 50s` | A model that doesn't answer within its time limit (`llm.timeouts` in the settings: 50 s for a draft) counts as busy and the next model answers, so one stuck call no longer holds up the set. `rate limited (HTTP 429)` from Groq means its free per-minute allowance is used up: the next Groq model answers, then the run waits briefly. Cards still arrive in batches as they're drafted |
 | The Studio says the key isn't valid, or "Gemini refused the key" | Make a new key at aistudio.google.com/apikey and paste it in **Settings → Studio**. A key restricted to certain websites must allow your desk's address |
 | The Studio says the free quota is used up | Each model has its own small daily free allowance, and Google Search inside the Studio has a separate, smaller one. The Studio answers without search when only search is used up (the reply says so), waits out short per-minute limits, then moves down its models: the newest Gemini flash models, flash-lite, then Gemma (much larger free limits, no search). A model out of quota is skipped until the reset at midnight US Pacific time (the message says when that is for you). **Settings → Studio** lists the models in order and which are used up. If the key is the pipeline's `GEMINI_API_KEY` or from the same Google Cloud project, the morning run shares its quota: make the Studio's key with **Create API key in new project** |

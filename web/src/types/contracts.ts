@@ -833,9 +833,9 @@ export type Id43 = string;
 export type Kind10 = string;
 export type Source5 = string | null;
 /**
- * noted: approved, with nothing to change automatically; failed: its change couldn't be made (see error), and it can be approved again or dismissed
+ * noted: approved, with nothing to change automatically; failed: its change couldn't be made (see error), and it can be approved again or dismissed; expired: closed by the system because approving it couldn't change anything (see error)
  */
-export type Status8 = "pending" | "approved" | "rejected" | "applied" | "noted" | "failed";
+export type Status8 = "pending" | "approved" | "rejected" | "applied" | "noted" | "failed" | "expired";
 export type Title11 = string;
 export type Proposals = Proposal[];
 export type Angle1 = string;

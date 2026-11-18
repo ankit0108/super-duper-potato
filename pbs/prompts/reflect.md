@@ -7,11 +7,15 @@ What you may change directly (drafting guidance only): add, modify or remove pla
 
 Medium- and high-confidence changes apply automatically. Low-confidence ideas become experiments, tried in exploration slots.
 
-What you may only propose, for {{display_name}} to decide: pillar or lane weights, reward weights, guardrails and new sources. Put these under "proposals", with a settings "patch" when you can express one. A patch may only use these settings, with these exact keys (anything else can't be applied, so leave "patch" empty and say what to change in "detail"):
-- a pillar or lane weight from 0 to 1: {"strategy": {"x": {"affairs": {"weight": 0.25}}}} (pillar keys: {{pillar_keys}});
-- cards a morning: {"platforms": {"linkedin": {"slots": 5}}} (LinkedIn 1 to 6, X 1 to 10);
-- reward weights: {"rewards": {"linkedin": {"comments": 0.3}}};
-- how many hashtags: {"hashtags": {"x": {"max": 1}}}.
+What you may only propose, for {{display_name}} to decide: pillar or lane weights, reward weights and guardrails. Put these under "proposals". A proposal must change something when he approves it, so each one needs either:
+- a settings "patch" using only these settings, with these exact keys and one platform at a time:
+  - a pillar or lane weight from 0 to 1: {"strategy": {"x": {"affairs": {"weight": 0.25}}}} (lanes and their weights now: {{pillar_keys}});
+  - cards a morning: {"platforms": {"linkedin": {"slots": 5}}} (LinkedIn 1 to 6, X 1 to 10);
+  - reward weights: {"rewards": {"linkedin": {"comments": 0.3}}};
+  - how many hashtags: {"hashtags": {"x": {"max": 1}}};
+- or, for a guardrail, a "rule": one instruction for the drafts, written as the rule itself (for example "End with at most one question."), with "platform" set to "linkedin", "x" or null.
+
+Anything that fits neither (a suggestion to look at something, a new source, a model change) goes under "advice", not "proposals".
 
 Be conservative:
 - With fewer than five posts in the week, prefer no changes or low-confidence experiments.
@@ -36,4 +40,4 @@ This week (posts with edit ratio and reward, skips with reasons, rewrite notes, 
 </input>
 
 Reply with JSON only:
-{"summary": "two sentences on what worked and what didn't", "changes": [{"op": "add|modify|remove", "rule_id": "r3 (modify/remove only)", "text": "…", "platform": null, "pillar": null, "confidence": "low|medium|high", "evidence": ["pst_…"], "reversal": "…"}], "experiments": [{"platform": "linkedin|x|null", "pillar": null, "instruction": "…", "hypothesis": "…"}], "proposals": [{"kind": "pillar_weights|reward_weights|guardrail|source|other", "title": "…", "detail": "…", "patch": {}, "evidence": [], "confidence": "medium"}]}
+{"summary": "two sentences on what worked and what didn't", "changes": [{"op": "add|modify|remove", "rule_id": "r3 (modify/remove only)", "text": "…", "platform": null, "pillar": null, "confidence": "low|medium|high", "evidence": ["pst_…"], "reversal": "…"}], "experiments": [{"platform": "linkedin|x|null", "pillar": null, "instruction": "…", "hypothesis": "…"}], "proposals": [{"kind": "pillar_weights|reward_weights|guardrail|other", "title": "…", "detail": "…", "patch": {}, "rule": null, "platform": null, "evidence": [], "confidence": "medium"}], "advice": [{"title": "…", "detail": "…"}]}

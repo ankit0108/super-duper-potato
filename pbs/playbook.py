@@ -173,13 +173,67 @@ def create_proposal(ctx: Ctx, *, kind: str, title: str, detail: str | None, payl
     return pid
 
 
-CHANGE_KEYS = ("patch", "rule", "source", "guide_change")
+CHANGE_KEYS = ("patch", "rule", "source", "guide_change", "revert_playbook")
 
 
 def has_change(proposal: dict[str, Any]) -> bool:
-    """Whether approving the proposal changes something by itself (a setting, a rule, a source or the guide)."""
+    """Whether approving the proposal changes something by itself (a setting, a rule, a source, the guide, or undoing
+    a playbook change)."""
     payload = proposal.get("payload") or {}
     return any(payload.get(k) for k in CHANGE_KEYS)
+
+
+def undo_changes(ctx: Ctx, version_id: str) -> list[dict[str, Any]]:
+    """The rule changes that undo a playbook version's changes: an added rule is removed, a changed one gets its
+    earlier text back, a removed one comes back. Only what is still as that version left it."""
+    version = ctx.store.get("playbook_versions", version_id)
+    if not version:
+        return []
+    before = {r["id"]: r for r in (ctx.store.get("playbook_versions", f"pb_v{int(version['version']) - 1:03d}")
+                                   or {}).get("rules") or []}
+    now = {r["id"]: r for r in (active(ctx) or {}).get("rules") or []}
+    undo: list[dict[str, Any]] = []
+    for ch in version.get("changes") or []:
+        rid = ch.get("rule_id")
+        if ch.get("op") == "add" and rid in now:
+            undo.append({"op": "remove", "rule_id": rid})
+        elif ch.get("op") == "modify" and rid in now and rid in before and now[rid]["text"] == (ch.get("text") or "").strip():
+            undo.append({"op": "modify", "rule_id": rid, "text": before[rid]["text"],
+                         "confidence": before[rid].get("confidence", "medium")})
+        elif ch.get("op") == "remove" and rid in before and rid not in now:
+            old = before[rid]
+            undo.append({"op": "add", "text": old["text"], "platform": old.get("platform"),
+                         "pillar": old.get("pillar"), "confidence": old.get("confidence", "medium")})
+    return undo
+
+
+# Proposals that can't do what they said: closed once, so "Waiting for you" only holds what approving changes.
+TIDY_KEY = "proposals_cleanup_2026_11_v1"
+
+
+def tidy_proposals(ctx: Ctx) -> int:
+    """Close proposals that approving can't act on: a failed one whose setting change isn't valid (trying again
+    fails the same way) and a pending one that only asked him to look at something. Runs once. Returns how many."""
+    if ctx.store.get_setting(TIDY_KEY):
+        return 0
+    now = timeutil.now_iso()
+    closed = 0
+    overrides = dict(ctx.store.get_setting("overrides", {}) or {})
+    for p in ctx.store.select("proposals", "status IN ('pending', 'failed')"):
+        payload = p.get("payload") or {}
+        if p["status"] == "failed" and payload.get("patch"):
+            _, error = settings.validate_patch(overrides, payload["patch"])
+            if not error:
+                continue  # it can be applied now: leave it for him
+            ctx.store.update("proposals", p["id"], status="expired", decided_at=now,
+                             error="The change it asked for isn't a valid setting, so it can't be applied.")
+            closed += 1
+        elif p["status"] == "pending" and not has_change(p):
+            ctx.store.update("proposals", p["id"], status="expired", decided_at=now,
+                             error="It only asked you to look at something; that advice is in the weekly review now.")
+            closed += 1
+    ctx.store.set_setting(TIDY_KEY, True)
+    return closed
 
 
 def apply_proposal(ctx: Ctx, proposal: dict[str, Any]) -> tuple[str, str | None]:
@@ -211,4 +265,9 @@ def apply_proposal(ctx: Ctx, proposal: dict[str, Any]) -> tuple[str, str | None]
         error = platform.apply_update(ctx, payload["guide_change"])
         if error:
             return "failed", error
+    if payload.get("revert_playbook"):
+        undo = undo_changes(ctx, payload["revert_playbook"])
+        if not undo:
+            return "failed", "those playbook changes were already changed or undone"
+        apply_changes(ctx, undo, source="user", summary=f"Undone at your request: {proposal.get('title')}")
     return "applied", None

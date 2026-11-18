@@ -473,9 +473,10 @@ class Proposal(_Out):
     payload: dict[str, Any] = {}
     evidence: list[str] = []
     confidence: Literal["low", "medium", "high"] = "medium"
-    status: Literal["pending", "approved", "rejected", "applied", "noted", "failed"] = Field(
+    status: Literal["pending", "approved", "rejected", "applied", "noted", "failed", "expired"] = Field(
         "pending", description="noted: approved, with nothing to change automatically; failed: its change couldn't "
-                               "be made (see error), and it can be approved again or dismissed")
+                               "be made (see error), and it can be approved again or dismissed; expired: closed by "
+                               "the system because approving it couldn't change anything (see error)")
     created_at: str | None = None
     decided_at: str | None = None
     decision_note: str | None = None

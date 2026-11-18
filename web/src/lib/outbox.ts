@@ -48,7 +48,7 @@ export const STARTS_RUN: Record<InboxEvent["type"], boolean> = {
   "source.delete": false,
   "settings.update": false,
   "profile.update": false,
-  "proposal.decide": false,
+  "proposal.decide": true,
   "playbook.rule": false,
   "run.request": true,
   "studio.save": true,
