@@ -70,7 +70,7 @@ tech:
   - {id: spotify-engineering, name: Spotify engineering, kind: rss, url: "https://engineering.atspotify.com/feed/", pillar_hints: [learning]}
   - {id: databricks-blog, name: Databricks blog, kind: rss, url: "https://www.databricks.com/feed", best_effort: true, pillar_hints: [learning, industry]}
   # Automating business processes (his focus): tools, orchestration, agents at work, and the research on it.
-  - {id: langchain-blog, name: LangChain blog, kind: gnews, query: '(site:blog.langchain.com OR site:langchain.com/blog) when:14d', best_effort: true, pillar_hints: [learning]}
+  - {id: langchain-blog, name: LangChain (news), kind: gnews, query: '(LangChain OR LangGraph OR LangSmith) when:7d', best_effort: true, pillar_hints: [learning]}
   - {id: n8n-blog, name: n8n blog, kind: rss, url: "https://blog.n8n.io/rss/", best_effort: true, pillar_hints: [learning, receipts]}
   - {id: zapier-blog, name: Zapier blog, kind: rss, url: "https://zapier.com/blog/feeds/latest/", best_effort: true, pillar_hints: [receipts]}
   - {id: camunda-blog, name: Camunda blog, kind: rss, url: "https://camunda.com/feed/", best_effort: true, pillar_hints: [receipts, learning]}
@@ -120,7 +120,7 @@ tech:
   - {id: cohere-blog, name: "Cohere blog", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_cohere.xml", pillar_hints: [industry, learning]}
   - {id: anthropic-red-team, name: "Anthropic Frontier Red Team", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_red.xml", pillar_hints: [industry, learning]}
   - {id: google-developers-ai, name: "Google Developers Blog: AI (Gemini API)", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_google_ai.xml", pillar_hints: [industry, learning]}
-  - {id: thinking-machines, name: "Thinking Machines Lab", kind: rss, url: "https://thinkingmachines.ai/blog/index.xml", pillar_hints: [industry, learning]}
+  - {id: thinking-machines, name: "Thinking Machines Lab", kind: gnews, query: 'site:thinkingmachines.ai when:30d', best_effort: true, pillar_hints: [industry, learning]}
   - {id: cursor-blog, name: "Cursor blog", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_cursor.xml", pillar_hints: [industry, learning]}
   - {id: meta-ai-blog, name: "AI at Meta blog (primary feed)", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_meta_ai.xml", pillar_hints: [industry, learning]}
   - {id: uk-aisi-blog, name: "UK AI Security Institute blog", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_aisi.xml", pillar_hints: [industry, learning]}
@@ -129,9 +129,9 @@ tech:
   - {id: gemini-cli-releases, name: "Gemini CLI releases", kind: rss, url: "https://github.com/google-gemini/gemini-cli/releases.atom", pillar_hints: [industry, learning]}
   - {id: n8n-releases, name: "n8n releases", kind: rss, url: "https://github.com/n8n-io/n8n/releases.atom", pillar_hints: [industry, learning]}
   # Measurement: evals, benchmarks, forecasts and the economics of AI at work.
-  - {id: epoch-ai, name: "Epoch AI (Gradient Updates and Data Insights)", kind: rss, url: "https://epochai.substack.com/feed", pillar_hints: [research, industry]}
+  - {id: epoch-ai, name: "Epoch AI (Gradient Updates and Data Insights)", kind: gnews, query: '(site:epoch.ai OR site:epochai.substack.com) when:14d', best_effort: true, pillar_hints: [research, industry]}
   - {id: gnews-metr, name: "METR (time horizons, developer-productivity studies)", kind: gnews, query: 'site:metr.org OR "METR" "time horizon" when:14d', pillar_hints: [research, industry]}
-  - {id: ramp-econ-lab, name: "Ramp AI Index (Ramp Econ Lab)", kind: rss, url: "https://econlab.substack.com/feed", pillar_hints: [research, industry]}
+  - {id: ramp-econ-lab, name: "Ramp AI Index (Ramp Econ Lab)", kind: gnews, query: '(site:econlab.substack.com OR "Ramp AI Index") when:30d', best_effort: true, pillar_hints: [research, industry]}
   - {id: indeed-hiring-lab-au, name: "Indeed Hiring Lab Australia", kind: rss, url: "https://www.hiringlab.org/au/feed/", pillar_hints: [research, industry], best_effort: true}
   - {id: gnews-artificial-analysis, name: "Artificial Analysis", kind: gnews, query: '"Artificial Analysis" (benchmark OR index OR leaderboard) when:7d', pillar_hints: [research, industry]}
   - {id: gnews-stanford-hai, name: "Stanford HAI (AI Index and research)", kind: gnews, query: 'site:hai.stanford.edu when:14d', pillar_hints: [research, industry]}
@@ -141,14 +141,14 @@ tech:
   - {id: karpathy-bearblog, name: "Andrej Karpathy (Bear blog)", kind: rss, url: "https://karpathy.bearblog.dev/feed/", pillar_hints: [learning, research]}
   - {id: karpathy-github-blog, name: "Andrej Karpathy (GitHub blog)", kind: rss, url: "https://karpathy.github.io/feed.xml", pillar_hints: [learning, research]}
   - {id: dwarkesh, name: "Dwarkesh Patel (podcast and essays)", kind: rss, url: "https://www.dwarkesh.com/feed", pillar_hints: [learning, research]}
-  - {id: zvi, name: "Don't Worry About the Vase (Zvi Mowshowitz)", kind: rss, url: "https://thezvi.substack.com/feed", pillar_hints: [learning, research]}
+  - {id: zvi, name: "Don't Worry About the Vase (Zvi Mowshowitz)", kind: gnews, query: 'site:thezvi.substack.com when:7d', best_effort: true, pillar_hints: [learning, research]}
   - {id: understanding-ai, name: "Understanding AI (Timothy B. Lee)", kind: rss, url: "https://www.understandingai.org/feed", pillar_hints: [learning, research]}
   - {id: exponential-view, name: "Exponential View (Azeem Azhar)", kind: rss, url: "https://www.exponentialview.co/feed", pillar_hints: [learning, research]}
   - {id: armin-ronacher, name: "Armin Ronacher", kind: rss, url: "https://lucumr.pocoo.org/feed.atom", pillar_hints: [learning, research]}
   - {id: lilian-weng, name: "Lil'Log (Lilian Weng)", kind: rss, url: "https://lilianweng.github.io/index.xml", pillar_hints: [learning, research]}
   - {id: embrace-the-red, name: "Embrace The Red (Johann Rehberger)", kind: rss, url: "https://embracethered.com/blog/index.xml", pillar_hints: [learning, research]}
   - {id: phil-schmid, name: "Phil Schmid", kind: rss, url: "https://www.philschmid.de/rss", pillar_hints: [learning, research], best_effort: true}
-  - {id: addy-osmani, name: "Elevate (Addy Osmani)", kind: rss, url: "https://addyo.substack.com/feed", pillar_hints: [learning, research]}
+  - {id: addy-osmani, name: "Elevate (Addy Osmani)", kind: gnews, query: 'site:addyo.substack.com when:14d', best_effort: true, pillar_hints: [learning, research]}
   - {id: interconnected, name: "Interconnected (Matt Webb)", kind: rss, url: "https://interconnected.org/home/feed", pillar_hints: [learning, research]}
   - {id: semianalysis, name: "SemiAnalysis", kind: rss, url: "https://semianalysis.com/feed/", pillar_hints: [learning, research], best_effort: true}
   - {id: platformer, name: "Platformer (Casey Newton)", kind: rss, url: "https://www.platformer.news/feed", pillar_hints: [learning, research], best_effort: true}
@@ -171,6 +171,10 @@ tech:
   - {id: gnews-au-national-ai, name: "National AI Centre / National AI Plan", kind: gnews, query: '("National AI Centre" OR "National AI Plan") Australia when:14d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [industry]}
   - {id: rest-of-world, name: "Rest of World", kind: rss, url: "https://restofworld.org/feed/latest", pillar_hints: [industry]}
   - {id: gnews-et-tech, name: "ET Tech", kind: gnews, query: 'site:economictimes.indiatimes.com/tech when:1d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [industry]}
+  - {id: yt-ai-engineer, name: "AI Engineer (YouTube)", kind: rss, url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCONWr2M0moA8wsGHb3zUn_w", pillar_hints: [learning]}
+  - {id: yt-karpathy, name: "Andrej Karpathy (YouTube)", kind: rss, url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCYO_jab_esuFRV4b17AJtAw", pillar_hints: [learning, research]}
+  - {id: yt-ai-explained, name: "AI Explained (YouTube)", kind: rss, url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCNJ1Ymd5yFuUPtn21xtRbbw", pillar_hints: [learning, research]}
+  - {id: pod-ai-daily-brief, name: "The AI Daily Brief (podcast)", kind: rss, url: "https://anchor.fm/s/f7cac464/podcast/rss", pillar_hints: [industry]}
 
 affairs:
   - {id: bbc-world, name: BBC World, kind: rss, url: "https://feeds.bbci.co.uk/news/world/rss.xml", tier: world}
@@ -189,6 +193,7 @@ affairs:
   - {id: gnews-scroll, name: "Scroll", kind: gnews, query: 'site:scroll.in when:1d', hl: en-IN, gl: IN, ceid: "IN:en", tier: india}
   - {id: gnews-ideas-for-india, name: "Ideas for India", kind: gnews, query: 'site:ideasforindia.in when:30d', hl: en-IN, gl: IN, ceid: "IN:en", tier: india}
   - {id: economist-world-this-week, name: "The Economist (headlines)", kind: rss, url: "https://www.economist.com/the-world-this-week/rss.xml", tier: world, best_effort: true}
+  - {id: pod-seen-and-unseen, name: "The Seen and the Unseen (Amit Varma)", kind: rss, url: "https://rss.libsyn.com/shows/91647/destinations/458496.xml", tier: india}
 
 startups:
   - {id: techcrunch-startups, name: TechCrunch Startups, kind: rss, url: "https://techcrunch.com/category/startups/feed/", pillar_hints: [startups, industry]}
@@ -213,15 +218,18 @@ startups:
   # The startup pack (Appendix B of the brief), all marked Yes.
   - {id: gnews-carta-data, name: "Carta data (Peter Walker)", kind: gnews, query: '"Carta" (data OR report OR "Peter Walker") startups when:14d', pillar_hints: [startups]}
   - {id: gnews-capital-brief, name: "Capital Brief (Australian startups and VC)", kind: gnews, query: 'site:capitalbrief.com (startup OR startups OR venture OR founder) when:3d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [startups]}
-  - {id: andrew-chen, name: "Andrew Chen", kind: rss, url: "https://andrewchen.substack.com/feed", pillar_hints: [startups]}
+  - {id: andrew-chen, name: "Andrew Chen", kind: gnews, query: 'site:andrewchen.substack.com when:30d', best_effort: true, pillar_hints: [startups]}
   - {id: not-boring, name: "Not Boring (Packy McCormick)", kind: rss, url: "https://www.notboring.co/feed", pillar_hints: [startups]}
   - {id: newcomer, name: "Newcomer (Eric Newcomer)", kind: rss, url: "https://www.newcomer.co/feed", pillar_hints: [startups]}
   - {id: elad-gil, name: "Elad Gil", kind: rss, url: "https://blog.eladgil.com/feed", pillar_hints: [startups]}
-  - {id: the-signal-india-funding, name: "The Signal (Pivotal Research)", kind: rss, url: "https://thesignalbypivotalresearch.substack.com/feed", pillar_hints: [startups]}
+  - {id: the-signal-india-funding, name: "The Signal (Pivotal Research)", kind: gnews, query: 'site:thesignalbypivotalresearch.substack.com when:14d', best_effort: true, pillar_hints: [startups]}
   - {id: gnews-blume-indus-valley, name: "Blume Indus Valley report and Sajith Pai", kind: gnews, query: '("Indus Valley" Blume) OR "Sajith Pai" when:30d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [startups]}
   - {id: gnews-innovation-victoria, name: "Innovation Victoria (formerly LaunchVic)", kind: gnews, query: '("Innovation Victoria" OR LaunchVic) startup when:14d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [startups]}
   - {id: gnews-indie-hackers, name: "Indie Hackers", kind: gnews, query: 'site:indiehackers.com when:7d', pillar_hints: [startups]}
+  # No Priors' directory feed stopped in 2023: its episodes are found through Google News instead.
+  - {id: pod-no-priors, name: "No Priors (Sarah Guo, Elad Gil)", kind: gnews, query: '"No Priors" (podcast OR episode) (AI OR "Sarah Guo" OR "Elad Gil") when:30d', best_effort: true, pillar_hints: [startups]}
   - {id: pod-acquired, name: "Acquired (podcast)", kind: rss, url: "https://feeds.transistor.fm/acquired", pillar_hints: [startups]}
+  - {id: pod-20vc, name: "20VC (Harry Stebbings)", kind: rss, url: "https://rss.libsyn.com/shows/61840/destinations/240976.xml", pillar_hints: [startups]}
   - {id: saastr, name: "SaaStr (Jason Lemkin)", kind: rss, url: "https://www.saastr.com/feed/", pillar_hints: [startups], best_effort: true}
   - {id: gnews-the-ken, name: "The Ken (headlines)", kind: gnews, query: 'site:the-ken.com when:3d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [startups]}
   - {id: gnews-pitchbook, name: "PitchBook news", kind: gnews, query: 'site:pitchbook.com/news when:3d', pillar_hints: [startups]}
@@ -294,7 +302,6 @@ buzz:
   - {id: bsky-hamel, name: "Bluesky: Hamel Husain", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=hamel.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
   - {id: bsky-rasbt, name: "Bluesky: Sebastian Raschka", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=rasbt.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
   - {id: bsky-bcherny, name: "Bluesky: Boris Cherny", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=bcherny.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
-  - {id: bsky-lennysan, name: "Bluesky: Lenny Rachitsky", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=lennysan.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
   - {id: bsky-randomwalker, name: "Bluesky: Arvind Narayanan", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=randomwalker.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
   - {id: bsky-timkellogg, name: "Bluesky: Tim Kellogg", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=timkellogg.me&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
   - {id: bsky-melaniemitchell, name: "Bluesky: Melanie Mitchell", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=melaniemitchell.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
@@ -310,7 +317,7 @@ humor:
   - {id: pivot-to-ai, name: "Pivot to AI (David Gerard)", kind: rss, url: "https://pivot-to-ai.com/feed/", pillar_hints: [humor, industry]}
   - {id: daily-wtf, name: "The Daily WTF", kind: rss, url: "https://thedailywtf.com/rss", pillar_hints: [humor], best_effort: true}
   - {id: the-shovel, name: "The Shovel (Melbourne satire)", kind: rss, url: "https://www.theshovel.com.au/feed/", pillar_hints: [humor]}
-  - {id: betoota-advocate, name: "The Betoota Advocate", kind: rss, url: "https://www.betootaadvocate.com/feed/", pillar_hints: [humor], best_effort: true}
+  - {id: betoota-advocate, name: "The Betoota Advocate", kind: gnews, query: 'site:betootaadvocate.com when:7d', hl: en-AU, gl: AU, ceid: "AU:en", best_effort: true, pillar_hints: [humor]}
   - {id: xkcd, name: "xkcd", kind: rss, url: "https://xkcd.com/rss.xml", pillar_hints: [humor]}
   - {id: gnews-the-fauxy, name: "The Fauxy (Indian satire)", kind: gnews, query: 'site:thefauxy.com when:7d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [humor]}
 

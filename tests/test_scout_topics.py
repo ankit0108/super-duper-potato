@@ -114,7 +114,8 @@ def test_translation_survives_a_bare_list_reply(make_ctx):
 
 NEW_IDS = ("openai-developer-blog", "claude-code-changelog", "epoch-ai", "gnews-itnews", "gnews-scroll",
            "startup-daily", "gnews-capital-brief", "pod-acquired", "bsky-hamel", "pivot-to-ai", "gnews-cricket",
-           "farnam-street", "meta-ai-blog", "mistral-news")
+           "farnam-street", "meta-ai-blog", "mistral-news", "yt-karpathy", "pod-ai-daily-brief", "pod-seen-and-unseen",
+           "pod-20vc", "pod-no-priors")
 
 
 def test_the_seed_file_loads_with_unique_ids_and_his_choices():
@@ -130,6 +131,10 @@ def test_the_seed_file_loads_with_unique_ids_and_his_choices():
     by_id = {s["id"]: s for s in seeds}
     assert by_id["gnews-itnews"]["gl"] == "AU" and by_id["gnews-scroll"]["tier"] == "india"
     assert by_id["gary-marcus"]["kind"] == "gnews" and by_id["ainews"]["url"] == "https://latent.space/feeds/news.xml"
+    # Substack refuses GitHub's servers: those blogs come through Google News.
+    assert all(by_id[sid]["kind"] == "gnews" for sid in ("zvi", "epoch-ai", "andrew-chen", "addy-osmani"))
+    assert by_id["yt-karpathy"]["url"].startswith("https://www.youtube.com/feeds/videos.xml?channel_id=UC")
+    assert "bsky-lennysan" not in by_id
     reddit = [s for s in seeds if s["id"].startswith("reddit-")]
     assert {s["id"] for s in reddit} == {"reddit-ai-agents", "reddit-llmdevs", "reddit-rpa", "reddit-developersindia",
                                          "reddit-programmerhumor", "reddit-linkedinlunatics", "reddit-localllama",

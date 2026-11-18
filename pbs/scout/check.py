@@ -24,15 +24,9 @@ from .parsers import parse
 from .sources import fetch_url, seed_sources
 
 # Feeds resolved once, at build (they have no fixed URL to write down without looking it up).
-RESOLVE: list[dict[str, Any]] = [
-    {"id": "yt-ai-engineer", "youtube": "@aiDotEngineer"},
-    {"id": "yt-karpathy", "youtube": "@AndrejKarpathy"},
-    {"id": "yt-ai-explained", "youtube": "@aiexplained-official"},
-    {"id": "pod-ai-daily-brief", "apple_id": 1680633614},
-    {"id": "pod-seen-and-unseen", "apple_search": "the seen and the unseen", "artist": "Amit Varma"},
-    {"id": "pod-no-priors", "apple_search": "No Priors AI", "artist": "Conviction"},
-    {"id": "pod-20vc", "apple_search": "The Twenty Minute VC 20VC", "artist": "Harry Stebbings"},
-]
+# Feeds to look up once, at build: a YouTube channel ({"id", "youtube": "@handle"}) or a podcast ({"id", "apple_id"}
+# or {"id", "apple_search", "artist"}). Empty when nothing is waiting: the 18 Nov round's seven are in sources.yaml.
+RESOLVE: list[dict[str, Any]] = []
 UA = "PBS/0.2 (personal research digest; sources check)"
 
 
@@ -140,7 +134,7 @@ def run(base: str | None, also: list[str], resolve_feeds: bool = True) -> int:
         failed += 0 if ok or row["url"] is None else 1
         print(f"{'OK  ' if ok else 'FAIL'} {row['id']}: {row['items']} items, newest {(row['newest'] or '-')[:10]}, "
               f"HTTP {row['status']}{' (' + row['error'] + ')' if row['error'] else ''} <{row['url']}>")
-    if resolve_feeds:
+    if resolve_feeds and RESOLVE:
         resolved = asyncio.run(resolve(RESOLVE))
         found = [{**spec, "kind": "rss", "url": r["url"]} for spec, r in zip(RESOLVE, resolved, strict=True) if r.get("url")]
         checks = {row["id"]: row for row in probe(found)} if found else {}
