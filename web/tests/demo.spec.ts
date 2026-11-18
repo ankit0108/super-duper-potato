@@ -437,7 +437,9 @@ test("the platform guide drafts follow, and researched changes wait for approval
   await expect(proposal.getByRole("link", { name: /What creators are seeing in LinkedIn's feed/ })).toBeVisible();
   await noSidewaysScroll(page);
   await proposal.getByRole("button", { name: "Approve" }).click();
-  await expect(page.getByText("Approved: it applies on the next run.")).toBeVisible();
+  await expect(page.getByText("Approved: applying it now, in a few minutes.")).toBeVisible();
+  // The decision starts a run; until it reports back, the card says the change is being applied.
+  await expect(page.getByRole("listitem").filter({ hasText: "LinkedIn guide: update" }).getByText("Applying…")).toBeVisible();
 });
 
 test("a card's carousel: flip through it, download the PDF and a slide", async ({ page }) => {

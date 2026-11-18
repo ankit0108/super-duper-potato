@@ -5,6 +5,7 @@ import { safeUrl } from "@/lib/compose";
 import { newId } from "@/lib/storage";
 import { FORMAT_LABEL, SKIP_REASONS, num, pct } from "@/lib/format";
 import { tellName } from "@/lib/guard";
+import { proposalChanges, proposalStatus, proposalTone } from "@/lib/proposals";
 import { formatDate, localDateKey } from "@/lib/time";
 import { Link, useRoute, navigate } from "@/lib/router";
 import { useDesk } from "@/state/store";
@@ -389,10 +390,9 @@ function ProposalCard({ p }: { p: Proposal }) {
   const pending = p.status === "pending";
   const failed = p.status === "failed";
   const payload = (p.payload ?? {}) as Record<string, unknown>;
-  // Approving one that only asks you to look at something just records that you've seen it.
-  const changes = ["patch", "rule", "source", "guide_change"].some((k) => !!payload[k]);
+  const changes = proposalChanges(p);
   const guideChange = p.kind === "platform_guide" ? ((p.payload as { guide_change?: GuideChange } | null)?.guide_change ?? null) : null;
-  const STATUS: Record<string, string> = { applied: "Applied", noted: "Noted", rejected: "Rejected", failed: "Couldn't apply", approved: "Approved" };
+  const rule = payload.rule as { text?: string; platform?: Platform | null } | undefined;
   return (
     <li className="rounded-2xl border border-border bg-surface p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -402,12 +402,21 @@ function ProposalCard({ p }: { p: Proposal }) {
             {formatDate(p.created_at, tz)} · {p.kind.replace(/_/g, " ")} · {p.confidence} confidence
           </p>
         </div>
-        <Badge tone={pending ? "warn" : failed ? "bad" : p.status === "rejected" ? "neutral" : "ok"}>{pending ? "Waiting for you" : (STATUS[p.status ?? ""] ?? p.status)}</Badge>
+        <Badge tone={proposalTone(p.status)}>{proposalStatus(p.status, changes)}</Badge>
       </div>
       {p.detail && <p className="mt-2 text-[13.5px]">{p.detail}</p>}
       {failed && p.error && (
-        <p className="mt-2 rounded-lg border border-bad/30 bg-bad-soft px-3 py-2 text-[13px] text-bad">
-          Couldn't apply: {p.error}. Approve it again after fixing that, or dismiss it.
+        <p className="mt-2 rounded-lg border border-bad/30 bg-bad-soft px-3 py-2 text-[13px] text-bad">Couldn't apply: {p.error}. Nothing was changed.</p>
+      )}
+      {p.status === "expired" && p.error && <p className="mt-2 text-[13px] text-muted">Closed: {p.error}</p>}
+      {rule?.text && (
+        <p className="mt-2 rounded-lg bg-surface-2 px-3 py-2 text-[13px]">
+          <span className="font-medium">New rule for {rule.platform ? `${NAMES[rule.platform]} drafts` : "all drafts"}:</span> {rule.text}
+        </p>
+      )}
+      {typeof payload.revert_playbook === "string" && (
+        <p className="mt-2 rounded-lg bg-surface-2 px-3 py-2 text-[13px]">
+          <span className="font-medium">Approving undoes playbook change {payload.revert_playbook}.</span> You can see the rules on the Playbook tab.
         </p>
       )}
       {guideChange ? (
@@ -425,21 +434,23 @@ function ProposalCard({ p }: { p: Proposal }) {
           )}
         </div>
       ) : (
-        p.payload &&
-        Object.keys(p.payload).length > 0 && <pre className="mt-2 overflow-x-auto rounded-lg bg-surface-2 p-2 text-[11.5px] text-muted">{JSON.stringify(p.payload.patch ?? p.payload, null, 1)}</pre>
+        !!payload.patch && <pre className="mt-2 overflow-x-auto rounded-lg bg-surface-2 p-2 text-[11.5px] text-muted">{JSON.stringify(payload.patch, null, 1)}</pre>
       )}
       {(pending || failed) && (
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <Textarea aria-label="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} minRows={1} placeholder="Note (optional)" className="min-w-52 flex-1" />
-          <Button
-            variant="primary"
-            icon={<Check className="size-4" />}
-            onClick={() =>
-              act({ type: "proposal.decide", proposal_id: p.id, decision: "approve", note: note || null }, { toast: changes ? "Approved: it applies on the next run." : "Noted." })
-            }
-          >
-            {changes ? (failed ? "Try again" : "Approve") : "Got it"}
-          </Button>
+          {/* Trying a failed one again would fail the same way: it can only be dismissed. */}
+          {pending && (
+            <Button
+              variant="primary"
+              icon={<Check className="size-4" />}
+              onClick={() =>
+                act({ type: "proposal.decide", proposal_id: p.id, decision: "approve", note: note || null }, { toast: changes ? "Approved: applying it now, in a few minutes." : "Noted." })
+              }
+            >
+              {changes ? "Approve" : "Got it"}
+            </Button>
+          )}
           <Button icon={<X className="size-4" />} onClick={() => act({ type: "proposal.decide", proposal_id: p.id, decision: "reject", note: note || null }, { toast: failed ? "Dismissed." : "Rejected." })}>
             {failed ? "Dismiss" : "Reject"}
           </Button>
@@ -507,6 +518,19 @@ function ReportTab({ view }: { view: DeskState }) {
     <div className="space-y-5">
       <Panel title={`Week ${r.week}`} description={`Written ${formatDate(r.created_at, tz)}`}>
         <p className="text-[14px]">{s.reflection?.summary ?? "No reflection summary."}</p>
+        {(s.reflection?.advice ?? []).length > 0 && (
+          <div className="mt-3">
+            <div className="text-[13px] font-semibold">Suggestions to consider</div>
+            <p className="text-[12.5px] text-muted">Nothing changes by itself: these are for you to act on if you agree.</p>
+            <ul className="mt-1 list-disc space-y-1 pl-5 text-[13px]">
+              {(s.reflection.advice as Array<{ title: string; detail?: string }>).map((a, i) => (
+                <li key={i}>
+                  <span className="font-medium">{a.title}.</span> {a.detail}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {(r.actions ?? []).length > 0 && (
           <div className="mt-3">
             <div className="text-[13px] font-semibold">Changes the system made itself</div>

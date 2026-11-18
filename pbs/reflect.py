@@ -59,8 +59,16 @@ class _Proposal(BaseModel):
     title: str
     detail: str | None = None
     patch: dict[str, Any] = Field(default_factory=dict)
+    rule: str | None = None  # a guardrail as a playbook rule, when it can't be a setting
+    platform: str | None = None  # "linkedin" or "x"; anything else means both
     evidence: list[str] = Field(default_factory=list)
     confidence: Literal["low", "medium", "high"] = "medium"
+
+
+class _Advice(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    title: str
+    detail: str = ""
 
 
 class _ReflectOut(BaseModel):
@@ -69,6 +77,44 @@ class _ReflectOut(BaseModel):
     changes: list[_Change] = Field(default_factory=list)
     experiments: list[_Experiment] = Field(default_factory=list)
     proposals: list[_Proposal] = Field(default_factory=list)
+    advice: list[_Advice] = Field(default_factory=list)
+
+
+def repair_patch(ctx: Ctx, patch: dict[str, Any]) -> dict[str, Any]:
+    """A common wrong shape of a lane weight change, put right: {"strategy": {"pillar_weights": {"humor": 0.05}}} or
+    {"strategy": {"humor": 0.05}} becomes {"strategy": {"<platform>": {"humor": {"weight": 0.05}}}} when the lane
+    exists on exactly one platform. Anything else is returned as it was."""
+    strategy = patch.get("strategy")
+    if not isinstance(strategy, dict):
+        return patch
+    flat = {**(strategy.get("pillar_weights") or {}),
+            **{k: v for k, v in strategy.items() if k not in ("linkedin", "x", "pillar_weights")}}
+    if not flat:
+        return patch
+    fixed: dict[str, Any] = {pl: dict(strategy.get(pl) or {}) for pl in ("linkedin", "x") if strategy.get(pl)}
+    for lane, value in flat.items():
+        weight = value.get("weight") if isinstance(value, dict) else value
+        homes = [pl for pl in ("linkedin", "x") if lane in ctx.settings.pillars(pl)]
+        if len(homes) != 1 or not isinstance(weight, (int, float)):
+            return patch  # ambiguous or not a weight: leave it, and validation decides
+        fixed.setdefault(homes[0], {})[lane] = {"weight": weight}
+    return {**{k: v for k, v in patch.items() if k != "strategy"}, "strategy": fixed}
+
+
+def proposal_payload(ctx: Ctx, prop: _Proposal, overrides: dict[str, Any]) -> dict[str, Any]:
+    """What approving the proposal will change, or {} when nothing valid: a settings patch that validates (after
+    repair_patch), else a guardrail written as a playbook rule."""
+    if prop.patch:
+        for patch in (prop.patch, repair_patch(ctx, prop.patch)):
+            _, error = settings.validate_patch(overrides, patch)
+            if not error:
+                return {"patch": patch}
+        log.info("reflect: a proposed setting change isn't valid; kept as advice")
+    if prop.rule and prop.rule.strip():
+        return {"rule": {"text": textutil.truncate(prop.rule.strip(), 600),
+                         "platform": prop.platform if prop.platform in ("linkedin", "x") else None,
+                         "confidence": prop.confidence}}
+    return {}
 
 
 def evaluate_experiments(ctx: Ctx) -> list[dict[str, Any]]:
@@ -139,7 +185,7 @@ def weekly_reflection(ctx: Ctx) -> dict[str, Any]:
     sections, actions = report.build_report(ctx, start, end)
     applied = report.apply_actions(ctx, actions)
     exp_results = evaluate_experiments(ctx)
-    proposal_ids = report.health_proposals(ctx, sections)
+    proposal_ids, advice = report.health_proposals(ctx, sections)
     week = _week_input(ctx, start, end)
     summary = ""
     changes_applied = 0
@@ -148,7 +194,9 @@ def weekly_reflection(ctx: Ctx) -> dict[str, Any]:
         rules = "\n".join(f"- {r['id']}: {r['text']} [{r.get('platform') or 'all'}]" for r in current.get("rules") or [])
         exps = "\n".join(f"- {x['instruction']} ({x.get('trials', 0)} trials, {x.get('picks', 0)} picks)"
                          for x in ctx.store.select("experiments", "status = 'active'")) or "(none)"
-        pillar_keys = "; ".join(f"{pl}: {', '.join(ctx.settings.pillars(pl))}" for pl in ("linkedin", "x"))
+        pillar_keys = "; ".join(f"{pl}: " + ", ".join(f"{k} (now {spec.weight:g})"
+                                                       for k, spec in ctx.settings.pillars(pl).items())
+                                for pl in ("linkedin", "x"))
         prompt = prompting.render("reflect", display_name=ctx.settings.display_name, rules=rules or "(none)",
                                   pillar_keys=pillar_keys,
                                   experiments=exps, input_json={k: v for k, v in week.items() if k != "post_ids"}
@@ -177,24 +225,25 @@ def weekly_reflection(ctx: Ctx) -> dict[str, Any]:
                     "updated_at": timeutil.now_iso()})
             overrides = dict(ctx.store.get_setting("overrides", {}) or {})
             for prop in out.proposals[:5]:
-                payload: dict[str, Any] = {}
-                detail = prop.detail
-                if prop.patch:
-                    # Checked now, not when he approves: a change that can't be made stays as advice.
-                    _, error = settings.validate_patch(overrides, prop.patch)
-                    if error:
-                        log.info(f"reflect: dropped an invalid setting change from a proposal ({error})")
-                    else:
-                        payload = {"patch": prop.patch}
+                # Checked now, not when he approves: only a proposal that approving can act on is shown as one;
+                # the rest is advice in the weekly review.
+                payload = proposal_payload(ctx, prop, overrides)
+                if not payload:
+                    advice.append({"title": textutil.truncate(prop.title, 200),
+                                   "detail": textutil.truncate(prop.detail or "", 500)})
+                    continue
                 proposal_ids.append(playbook.create_proposal(
-                    ctx, kind=prop.kind, title=prop.title, detail=detail, payload=payload,
+                    ctx, kind=prop.kind, title=prop.title, detail=prop.detail, payload=payload,
                     evidence=[e for e in prop.evidence if e in valid_posts], confidence=prop.confidence))
+            advice.extend({"title": textutil.truncate(a.title, 200), "detail": textutil.truncate(a.detail, 500)}
+                          for a in out.advice[:5] if a.title.strip())
         except (BudgetExhausted, ValueError) as exc:
             log.info(f"reflect: model reflection skipped ({type(exc).__name__})")
             summary = "The model reflection was skipped this week (no model budget). The system report still ran."
     else:
         summary = "No posts or skips this week, so there was nothing to learn from."
-    sections["reflection"] = {"summary": summary, "changes_applied": changes_applied, "experiments": exp_results}
+    sections["reflection"] = {"summary": summary, "changes_applied": changes_applied, "experiments": exp_results,
+                              "advice": advice[:10]}
     ctx.store.upsert("system_reports", {
         "id": key, "week": key, "created_at": timeutil.now_iso(),
         "period": {"start": timeutil.iso(start), "end": timeutil.iso(end)},

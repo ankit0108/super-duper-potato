@@ -4682,14 +4682,15 @@
     },
     "status": {
      "default": "pending",
-     "description": "noted: approved, with nothing to change automatically; failed: its change couldn't be made (see error), and it can be approved again or dismissed",
+     "description": "noted: approved, with nothing to change automatically; failed: its change couldn't be made (see error), and it can be approved again or dismissed; expired: closed by the system because approving it couldn't change anything (see error)",
      "enum": [
       "pending",
       "approved",
       "rejected",
       "applied",
       "noted",
-      "failed"
+      "failed",
+      "expired"
      ],
      "title": "Status",
      "type": "string"

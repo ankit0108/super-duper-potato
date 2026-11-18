@@ -1,7 +1,8 @@
 """Weekly system report (FR-23): how well the machine is working, plus the small fixes it may make itself.
 
-Auto-applied: per-scout candidate counts and exploration rate (bounded). Low-yield sources get a review proposal.
-Everything touching pillars, reward weights or guardrails becomes a proposal for Ankit.
+Auto-applied: per-scout candidate counts and exploration rate (bounded). Everything touching pillars, reward weights
+or guardrails becomes a proposal for Ankit, and only when approving it changes something; other suggestions are
+advice in the weekly review.
 """
 
 from __future__ import annotations
@@ -200,40 +201,55 @@ def apply_actions(ctx: Ctx, actions: list[dict[str, Any]]) -> list[dict[str, Any
     return applied
 
 
-def health_proposals(ctx: Ctx, sections: dict[str, Any]) -> list[str]:
-    """Flag prompts for review when edit ratio rises, and suggest the strongest free model after 4 flat weeks."""
+PLATFORM = {"linkedin": "LinkedIn", "x": "X"}
+
+
+def health_proposals(ctx: Ctx, sections: dict[str, Any]) -> tuple[list[str], list[dict[str, str]]]:
+    """What the week's numbers suggest. Only something approving can do becomes a proposal (undoing the week's
+    playbook change when drafts got harder to edit); the rest is advice for the weekly review, so every proposal
+    under "Waiting for you" changes something. Returns (proposal ids, advice)."""
     ids: list[str] = []
+    advice: list[dict[str, str]] = []
     quiet = [y for y in sections.get("source_yield", [])
              if y["active"] and not y["failing"] and y["items_28d"] >= 10 and y["picked_items_28d"] == 0]
-    since = timeutil.iso(timeutil.now() - dt.timedelta(days=28))
-    if quiet and not ctx.store.count("proposals", "kind = 'source_review' AND created_at >= ?", (since,)):
-        ids.append(playbook.create_proposal(
-            ctx, kind="source_review", title="Review source relevance and ranking before pausing feeds",
-            detail="Some healthy feeds have no selected posts. That can mean their stories were never surfaced. "
-                   "Review them on Sources; they stay active. Approving this acknowledges the review only.",
-            payload={}, evidence=[y["source_id"] for y in quiet[:12]], confidence="low", source="report"))
+    if quiet:
+        advice.append({"title": f"{len(quiet)} sources had no picked stories in 28 days",
+                       "detail": "They stay active. Their stories may never have reached the board: "
+                                 + ", ".join(y["source_id"] for y in quiet[:12]) + "."})
     dq = sections["drafter_quality"]
+    week_ago = timeutil.iso(timeutil.now() - dt.timedelta(days=7))
     for pl in ("linkedin", "x"):
         now_m, prev_m = dq["edit_ratio_median"].get(pl), dq["edit_ratio_median_prev"].get(pl)
-        if now_m is not None and prev_m is not None and now_m > prev_m + 0.05:
+        if now_m is None or prev_m is None or now_m <= prev_m + 0.05:
+            continue
+        rose = f"{PLATFORM[pl]} drafts needed more editing this week: the median edit ratio rose from {prev_m} to {now_m}."
+        # The newest automatic playbook change from this week that touched this platform's rules, if any.
+        version = next((v for v in ctx.store.select("playbook_versions", "created_at >= ?", (week_ago,),
+                                                    order="version DESC")
+                        if v.get("source") in ("reflection", "analytics", "voice")
+                        and playbook.undo_changes(ctx, v["id"])
+                        and any((c.get("platform") in (None, pl)) for c in v.get("changes") or [])), None)
+        if version and not ctx.store.count("proposals", "kind = 'prompt_review' AND status = 'pending'"):
+            changes = "; ".join(f"{c.get('op')} “{(c.get('text') or c.get('rule_id') or '')[:90]}”"
+                                for c in (version.get("changes") or [])[:4])
             ids.append(playbook.create_proposal(
-                ctx, kind="prompt_review", title=f"Review {pl} drafting: edit ratio rose from {prev_m} to {now_m}",
-                detail="Drafts needed more editing this week than last. Check the latest playbook changes and voice "
-                       "rules on the Insights page; revert a change if it made things worse.", payload={},
-                confidence="medium", source="report"))
+                ctx, kind="prompt_review", title=f"Undo this week's playbook change ({version['id']})?",
+                detail=f"{rose} The playbook changed on {version['created_at'][:10]}: {changes}. Approve to undo "
+                       "that change; reject to keep it.",
+                payload={"revert_playbook": version["id"]}, confidence="medium", source="report"))
+        else:
+            advice.append({"title": f"{PLATFORM[pl]} drafts needed more editing",
+                           "detail": f"{rose} No playbook change this week explains it; check the rewrite notes and "
+                                     "the voice rules on the Insights page."})
     reports = ctx.store.select("system_reports", order="week DESC", limit=4)
     if len(reports) >= 4:
         medians = [((r.get("sections") or {}).get("drafter_quality") or {}).get("edit_ratio_median", {}) for r in reports]
         for pl in ("linkedin", "x"):
             series = [m.get(pl) for m in reversed(medians) if m.get(pl) is not None]
-            since = timeutil.iso(timeutil.now() - dt.timedelta(weeks=8))
-            asked = ctx.store.count("proposals", "kind = 'model_upgrade' AND created_at >= ?", (since,))
-            if len(series) >= 4 and series[-1] >= series[0] - 0.02 and not asked:
-                ids.append(playbook.create_proposal(
-                    ctx, kind="model_upgrade", title="Edit ratio is flat after four weeks: consider a stronger drafter",
-                    detail="Compare the configured free providers, improve source detail, and add examples of "
-                           "your own edits before changing models. Check Settings → Models for unused free "
-                           "fallbacks. Approving this only records that you've seen it.",
-                    payload={}, confidence="medium", source="report"))
+            if len(series) >= 4 and series[-1] >= series[0] - 0.02:
+                advice.append({"title": "Editing hasn't eased in four weeks",
+                               "detail": "Compare the configured free providers, improve source detail, and add "
+                                         "examples of your own edits before changing models. Settings → Models "
+                                         "shows unused free fallbacks."})
                 break
-    return ids
+    return ids, advice
