@@ -50,7 +50,7 @@ const KIND_LABEL: Record<string, string> = {
 
 function health(s: Source, now: Date): { tone: "ok" | "warn" | "bad" | "neutral"; text: string } {
   const h = s.health ?? {};
-  if (!s.active) return { tone: "neutral", text: s.paused_reason ? "Paused automatically" : "Paused" };
+  if (!s.active) return { tone: "neutral", text: s.paused_reason ? "Paused (older release)" : "Paused" };
   if (!h.last_fetch_at) return { tone: "neutral", text: "Not fetched yet" };
   if ((h.consecutive_failures ?? 0) >= 3) return { tone: "bad", text: `Failing (${h.consecutive_failures}×)` };
   if ((h.consecutive_failures ?? 0) > 0) return { tone: "warn", text: "Failed last run" };
@@ -164,7 +164,7 @@ export function Sources() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Sources</h1>
           <p className="mt-1 text-sm text-muted">
-            {sources.filter((s) => s.active).length} active sources. {failing ? `${failing} failing: replace them with a Google News query.` : "Failing sources pause themselves after a week."}
+            {sources.filter((s) => s.active).length} active sources. {failing ? `${failing} failing: they're still tried every day, and the weekly source review asks you whether to remove them.` : "Every source you haven't paused or removed is fetched every day; nothing is removed without you."}
           </p>
         </div>
         <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>

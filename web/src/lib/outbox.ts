@@ -34,6 +34,7 @@ export const STARTS_RUN: Record<InboxEvent["type"], boolean> = {
   "card.draft_now": true,
   "card.hook": false,
   "scout.draft": true,
+  "editor.draft": true,
   "post.update": false,
   "post.metrics": false,
   "metrics.upload": true,

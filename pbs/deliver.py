@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 from . import bandit, draft, ids, log, prompting, pulse, textutil, timeutil
+from .agents import editor as editors
 from .agents import scout as scouts
 from .agents import writer as writers
 from .context import Ctx
@@ -79,6 +80,7 @@ def card_from_candidate(ctx: Ctx, cand: Candidate, dlv_id: str | None, rank: int
         "story": cand.story,
         "scout": cand.scout,
         "brief": cand.brief,
+        "editor": cand.editor,
         "discussion_url": textutil.http_url(((topic.get("why_now") or {}).get("signals") or {}).get("discussion_url")),
         "created_at": now,
         "updated_at": now,
@@ -203,6 +205,15 @@ def morning_delivery(ctx: Ctx, scout: bool = True, dlv_id: str | None = None, pl
                                       slots=per_platform, exclude=seen)
             taken |= {c.topic_key for c in plan[platform]}
     if agents_on and plan:
+        # Each platform's editor decides what gets written and in what order (inside his lane mix), and names the
+        # runner-ups shown on the board.
+        with ctx.run.step("editor") as s:
+            drafts = sum(len(cs) for cs in plan.values())
+            use_llm = ctx.llm.any_available("editor") and scouts.affordable(ctx, drafts)
+            for platform in list(plan):
+                plan[platform], slate = editors.choose(ctx, platform, plan[platform], cands.get(platform, []), dlv_id,
+                                                       use_llm=use_llm)
+                s[platform] = {"status": slate["status"], "swaps": slate["swaps"], "runners_up": len(slate["runners_up"])}
         # Each platform's writer reviews its scout's report and the picks, and plans the posts before they're drafted.
         with ctx.run.step("writer_plans") as s:
             drafts = sum(len(cs) for cs in plan.values())

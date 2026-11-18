@@ -48,6 +48,12 @@ export function WhyAngle({ card }: { card: Card }) {
           <ScoutRead note={card.scout} platform={card.platform} />
         </Block>
       )}
+      {card.editor?.why && (
+        <Block title="Editor's pick">
+          <p className="text-[13.5px] leading-relaxed">{card.editor.why}</p>
+          {card.editor.swapped_for && <p className="text-[12.5px] text-muted">Chosen over “{card.editor.swapped_for}”, from the same lane.</p>}
+        </Block>
+      )}
       {card.brief?.job && (
         <Block title="Writer's plan">
           <div className="space-y-1.5 text-[13.5px] leading-relaxed">

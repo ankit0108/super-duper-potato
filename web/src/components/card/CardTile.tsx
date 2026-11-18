@@ -225,7 +225,13 @@ export function CardTile({ card, pending }: { card: Card; pending?: boolean }) {
         </span>
       </div>
       <h3 className="mt-2 line-clamp-2 text-[15px] leading-snug font-semibold">{card.title}</h3>
-      {card.why_now && <p className="mt-1 line-clamp-1 text-[13px] text-muted">{card.why_now}</p>}
+      {card.editor?.why ? (
+        <p className="mt-1 line-clamp-2 text-[13px] text-muted" title="Why the editor picked it">
+          <span className="font-medium text-text">Editor:</span> {card.editor.why}
+        </p>
+      ) : (
+        card.why_now && <p className="mt-1 line-clamp-1 text-[13px] text-muted">{card.why_now}</p>
+      )}
       <div className="mt-2.5 min-h-[3.2rem] rounded-xl bg-surface-2 px-3 py-2 text-[13.5px] leading-relaxed text-text/90">
         {work ? (
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-accent">

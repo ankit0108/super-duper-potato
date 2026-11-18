@@ -312,6 +312,12 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
           ...out.account_stats!.filter((a) => a.id !== `acs_${ev.platform}_${ev.date}`),
         ];
         break;
+      case "editor.draft":
+        // Shown as "Drafting" until the pipeline makes the card and links it on the editor's list.
+        out.editor_slates = (out.editor_slates ?? []).map((sl) =>
+          sl.id === ev.slate_id ? { ...sl, runners_up: (sl.runners_up ?? []).map((r) => (r.id === ev.topic_id && !r.card_id ? { ...r, card_id: "pending" } : r)) } : sl,
+        );
+        break;
       case "scout.draft":
         // Shown as "Drafting" until the pipeline makes the card and links it on the report.
         out.scouts = (out.scouts ?? []).map((r) =>
@@ -386,6 +392,11 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
           p.id === ev.proposal_id ? { ...p, status: ev.decision === "approve" ? "approved" : "rejected", decided_at: ev.at } : p,
         );
         pending.proposals.add(ev.proposal_id);
+        // A source review: the ones he chose to remove leave the Sources page now, as a delete there would.
+        if (ev.decision === "approve" && ev.choices) {
+          const gone = new Set(Object.entries(ev.choices).filter(([, c]) => c === "remove").map(([id]) => id));
+          if (gone.size) out.sources = out.sources!.filter((s) => !gone.has(s.id));
+        }
         break;
       case "playbook.rule":
         if (out.playbook) {

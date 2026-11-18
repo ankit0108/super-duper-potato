@@ -2,7 +2,7 @@ import type { Proposal } from "@/types";
 import type { Tone } from "@/components/ui/Badge";
 
 /** What approving a proposal changes by itself (pbs/playbook.py CHANGE_KEYS). */
-export const CHANGE_KEYS = ["patch", "rule", "source", "guide_change", "revert_playbook"] as const;
+export const CHANGE_KEYS = ["patch", "rule", "source", "guide_change", "revert_playbook", "review"] as const;
 
 export function proposalChanges(p: Pick<Proposal, "payload">): boolean {
   const payload = (p.payload ?? {}) as Record<string, unknown>;

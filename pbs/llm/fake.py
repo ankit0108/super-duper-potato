@@ -420,6 +420,17 @@ def _scout_probes(req: LLMRequest, data: Any) -> Any:
                        {"q": "enterprise AI adoption survey", "where": "web", "days": 7}]}
 
 
+def _editor(req: LLMRequest, data: Any) -> Any:
+    """An editor that keeps the ranking's order (so the demo's morning stays the same), with a why for each pick and
+    the alternatives as runner-ups. Tests that need reordering or swaps pass their own handler."""
+    picks = (data or {}).get("picks") or []
+    alts = (data or {}).get("alternatives") or []
+    return {"order": [p["id"] for p in picks], "swaps": [],
+            "why": {p["id"]: f"Something specific to add on {str(p.get('title') or '')[:50].lower()} this week."
+                    for p in picks},
+            "runners_up": [{"id": a["id"], "why": "Worth a post if today's picks don't suit you."} for a in alts[:5]]}
+
+
 def _brief(req: LLMRequest, data: Any) -> Any:
     """A writer's plan for every pick, built from what the pick came with. No swaps."""
     on_x = "X writer" in req.prompt
@@ -501,6 +512,7 @@ DEFAULT_HANDLERS: dict[str, Handler] = {
     "analysis": _analysis,
     "scout": _scout,
     "brief": _brief,
+    "editor": _editor,
     "scout_probes": _scout_probes,
     "default": _default,
 }

@@ -57,3 +57,15 @@ describe("whether the scout's score matches what you post", () => {
     );
   });
 });
+
+describe("the editor's runner-ups", () => {
+  it("lists today's newest set per platform, and says where posts come from in the order", async () => {
+    const { runnerUps, editorLine } = await import("./scouts");
+    const slate = (id: string, platform: "linkedin" | "x", created_at: string, ids: string[]) => ({ id, platform, local_date: "2026-11-18", created_at, runners_up: ids.map((r) => ({ id: r, title: r })) });
+    const rows = runnerUps([slate("a", "x", "2026-11-18T06:00:00Z", ["old"]), slate("b", "x", "2026-11-18T09:00:00Z", ["new"]), slate("c", "linkedin", "2026-11-18T06:00:00Z", ["li"])] as never, "2026-11-18");
+    expect(rows.map((r) => r.runner.id)).toEqual(["li", "new"]);
+    expect(runnerUps(null, "2026-11-18")).toEqual([]);
+    expect(editorLine({ editors: { x: { posted_top_half: 1, posted_bottom_half: 1 } } }, "x")).toBeNull();
+    expect(editorLine({ editors: { x: { posted_top_half: 3, posted_bottom_half: 1 } } }, "x")).toBe("Of your last 4 posts from the editor's sets, 3 came from the top half of its order.");
+  });
+});

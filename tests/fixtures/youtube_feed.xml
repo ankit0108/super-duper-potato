@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+ <link rel="self" href="http://www.youtube.com/feeds/videos.xml?channel_id=UCXUPKJO5MZQN11PqgIvyuvQ"/>
+ <id>yt:channel:XUPKJO5MZQN11PqgIvyuvQ</id>
+ <yt:channelId>XUPKJO5MZQN11PqgIvyuvQ</yt:channelId>
+ <title>Andrej Karpathy</title>
+ <link rel="alternate" href="https://www.youtube.com/channel/UCXUPKJO5MZQN11PqgIvyuvQ"/>
+ <author>
+  <name>Andrej Karpathy</name>
+  <uri>https://www.youtube.com/channel/UCXUPKJO5MZQN11PqgIvyuvQ</uri>
+ </author>
+ <published>2009-04-14T21:39:31+00:00</published>
+ <entry>
+  <id>yt:video:7xTGNNLPyMI</id>
+  <yt:videoId>7xTGNNLPyMI</yt:videoId>
+  <yt:channelId>UCXUPKJO5MZQN11PqgIvyuvQ</yt:channelId>
+  <title>Deep Dive into LLMs like ChatGPT</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=7xTGNNLPyMI"/>
+  <author>
+   <name>Andrej Karpathy</name>
+   <uri>https://www.youtube.com/channel/UCXUPKJO5MZQN11PqgIvyuvQ</uri>
+  </author>
+  <published>2026-11-12T16:00:10+00:00</published>
+  <updated>2026-11-13T02:11:07+00:00</updated>
+  <media:group>
+   <media:title>Deep Dive into LLMs like ChatGPT</media:title>
+   <media:content url="https://www.youtube.com/v/7xTGNNLPyMI?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i1.ytimg.com/vi/7xTGNNLPyMI/hqdefault.jpg" width="480" height="360"/>
+   <media:description>This is a general audience deep dive into the Large Language Model (LLM) AI technology that powers ChatGPT and related products. It covers the full training stack of how the models are developed.</media:description>
+   <media:community>
+    <media:starRating count="61234" average="5.00" min="1" max="5"/>
+    <media:statistics views="3301234"/>
+   </media:community>
+  </media:group>
+ </entry>
+</feed>

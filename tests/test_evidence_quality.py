@@ -56,13 +56,15 @@ def test_primary_source_tracks_the_subject_not_the_newest_unrelated_article(make
     assert draft.select_sources(ctx, {"item_ids": ids, "title": "Acme Q2 profit rises"})[0]["url"].endswith("/a")
 
 
-def test_healthy_auto_paused_sources_recover_once_but_user_pauses_stay(store):
+def test_every_automatic_pause_is_lifted_once_but_user_pauses_stay(store):
+    # Since November 2026 nothing is paused without him: a failing source is retried every run and goes into his
+    # weekly source review instead.
     for name, reason in (("auto", "No picked cards from 111 items in 4 weeks"),
                          ("user", "Paused by you"), ("broken", "No successful fetch for 7 days (HTTP 403)")):
         store.insert("sources", {"id": name, "active": False, "paused_reason": reason})
     sync_seeds(store)
-    assert store.get("sources", "auto")["active"]
-    assert not store.get("sources", "user")["active"] and not store.get("sources", "broken")["active"]
+    assert store.get("sources", "auto")["active"] and store.get("sources", "broken")["active"]
+    assert not store.get("sources", "user")["active"]
     store.update("sources", "auto", active=False, paused_reason="Paused by you")
     sync_seeds(store)
     assert not store.get("sources", "auto")["active"]

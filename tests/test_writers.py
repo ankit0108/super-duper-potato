@@ -53,34 +53,21 @@ def _morning(ctx):
     return cands
 
 
-def test_a_swap_stays_inside_its_lane(make_ctx):
+def test_the_writers_only_plan_and_never_change_the_set(make_ctx):
     ctx = make_ctx()
     cands = _morning(ctx)["linkedin"]
     report = scouts.report(ctx, "linkedin", cands)
-    plain = [c for c in cands if writers.plannable(c)]
-    picks = plain[:2]
-    bench_same = next(c for c in plain[2:] if c.pillar == picks[0].pillar and any(o["id"] == c.topic["id"] for o in report["opportunities"]))
-    other = next((c for c in plain[2:] if c.pillar != picks[0].pillar and any(o["id"] == c.topic["id"] for o in report["opportunities"])), None)
+    picks = [c for c in cands if writers.plannable(c)][:2]
 
-    def swap_to(title_wanted):
-        def handler(req, data):
-            bench = {b["title"]: b["id"] for b in data["bench"]}
-            plans = [{"id": p["id"], "job": "Say what it changes."} for p in data["picks"]]
-            take = bench.get(title_wanted)
-            plans.append({"id": take, "job": "The stronger story."})
-            return {"plans": plans, "swaps": [{"drop": "P1", "take": take, "reason": "Nothing specific to add."}]}
-        return handler
+    def tries_to_swap(req, data):
+        assert not data.get("bench"), "the editor decides the set: the writers see no bench"
+        return {"plans": [{"id": p["id"], "job": "Say what it changes."} for p in data["picks"]],
+                "swaps": [{"drop": "P1", "take": "B1", "reason": "Nothing to add."}]}
 
-    title = lambda c: c.topic.get("title_en") or c.topic.get("title")  # noqa: E731
-    ctx.llm._providers.update(fake_providers(brief=swap_to(title(bench_same))))
+    ctx.llm._providers.update(fake_providers(brief=tries_to_swap))
     out, info = writers.review(ctx, "linkedin", list(picks), cands, report)
-    assert info["swapped"] == 1 and out[0].topic_key == bench_same.topic_key and out[0].pillar == picks[0].pillar
-    assert out[0].brief["swapped_for"] == title(picks[0]) and out[0].brief["reason"]
-    assert out[1].topic_key == picks[1].topic_key and out[1].brief["job"]
-    if other is not None:
-        ctx.llm._providers.update(fake_providers(brief=swap_to(title(other))))
-        out, info = writers.review(ctx, "linkedin", list(picks), cands, report)
-        assert info["swapped"] == 0 and [c.topic_key for c in out] == [c.topic_key for c in picks]
+    assert info["swapped"] == 0 and [c.topic_key for c in out] == [c.topic_key for c in picks]
+    assert all(c.brief["job"] for c in out)
 
 
 def test_no_plans_when_the_drafts_need_the_budget(make_ctx):

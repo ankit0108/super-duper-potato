@@ -35,12 +35,77 @@ def seed_sources() -> list[dict[str, Any]]:
     return out
 
 
-AUTO_PAUSE = "No successful fetch for"  # the start of the reason scouting gives when it pauses a source
+AUTO_PAUSE = "No successful fetch for"  # the start of the reason older releases gave when they paused a source
+
+# The November 2026 source review, from his marks on the source candidates sheet (18 Nov): what he cut, what is dead,
+# and the Reddit sources not moved to RSS. Deleted once, the way the Sources page deletes, so they stay gone.
+REVIEW_2026_11 = "source_review_2026_11_v1"
+REVIEW_2026_11_DELETE = (
+    # Cut on the Trim tab
+    "gnews-bihar-hi", "theprint", "indian-express-india", "pib-releases", "ht-india", "gnews-india-nation",
+    "gnews-patna-hi", "gnews-world", "gnews-bihar-en",
+    # Dead or empty (Fixes tab)
+    "uber-engineering", "gizmodo", "trends24-india", "trends24-australia", "trends24-world", "livehindustan-bihar",
+    "mcp-python-sdk", "bsky-fchollet", "gnews-mistral",
+    # Reddit JSON sources not moved to RSS (Reddit refuses GitHub's servers)
+    "reddit-technology", "reddit-programming", "reddit-singularity", "reddit-chatgpt", "reddit-openai",
+    "reddit-artificial", "reddit-cscareerquestions", "reddit-experienceddevs", "reddit-dataengineering",
+)
+# Fixed in place in sources.yaml (same id); a row he edited is patched here, since seed refresh leaves those alone.
+REVIEW_2026_11_FIX = ("ainews", "gary-marcus", "hbr", "lobsters", "langchain-blog", "reddit-ai-agents",
+                      "reddit-llmdevs", "reddit-rpa", "reddit-developersindia", "reddit-programmerhumor",
+                      "reddit-linkedinlunatics")
+
+
+def delete_source(store: Store, source_id: str) -> bool:
+    """Remove a source the way the Sources page does: a seed is remembered as deleted, so it isn't added back."""
+    row = store.get("sources", source_id)
+    if row is None:
+        return False
+    if row.get("added_by") == "seed":
+        deleted = list(store.get_setting("deleted_sources", []) or [])
+        if source_id not in deleted:
+            deleted.append(source_id)
+            store.set_setting("deleted_sources", deleted)
+    store.delete("sources", source_id)
+    return True
+
+
+def system_paused(row: dict[str, Any]) -> bool:
+    """Paused by the system, not by him: older releases paused failing or unpicked sources and gave a reason; a pause
+    from the Sources page has none (or says it was his)."""
+    reason = str(row.get("paused_reason") or "")
+    return not row.get("active") and bool(reason) and not reason.lower().startswith("paused by")
+
+
+def _review_2026_11(store: Store, now: str) -> None:
+    for sid in REVIEW_2026_11_DELETE:
+        delete_source(store, sid)
+    seeds = {s["id"]: s for s in seed_sources()}
+    for sid in REVIEW_2026_11_FIX:
+        row, seed = store.get("sources", sid), seeds.get(sid)
+        if not row or not seed:
+            continue
+        patch: dict[str, Any] = {}
+        if (row.get("extra") or {}).get("user_edited"):
+            patch = {k: seed.get(k) for k in ("kind", "url", "query") if seed.get(k) != row.get(k)}
+        if (row.get("extra") or {}).get("min_score") is not None and seed.get("kind") == "reddit":
+            patch["extra"] = {k: v for k, v in (row.get("extra") or {}).items() if k != "min_score"}
+        if patch:
+            patch.update(etag=None, last_modified=None, consecutive_failures=0, last_error=None, updated_at=now)
+            store.update("sources", sid, **patch)
+    # Nothing is paused without him now: lift every pause the system made. His own pauses stay.
+    for row in store.select("sources", "active = 0"):
+        if system_paused(row):
+            store.update("sources", row["id"], active=True, paused_reason=None, consecutive_failures=0, updated_at=now)
 
 
 def sync_seeds(store: Store) -> int:
     """Add new seed sources; never overwrite Ankit's edits or health history. Returns count added."""
     now = timeutil.now_iso()
+    if not store.get_setting(REVIEW_2026_11):
+        _review_2026_11(store, now)
+        store.set_setting(REVIEW_2026_11, True)
     if not store.get_setting("source_yield_recovery_v1"):
         # Old reports confused "not selected" with "bad source" and removed healthy primary coverage.
         # Only undo that exact automatic reason; user pauses and HTTP failure pauses remain intact.

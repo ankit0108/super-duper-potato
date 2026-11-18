@@ -113,6 +113,13 @@ def cmd_demo(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sources_check(args: argparse.Namespace) -> int:
+    from .scout import check
+
+    return check.run(args.base, [s.strip() for s in (args.also or "").split(",") if s.strip()],
+                     resolve_feeds=not args.no_resolve)
+
+
 DATA_README = """# PBS data (private)
 
 This repository is written by the Personal Brand System. Keep it **private**.
@@ -160,6 +167,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", default="web/public/demo")
     p.add_argument("--data", help="keep the demo data directory here")
     p.set_defaults(fn=cmd_demo)
+
+    p = sub.add_parser("sources-check", help="fetch new or changed seed sources and resolve feeds (network)")
+    p.add_argument("--base", help="git ref to compare sources.yaml with (default: check every source)")
+    p.add_argument("--also", help="comma-separated source ids to check as well")
+    p.add_argument("--no-resolve", action="store_true", help="skip the YouTube and podcast feed lookups")
+    p.set_defaults(fn=cmd_sources_check)
 
     args = parser.parse_args(argv)
     try:

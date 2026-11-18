@@ -230,16 +230,16 @@ def test_the_feeds_automatic_pause_never_stops_the_pulse_and_one_is_undone(make_
     from pbs.scout import scouting
 
     ctx = make_ctx()
-    from pbs.scout.sources import sync_seeds
+    from pbs.scout.sources import AUTO_PAUSE, sync_seeds
 
     sync_seeds(ctx.store)
     ctx.store.update("sources", pulse.SOURCE_ID, active=False, consecutive_failures=6,
-                     paused_reason=f"{scouting.AUTO_PAUSE} 7 days (AllProvidersFailed)")
+                     paused_reason=f"{AUTO_PAUSE} 7 days (AllProvidersFailed)")
     assert pulse.due(ctx)
     source = ctx.store.get("sources", pulse.SOURCE_ID)
     assert source["active"] and source["paused_reason"] is None
     ctx.store.update("sources", pulse.SOURCE_ID, consecutive_failures=9, last_success_at="2026-01-01T00:00:00Z")
-    scouting._auto_pause(ctx)
+    scouting.run_scouts(ctx)
     assert ctx.store.get("sources", pulse.SOURCE_ID)["active"]
     ctx.store.update("sources", pulse.SOURCE_ID, active=False, paused_reason="Paused by you")
     assert not pulse.due(ctx)  # his own pause stays

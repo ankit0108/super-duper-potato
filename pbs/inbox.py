@@ -427,6 +427,40 @@ def _scout_draft(ctx: Ctx, ev: C.ScoutDraftEvent) -> None:
     ctx.hints.add("work")
 
 
+def _editor_draft(ctx: Ctx, ev: C.EditorDraftEvent) -> None:
+    """Draft one of an editor's runner-ups: a card from the stored story, drafted on this run."""
+    from . import deliver
+    from .agents import scout as scouts
+
+    slate = ctx.store.get("editor_slates", ev.slate_id)
+    if not slate:
+        raise Reject(f"unknown editor set {ev.slate_id}")
+    runners = list(slate.get("runners_up") or [])
+    row = next((r for r in runners if r.get("id") == ev.topic_id), None)
+    if row is None:
+        raise Reject("the editor's list has no such story")
+    if row.get("card_id") and ctx.store.get("cards", row["card_id"]):
+        raise Reject("this story already has a card")
+    topic = ctx.store.get("topics", ev.topic_id)
+    if not topic:
+        raise Reject("the story is no longer stored")
+    cand = scouts.candidate_for(ctx, slate["platform"], row, topic)
+    if cand is None:
+        raise Reject(f"no lane {row.get('lane')} on {slate['platform']} to draft it in")
+    cand.editor = {"why": row.get("why") or "", "rank": None, "swapped_for": None}
+    cand.scout = scouts.note_of(row) if row.get("evidence") else None
+    at = _event_time(ev)
+    card = deliver.card_from_candidate(ctx, cand, None, rank=0)
+    card["work"] = {"kind": "draft", "requested_at": at, "attempts": 0}
+    card["expires_at"] = timeutil.iso(timeutil.now() + _minutes(ctx.settings.expiry.request_days * 24 * 60))
+    _touch(card, at)
+    draft.save_card(ctx, card)
+    ctx.store.update("editor_slates", slate["id"],
+                     runners_up=[{**r, "card_id": card["id"]} if r.get("id") == ev.topic_id else r for r in runners])
+    draft.log_interaction(ctx, "editor_drafted", card, pillar=card.get("pillar"))
+    ctx.hints.add("work")
+
+
 def _card_hook(ctx: Ctx, ev: C.CardHookEvent) -> None:
     card = _card(ctx, ev.card_id)
     original = card.get("hooks") or []
@@ -613,15 +647,10 @@ def _source_upsert(ctx: Ctx, ev: C.SourceUpsertEvent) -> None:
 
 
 def _source_delete(ctx: Ctx, ev: C.SourceDeleteEvent) -> None:
-    row = ctx.store.get("sources", ev.source_id)
-    if row is None:
+    from .scout.sources import delete_source
+
+    if not delete_source(ctx.store, ev.source_id):
         raise Reject(f"unknown source {ev.source_id}")
-    if row.get("added_by") == "seed":
-        deleted = list(ctx.store.get_setting("deleted_sources", []) or [])
-        if ev.source_id not in deleted:
-            deleted.append(ev.source_id)
-        ctx.store.set_setting("deleted_sources", deleted)
-    ctx.store.delete("sources", ev.source_id)
 
 
 # ---------------------------------------------------------------------------
@@ -679,7 +708,7 @@ def _proposal_decide(ctx: Ctx, ev: C.ProposalDecideEvent) -> None:
         return
     # Approving never bounces: a proposal that only asked him to look is noted, and one whose change can't be made
     # says why on its card (and can be tried again or dismissed).
-    status, error = playbook.apply_proposal(ctx, row)
+    status, error = playbook.apply_proposal(ctx, row, choices=ev.choices)
     ctx.store.update("proposals", row["id"], status=status, decided_at=at, decision_note=ev.note, error=error)
     if error:
         ctx.run.note(f"A proposal couldn't be applied: {error}")
@@ -730,6 +759,7 @@ APPLY = {
     "card.draft_now": _card_draft_now,
     "card.hook": _card_hook,
     "scout.draft": _scout_draft,
+    "editor.draft": _editor_draft,
     "post.update": _post_update,
     "post.metrics": _post_metrics,
     "metrics.upload": _metrics_upload,

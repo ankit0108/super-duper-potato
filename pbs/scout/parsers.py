@@ -78,7 +78,8 @@ def _parse_feed(source: dict[str, Any], content: bytes) -> list[RawItem]:
         link = entry.get("link") or ""
         if not title or not link:
             continue
-        summary = entry.get("summary") or entry.get("description") or ""
+        # A YouTube video's description is media:description, which feedparser usually maps to summary.
+        summary = entry.get("summary") or entry.get("description") or entry.get("media_description") or ""
         if not summary and entry.get("content"):
             summary = entry["content"][0].get("value", "")
         summary = textutil.strip_html(summary)

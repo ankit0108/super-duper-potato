@@ -14,7 +14,7 @@ import { Badge, PlatformMark, type Tone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Empty, Panel } from "@/components/ui/Feedback";
 import { Field, Select, Textarea } from "@/components/ui/Field";
-import { Tabs } from "@/components/ui/Tabs";
+import { Segmented, Tabs } from "@/components/ui/Tabs";
 import { ChartCard, ColumnChart, DataTable, DaysGrid, LegendKey, LineChart, ShareBars, StatTile } from "@/components/charts/Charts";
 
 type WeekRow = { week: string } & Record<Platform, Record<string, number | null>>;
@@ -383,7 +383,74 @@ function PlatformGuidePanel({ view }: { view: DeskState }) {
 
 type GuideChange = { op?: string; rule_id?: string | null; platform?: Platform; format?: FormatName | null; text?: string | null; articles?: Article[] };
 
+type ReviewRow = { id: string; name: string; scout?: string | null; why: string; items_28d?: number; picked_28d?: number; failing?: boolean };
+
+/** The weekly source review: Keep or Remove for each source it lists. Nothing is removed unless you choose Remove. */
+function SourceReviewCard({ p, rows }: { p: Proposal; rows: ReviewRow[] }) {
+  const act = useDesk((s) => s.act);
+  const tz = useTz();
+  const [choices, setChoices] = useState<Record<string, "keep" | "remove">>({});
+  const pending = p.status === "pending";
+  const removing = rows.filter((r) => choices[r.id] === "remove").length;
+  return (
+    <li className="rounded-2xl border border-border bg-surface p-4" data-testid="source-review">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="font-medium">{p.title}</p>
+          <p className="mt-0.5 text-[12.5px] text-muted">{formatDate(p.created_at, tz)} · weekly source review</p>
+        </div>
+        <Badge tone={proposalTone(p.status)}>{proposalStatus(p.status, true)}</Badge>
+      </div>
+      {p.detail && <p className="mt-2 text-[13.5px]">{p.detail}</p>}
+      <ul className="mt-3 divide-y divide-border">
+        {rows.map((r) => (
+          <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+            <div className="min-w-0">
+              <p className="text-[13.5px] font-medium">{r.name}</p>
+              <p className={`text-[12.5px] ${r.failing ? "text-bad" : "text-muted"}`}>{r.why}</p>
+            </div>
+            {pending && (
+              <Segmented
+                label={`Keep or remove ${r.name}`}
+                value={choices[r.id] ?? "keep"}
+                onChange={(v) => setChoices((c) => ({ ...c, [r.id]: v }))}
+                items={[
+                  { value: "keep", label: "Keep" },
+                  { value: "remove", label: "Remove" },
+                ]}
+              />
+            )}
+          </li>
+        ))}
+      </ul>
+      {pending && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button
+            variant="primary"
+            icon={<Check className="size-4" />}
+            onClick={() =>
+              act(
+                { type: "proposal.decide", proposal_id: p.id, decision: "approve", note: null, choices: Object.fromEntries(rows.map((r) => [r.id, choices[r.id] ?? "keep"])) },
+                { toast: removing ? `Removing ${removing} source${removing === 1 ? "" : "s"}; the rest stay.` : "Kept them all. They won't be asked about again for a while." },
+              )
+            }
+          >
+            {removing ? `Remove ${removing}, keep the rest` : "Keep them all"}
+          </Button>
+          <Button onClick={() => act({ type: "proposal.decide", proposal_id: p.id, decision: "reject", note: null }, { toast: "Asked again next week." })}>Ask me next week</Button>
+        </div>
+      )}
+    </li>
+  );
+}
+
 function ProposalCard({ p }: { p: Proposal }) {
+  const review = ((p.payload ?? {}) as { review?: ReviewRow[] }).review;
+  if (p.kind === "source_review" && review?.length) return <SourceReviewCard p={p} rows={review} />;
+  return <PlainProposalCard p={p} />;
+}
+
+function PlainProposalCard({ p }: { p: Proposal }) {
   const act = useDesk((s) => s.act);
   const tz = useTz();
   const [note, setNote] = useState("");

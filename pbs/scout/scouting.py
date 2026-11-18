@@ -12,7 +12,7 @@ from ..context import Ctx
 from ..store import Store
 from .fetch import FetchJob, fetch_all, no_sleep
 from .parsers import TERM_KINDS, parse
-from .sources import AUTO_PAUSE, fetch_url, sync_seeds
+from .sources import fetch_url, sync_seeds
 
 NEAR_DUP_JACCARD = 0.82
 
@@ -173,7 +173,8 @@ def run_scouts(ctx: Ctx, only: set[str] | None = None) -> dict[str, Any]:
             patch.update(consecutive_failures=int(source.get("consecutive_failures") or 0) + 1,
                          last_error=res.error, items_last_run=0)
         store.update("sources", source["id"], **patch)
-    _auto_pause(ctx)
+    # A failing source is never paused here: it's tried again every run, its error shows on the Sources page, and
+    # it goes into his weekly source review (report.source_review), where he decides whether to remove it.
     failing = [f"{r.key} ({r.error})" for r in results if not r.ok]
     log.info(f"scout: {stats['ok']}/{stats['sources']} sources ok, {stats['new_items']} new items, "
              f"{stats['duplicates']} duplicates, {stats.get('terms', 0)} trending terms, {stats['failed']} failed"
@@ -205,19 +206,6 @@ def save_terms(store: Store, source: dict[str, Any], terms: list[dict[str, Any]]
 def trending_terms(store: Store) -> list[dict[str, Any]]:
     since = timeutil.iso(timeutil.now() - dt.timedelta(hours=TERMS_HOURS))
     return [t for t in store.get_setting(TERMS_KEY, []) or [] if isinstance(t, dict) and (t.get("at") or "") >= since]
-
-
-def _auto_pause(ctx: Ctx) -> None:
-    """Pause sources that have failed for `pause_after_failure_days` (they show on the desk)."""
-    days = ctx.settings.scouting.pause_after_failure_days
-    cutoff = timeutil.now() - dt.timedelta(days=days)
-    for s in ctx.store.select("sources", "active = 1 AND consecutive_failures >= 3 AND kind != 'pulse'"):
-        last_ok = timeutil.parse(s.get("last_success_at") or s.get("created_at"))
-        if last_ok is not None and last_ok < cutoff:
-            ctx.store.update("sources", s["id"], active=False,
-                             paused_reason=f"{AUTO_PAUSE} {days} days ({s.get('last_error') or 'error'})",
-                             updated_at=timeutil.now_iso())
-            ctx.run.note(f"Paused source {s['id']} after {days} days of failures")
 
 
 def prune_items(store: Store, retention_days: int) -> int:

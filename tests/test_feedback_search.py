@@ -214,7 +214,7 @@ def test_seed_sources_are_unique_https_and_include_the_major_labs():
     assert len(ids) == len(set(ids))
     assert all(r["url"].startswith("https://") for r in rows if r.get("url"))
     for wanted in ("anthropic-news", "openai-news", "deepmind-blog", "google-research", "huggingface-blog",
-                   "gnews-xai", "amazon-science", "uber-engineering", "microsoft-research", "nvidia-blog",
+                   "gnews-xai", "amazon-science", "mistral-news", "microsoft-research", "nvidia-blog",
                    "gnews-bpa", "arxiv-business-process"):
         assert wanted in ids
 

@@ -487,6 +487,17 @@
      "title": "Draft State",
      "type": "string"
     },
+    "editor": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/EditorNote"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
     "experiment_id": {
      "anyOf": [
       {
@@ -1961,6 +1972,15 @@
      ],
      "default": null
     },
+    "editor_slates": {
+     "default": [],
+     "description": "The editors' sets from the last two days, newest first",
+     "items": {
+      "$ref": "#/$defs/EditorSlate"
+     },
+     "title": "Editor Slates",
+     "type": "array"
+    },
     "experiments": {
      "default": [],
      "items": {
@@ -2457,6 +2477,315 @@
    "title": "EditInfo",
    "type": "object"
   },
+  "EditorDraftEvent": {
+   "additionalProperties": false,
+   "description": "Draft one of an editor's runner-ups.",
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "slate_id": {
+     "title": "Slate Id",
+     "type": "string"
+    },
+    "topic_id": {
+     "title": "Topic Id",
+     "type": "string"
+    },
+    "type": {
+     "const": "editor.draft",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "slate_id",
+    "topic_id"
+   ],
+   "title": "EditorDraftEvent",
+   "type": "object"
+  },
+  "EditorNote": {
+   "description": "The platform editor's read of a card (pbs/agents/editor.py).",
+   "properties": {
+    "rank": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Rank"
+    },
+    "swapped_for": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The pick the editor replaced with this story, same lane",
+     "title": "Swapped For"
+    },
+    "why": {
+     "default": "",
+     "description": "Why it's worth his time today",
+     "title": "Why",
+     "type": "string"
+    }
+   },
+   "title": "EditorNote",
+   "type": "object"
+  },
+  "EditorPick": {
+   "properties": {
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "title": {
+     "title": "Title",
+     "type": "string"
+    },
+    "why": {
+     "default": "",
+     "title": "Why",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "title"
+   ],
+   "title": "EditorPick",
+   "type": "object"
+  },
+  "EditorRunner": {
+   "properties": {
+    "angle": {
+     "default": "",
+     "title": "Angle",
+     "type": "string"
+    },
+    "card_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The card drafted from it, if any",
+     "title": "Card Id"
+    },
+    "evidence": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Evidence",
+     "type": "array"
+    },
+    "evidence_level": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Evidence Level"
+    },
+    "format": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Format"
+    },
+    "id": {
+     "description": "The topic",
+     "title": "Id",
+     "type": "string"
+    },
+    "lane": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Lane"
+    },
+    "score": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Score"
+    },
+    "title": {
+     "title": "Title",
+     "type": "string"
+    },
+    "why": {
+     "default": "",
+     "title": "Why",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "title"
+   ],
+   "title": "EditorRunner",
+   "type": "object"
+  },
+  "EditorSlate": {
+   "description": "One editor's morning: the picks in board order, and the runner-ups shown on the board.",
+   "properties": {
+    "created_at": {
+     "title": "Created At",
+     "type": "string"
+    },
+    "delivery_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Delivery Id"
+    },
+    "error": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Error"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "local_date": {
+     "title": "Local Date",
+     "type": "string"
+    },
+    "model": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Model"
+    },
+    "picks": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/EditorPick"
+     },
+     "title": "Picks",
+     "type": "array"
+    },
+    "platform": {
+     "enum": [
+      "linkedin",
+      "x"
+     ],
+     "title": "Platform",
+     "type": "string"
+    },
+    "provider": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Provider"
+    },
+    "runners_up": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/EditorRunner"
+     },
+     "title": "Runners Up",
+     "type": "array"
+    },
+    "status": {
+     "default": "ok",
+     "enum": [
+      "ok",
+      "fallback",
+      "skipped"
+     ],
+     "title": "Status",
+     "type": "string"
+    },
+    "swaps": {
+     "default": 0,
+     "title": "Swaps",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "id",
+    "platform",
+    "local_date",
+    "created_at"
+   ],
+   "title": "EditorSlate",
+   "type": "object"
+  },
   "Experiment": {
    "properties": {
     "created_at": {
@@ -2843,6 +3172,7 @@
         "card.skip": "#/$defs/CardSkipEvent",
         "card.status": "#/$defs/CardStatusEvent",
         "card.visual": "#/$defs/CardVisualEvent",
+        "editor.draft": "#/$defs/EditorDraftEvent",
         "metrics.review": "#/$defs/MetricsReviewEvent",
         "metrics.upload": "#/$defs/MetricsUploadEvent",
         "playbook.rule": "#/$defs/PlaybookRuleEvent",
@@ -2957,6 +3287,9 @@
        },
        {
         "$ref": "#/$defs/ScoutDraftEvent"
+       },
+       {
+        "$ref": "#/$defs/EditorDraftEvent"
        }
       ]
      },
@@ -4714,6 +5047,26 @@
     "at": {
      "title": "At",
      "type": "string"
+    },
+    "choices": {
+     "anyOf": [
+      {
+       "additionalProperties": {
+        "enum": [
+         "keep",
+         "remove"
+        ],
+        "type": "string"
+       },
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A source review: his choice for each source it listed (one not named is kept)",
+     "title": "Choices"
     },
     "decision": {
      "enum": [

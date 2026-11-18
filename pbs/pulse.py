@@ -38,7 +38,7 @@ def due(ctx: Ctx) -> bool:
 def _unpaused(ctx: Ctx) -> dict[str, Any] | None:
     """The pulse's source, switched back on if the feeds' automatic pause caught it (it isn't a feed: days without
     a web search aren't a broken address). A pause he chose stays."""
-    from .scout.scouting import AUTO_PAUSE
+    from .scout.sources import AUTO_PAUSE
 
     source = ctx.store.get("sources", SOURCE_ID)
     if source is not None and not source.get("active") and str(source.get("paused_reason") or "").startswith(AUTO_PAUSE):

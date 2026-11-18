@@ -21,3 +21,16 @@ describe("proposals", () => {
     expect(proposalTone("failed")).toBe("bad");
   });
 });
+
+describe("the weekly source review", () => {
+  it("counts as a change, and the sources you remove leave the desk at once", async () => {
+    const { applyEvents } = await import("./overlay");
+    const review = { id: "prp_1", kind: "source_review", title: "Keep or remove 2 sources?", status: "pending" as const, payload: { review: [{ id: "a", name: "A", why: "x" }, { id: "b", name: "B", why: "y" }] } };
+    expect(proposalChanges(review)).toBe(true);
+    const desk = { proposals: [review], sources: [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "c", name: "C" }] } as never;
+    const ev = { id: "e1", at: "2026-11-18T08:00:00Z", type: "proposal.decide", proposal_id: "prp_1", decision: "approve", choices: { a: "remove", b: "keep" } } as never;
+    const { desk: view } = applyEvents(desk, [ev]);
+    expect(view.sources!.map((s) => s.id)).toEqual(["b", "c"]);
+    expect(view.proposals![0].status).toBe("approved");
+  });
+});

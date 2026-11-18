@@ -74,3 +74,25 @@ export function calibrationLine(stats: unknown, platform: string): string | null
   if ((posted?.n ?? 0) < 3 || (passed?.n ?? 0) < 3) return "Too few cards yet to say whether the scout's score matches what you post.";
   return `So far, the cards you posted had an average scout score of ${pct(posted)} (${posted!.n} cards); the ones you skipped or let expire, ${pct(passed)} (${passed!.n} cards).`;
 }
+
+export type EditorSlate = NonNullable<DeskState["editor_slates"]>[number];
+export type Runner = NonNullable<EditorSlate["runners_up"]>[number];
+
+/** Today's runner-ups per platform, from the newest set of the day (a fresh set replaces the morning's list). */
+export function runnerUps(slates: EditorSlate[] | null | undefined, today: string): Array<{ slate: EditorSlate; runner: Runner }> {
+  const out: Array<{ slate: EditorSlate; runner: Runner }> = [];
+  for (const platform of ["linkedin", "x"] as const) {
+    const slate = (slates ?? []).filter((sl) => sl.platform === platform && sl.local_date === today).sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+    for (const runner of slate?.runners_up ?? []) out.push({ slate, runner });
+  }
+  return out;
+}
+
+/** Whether he posts from the top of the editor's order, in a sentence; null until there are a few posts. */
+export function editorLine(stats: unknown, platform: string): string | null {
+  const row = ((stats as { editors?: Record<string, { posted_top_half?: number; posted_bottom_half?: number }> } | null | undefined)?.editors ?? {})[platform];
+  const top = row?.posted_top_half ?? 0;
+  const bottom = row?.posted_bottom_half ?? 0;
+  if (top + bottom < 3) return null;
+  return `Of your last ${top + bottom} posts from the editor's sets, ${top} came from the top half of its order.`;
+}
