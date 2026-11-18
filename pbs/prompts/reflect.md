@@ -32,6 +32,8 @@ Drafts that read as AI-written cost {{display_name}} editing time. "ai_tells_in_
 
 "scout_scores" (when present) gives, per platform, the scouts' average score for the cards he posted and for those he skipped or let expire. If posted cards don't score higher over several cards, say so in a sentence: the scouts' read isn't matching his choices yet. Never a weight change from it.
 
+"editor_order" (when present) counts his posts from the top half and the bottom half of each editor's order. If he keeps posting from the bottom half, say so in a sentence. Never a weight change from it.
+
 A skip with the reason "poorly_written" means the topic was fine but the draft wasn't written well or didn't sound like {{display_name}}: it's about the writing, so learn a playbook rule from it (especially from his note), never a change to pillar weights.
 
 This week (posts with edit ratio and reward, skips with reasons, rewrite notes, pillar mix, writing, scout_scores):

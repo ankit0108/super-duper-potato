@@ -114,9 +114,36 @@ def _top_stories(ctx: Ctx, limit: int = 8) -> list[str]:
     return out
 
 
+WATCH_CURSOR = "x_watch_cursor"
+
+
+def watch_probes(ctx: Ctx) -> list[dict[str, Any]]:
+    """Today's searches for the X accounts with no feed (agents.watch_probes): `per_day` of them, taking up where
+    yesterday stopped. None when the month's searches can't cover them."""
+    spec = ctx.settings.agents.watch_probes
+    handles = [h.lstrip("@").strip() for h in spec.handles if h.strip()]
+    if not handles or spec.per_day <= 0 or websearch.remaining(ctx) < spec.per_day:
+        return []
+    start = int(ctx.store.get_setting(WATCH_CURSOR, 0) or 0) % len(handles)
+    take = [handles[(start + i) % len(handles)] for i in range(min(spec.per_day, len(handles)))]
+    ctx.store.set_setting(WATCH_CURSOR, (start + len(take)) % len(handles))
+    return [{"q": h, "where": "x", "days": 1, "watch": h} for h in take]
+
+
+def _watch_match(url: str, handle: str) -> bool:
+    """Whether a search result is the account's own post (x.com/<handle>/status/…), not a mention of it."""
+    m = re.match(r"^https://(?:www\.|mobile\.)?(?:x|twitter)\.com/([^/]+)/status/\d+", url)
+    return bool(m) and m.group(1).casefold() == handle.casefold()
+
+
 def plan_probes(ctx: Ctx, platform: str) -> list[dict[str, Any]]:
     """The scout's searches for today: planned by a model from the day's stories and his subjects, or his standing
-    searches when no model can."""
+    searches when no model can. The X scout also searches its watchlist accounts in turn."""
+    planned = _planned_probes(ctx, platform)
+    return planned + (watch_probes(ctx) if platform == "x" else [])
+
+
+def _planned_probes(ctx: Ctx, platform: str) -> list[dict[str, Any]]:
     n = ctx.settings.agents.probes
     if n <= 0:
         return []
@@ -167,6 +194,8 @@ def run_probes(ctx: Ctx, platform: str) -> list[dict[str, Any]]:
             break
         raws = []
         for r in rows:
+            if probe.get("watch") and not _watch_match(r["url"], probe["watch"]):
+                continue  # a watched account's search keeps only that account's own posts
             on = next((p for p, rx in POST_URL.items() if rx.match(r["url"])), None)
             if on is None and (probe["where"] != "web" or _SOCIAL_HOST.match(r["url"])):
                 continue  # a profile, company or search page, not a post
@@ -179,7 +208,8 @@ def run_probes(ctx: Ctx, platform: str) -> list[dict[str, Any]]:
                 "lang": "en",
                 "publisher": f"{PLATFORM_LABEL[on]} (public post)" if on else textutil.url_host(r["url"]),
                 "signals": {"search_cited": 1, "probe": probe["q"], **({"discovery_platform": on} if on else {}),
-                            **({"discussion_url": r["url"]} if on else {})},
+                            **({"discussion_url": r["url"]} if on else {}),
+                            **({"watch_handle": probe["watch"]} if probe.get("watch") else {})},
             })
         new_ids, _ = ingest_items(ctx.store, source, raws, index)
         kept += len(new_ids)

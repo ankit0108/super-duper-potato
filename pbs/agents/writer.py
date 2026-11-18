@@ -35,8 +35,9 @@ if TYPE_CHECKING:
 
 SHAPES = {"linkedin": ("news_take", "lesson", "framework", "disagreement", "number"),
           "x": ("observation", "reply", "quote", "thread", "question")}
-MAX_SWAPS = 1  # per platform a morning: a writer adjusts the set, it doesn't remake it
-BENCH = 3  # bench stories offered for a swap
+# The editor (pbs/agents/editor.py) decides the set; the writers only plan. Kept at 0 so no swap is ever applied.
+MAX_SWAPS = 0
+BENCH = 0
 
 # What check() can find, as the editor pass names it.
 CRAFT_LABELS = {

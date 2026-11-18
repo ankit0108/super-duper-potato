@@ -123,6 +123,13 @@ class Pulse(_Strict):
     per_platform: int = Field(4, ge=1, le=8)
 
 
+class WatchProbes(_Strict):
+    """X accounts with no feed anywhere: the X scout searches `per_day` of them each morning, in turn
+    (pbs/agents/scout.py). Results count only if they are that account's own posts."""
+    per_day: int = Field(10, ge=0, le=20)
+    handles: list[str] = []
+
+
 class Agents(_Strict):
     """A scout and a writer for each platform (pbs/agents). The scouts search, score the day's stories for how far
     they could travel on their platform and write a report; the writers review it and plan each draft."""
@@ -132,8 +139,10 @@ class Agents(_Strict):
     probes: int = Field(5, ge=0, le=8)  # searches each scout plans a morning (needs the search key)
     # Skipped when fewer model calls than the day's drafts plus this are left: drafts come first.
     reserve: int = Field(6, ge=0, le=40)
+    runner_ups: int = Field(5, ge=0, le=10)  # each editor's runner-ups shown on the board
     # Searches a scout runs when no model can plan the day's.
     standing_probes: dict[str, list[str]] = {}
+    watch_probes: WatchProbes = Field(default_factory=lambda: WatchProbes())
 
 
 class WebSearch(_Strict):
@@ -169,8 +178,11 @@ class Scouting(_Strict):
     shortlist_seats: dict[str, int] = {}
     candidates_per_scout: dict[str, int]
     per_source_cap: int = Field(8, ge=1, le=100)
+    # Nothing is paused automatically: these only decide which sources the weekly source review lists.
     pause_after_failure_days: int = Field(7, ge=1, le=90)
     pause_after_zero_yield_weeks: int = Field(4, ge=1, le=52)
+    review_keep_weeks: int = Field(12, ge=1, le=52)
+    review_max: int = Field(15, ge=3, le=40)
     user_agent: str
 
 

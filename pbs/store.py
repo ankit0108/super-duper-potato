@@ -66,10 +66,10 @@ TABLES: dict[str, Table] = {
            "why_now angle format_note draft draft_original hooks hook_type hashtags sources claims flags questions "
            "answers status rank score score_parts explore experiment_id arm versions llm work working skip "
            "rewrite_count delivered_at expires_at status_changed_at post_id draft_state draft_basis crosspost_of "
-           "visual attachments trending story discussion_url humor alternatives saved scout brief created_at "
+           "visual attachments trending story discussion_url humor alternatives saved scout brief editor created_at "
            "updated_at revision",
            json_cols="draft draft_original hooks hashtags sources claims flags questions answers score_parts "
-                     "versions llm work working skip visual attachments trending humor alternatives saved scout brief",
+                     "versions llm work working skip visual attachments trending humor alternatives saved scout brief editor",
            bool_cols="explore", shard="created_at", indexes="status platform topic_id delivery_id request_id"),
         _t("posts",
            "card_id platform pillar format final_text final_posts hashtags posted_at post_url edit_ratio edit_stats "
@@ -87,6 +87,8 @@ TABLES: dict[str, Table] = {
         _t("scout_reports",
            "platform local_date created_at status model provider note searched probes opportunities passed error",
            json_cols="probes opportunities passed", bool_cols="searched", indexes="platform local_date"),
+        _t("editor_slates", "platform delivery_id local_date created_at status model provider swaps picks runners_up error",
+           json_cols="picks runners_up", indexes="platform local_date"),
         _t("interactions", "at type card_id post_id request_id platform data",
            json_cols="data", shard="at", indexes="card_id type"),
         _t("stances",

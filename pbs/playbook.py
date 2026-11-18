@@ -173,7 +173,7 @@ def create_proposal(ctx: Ctx, *, kind: str, title: str, detail: str | None, payl
     return pid
 
 
-CHANGE_KEYS = ("patch", "rule", "source", "guide_change", "revert_playbook")
+CHANGE_KEYS = ("patch", "rule", "source", "guide_change", "revert_playbook", "review")
 
 
 def has_change(proposal: dict[str, Any]) -> bool:
@@ -236,12 +236,27 @@ def tidy_proposals(ctx: Ctx) -> int:
     return closed
 
 
-def apply_proposal(ctx: Ctx, proposal: dict[str, Any]) -> tuple[str, str | None]:
+def apply_proposal(ctx: Ctx, proposal: dict[str, Any],
+                   choices: dict[str, str] | None = None) -> tuple[str, str | None]:
     """Apply an approved proposal. Returns (status, reason): ("applied", None); ("noted", None) for one that only
-    asked him to look at something; or ("failed", why) when its change can't be made."""
+    asked him to look at something; or ("failed", why) when its change can't be made. `choices`: his Keep or Remove
+    for each source a source review listed (one he didn't mark is kept)."""
     payload = proposal.get("payload") or {}
     if not has_change(proposal):
         return "noted", None
+    if payload.get("review"):
+        from .report import KEPT_KEY
+        from .scout.sources import delete_source
+
+        kept = dict(ctx.store.get_setting(KEPT_KEY, {}) or {})
+        today = ctx.local_date_str()
+        for row in payload["review"]:
+            if (choices or {}).get(row["id"]) == "remove":
+                delete_source(ctx.store, row["id"])
+                kept.pop(row["id"], None)
+            elif ctx.store.get("sources", row["id"]):
+                kept[row["id"]] = {"on": today, "failing": bool(row.get("failing"))}
+        ctx.store.set_setting(KEPT_KEY, kept)
     if payload.get("patch"):
         current = dict(ctx.store.get_setting("overrides", {}) or {})
         new, error = settings.validate_patch(current, payload["patch"])

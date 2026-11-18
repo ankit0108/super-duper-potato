@@ -13,6 +13,47 @@ import { Badge, PlatformMark } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Empty, Skeleton } from "@/components/ui/Feedback";
 import { Segmented } from "@/components/ui/Tabs";
+import { PENDING_CARD, runnerUps } from "@/lib/scouts";
+import { useView } from "@/state/hooks";
+
+/** The editors' runner-ups: stories they considered and didn't pick, each drafted only if he taps Draft this. */
+function RunnerUps() {
+  const view = useView();
+  const today = useToday();
+  const act = useDesk((s) => s.act);
+  const rows = runnerUps(view?.editor_slates, today);
+  if (!rows.length) return null;
+  return (
+    <Section id="sec-runners" title="Also on the editor's list" count={rows.length} hint="Not drafted yet: Draft this writes one in a few minutes">
+      <ul className="divide-y divide-border rounded-2xl border border-border bg-surface" data-testid="runner-ups">
+        {rows.map(({ slate, runner }) => (
+          <li key={`${slate.id}:${runner.id}`} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1.5 text-[14px] leading-snug font-medium">
+                <PlatformMark platform={slate.platform} className="size-4 shrink-0" />
+                <span>{runner.title}</span>
+              </p>
+              {runner.why && <p className="mt-0.5 text-[13px] text-muted">{runner.why}</p>}
+            </div>
+            {runner.card_id ? (
+              runner.card_id === PENDING_CARD ? (
+                <span className="text-[13px] text-muted">Drafting…</span>
+              ) : (
+                <Link to={`/card/${encodeURIComponent(runner.card_id)}`} className="text-[13px] font-medium text-accent underline underline-offset-2">
+                  Open the card
+                </Link>
+              )
+            ) : (
+              <Button size="sm" variant="secondary" onClick={() => act({ type: "editor.draft", slate_id: slate.id, topic_id: runner.id }, { toast: "Drafting it now: the card will be on the board in a few minutes." })}>
+                Draft this
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
 
 function Section({ title, hint, count, children, id }: { title: string; hint?: ReactNode; count?: number; children: ReactNode; id: string }) {
   return (
@@ -219,6 +260,8 @@ export function Board() {
           {renderTiles(sections.inProgress)}
         </Section>
       )}
+
+      <RunnerUps />
 
       {sections.saved.length > 0 && (
         <Section id="sec-saved" title="Saved for later" count={sections.saved.length} hint="They stay until you post or remove them">

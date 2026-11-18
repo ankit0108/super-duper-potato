@@ -1,6 +1,8 @@
 # Seed source registry. Merged into the data repo's `sources` table on every run: new seeds are added,
-# Ankit's edits and the health history are kept. Failing sources pause themselves after a week and show
-# up on the desk; any of them can be replaced by a Google News query from the Sources page.
+# Ankit's edits and the health history are kept. Nothing is paused or removed automatically: every source he
+# hasn't paused or removed is fetched on every run, a failing one shows its error on the Sources page, and the
+# weekly source review (Insights → Proposals) asks him which to keep or remove. Removing an entry from this file
+# doesn't remove its row; a removal is a one-time migration in pbs/scout/sources.py, from his own decision.
 #
 # kinds: rss (RSS/Atom URL), gnews (Google News query or topic), arxiv (API query), hf_papers,
 #        hn_front (Hacker News front page via Algolia), hn_show (Show HN), wikipedia_otd, reddit (best effort),
@@ -37,7 +39,6 @@ tech:
   - {id: verge-ai, name: The Verge AI, kind: rss, url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", pillar_hints: [industry]}
   - {id: venturebeat-ai, name: "Google News: VentureBeat AI", kind: gnews, query: 'site:venturebeat.com AI when:2d', pillar_hints: [industry]}
   - {id: mit-tech-review, name: MIT Technology Review, kind: rss, url: "https://www.technologyreview.com/feed/", pillar_hints: [research, industry]}
-  - {id: mcp-python-sdk, name: MCP Python SDK releases, kind: rss, url: "https://github.com/modelcontextprotocol/python-sdk/releases.atom", pillar_hints: [learning]}
   - {id: gnews-anthropic, name: "Google News: Anthropic", kind: gnews, query: "Anthropic Claude when:2d", pillar_hints: [industry]}
   - {id: gnews-rpa-vendors, name: "Google News: automation vendors", kind: gnews, query: 'UiPath OR "Automation Anywhere" OR "Power Automate" OR "Copilot Studio" when:3d', pillar_hints: [industry, receipts]}
   - {id: gnews-agentic-enterprise, name: "Google News: agentic AI in enterprise", kind: gnews, query: '"agentic AI" enterprise when:2d', pillar_hints: [industry, receipts]}
@@ -51,7 +52,6 @@ tech:
   - {id: anthropic-engineering, name: Anthropic engineering, kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_engineering.xml", best_effort: true, pillar_hints: [learning, research]}
   - {id: anthropic-research, name: Anthropic research, kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_research.xml", best_effort: true, pillar_hints: [research]}
   - {id: gnews-xai, name: "Google News: xAI", kind: gnews, query: '"xAI" Grok when:3d', pillar_hints: [industry]}
-  - {id: gnews-mistral, name: "Google News: Mistral AI", kind: gnews, query: '"Mistral AI" when:3d', pillar_hints: [industry]}
   - {id: gnews-meta-ai, name: "Google News: Meta AI", kind: gnews, query: '"Meta AI" OR "Meta Superintelligence" when:3d', pillar_hints: [industry]}
   - {id: google-research, name: Google Research blog, kind: rss, url: "https://research.google/blog/rss/", best_effort: true, pillar_hints: [research]}
   - {id: microsoft-research, name: Microsoft Research blog, kind: rss, url: "https://www.microsoft.com/en-us/research/feed/", pillar_hints: [research]}
@@ -61,7 +61,6 @@ tech:
   - {id: amazon-science, name: Amazon Science, kind: rss, url: "https://www.amazon.science/index.rss", best_effort: true, pillar_hints: [research]}
   - {id: aws-news, name: AWS News blog, kind: rss, url: "https://aws.amazon.com/blogs/aws/feed/", pillar_hints: [industry]}
   # Engineering blogs: how large companies build and run AI and software systems.
-  - {id: uber-engineering, name: Uber engineering, kind: rss, url: "https://www.uber.com/blog/engineering/rss/", best_effort: true, pillar_hints: [learning]}
   - {id: netflix-tech, name: Netflix TechBlog, kind: rss, url: "https://netflixtechblog.com/feed", pillar_hints: [learning]}
   - {id: airbnb-engineering, name: Airbnb engineering, kind: rss, url: "https://medium.com/feed/airbnb-engineering", pillar_hints: [learning]}
   - {id: meta-engineering, name: Engineering at Meta, kind: rss, url: "https://engineering.fb.com/feed/", pillar_hints: [learning]}
@@ -71,7 +70,7 @@ tech:
   - {id: spotify-engineering, name: Spotify engineering, kind: rss, url: "https://engineering.atspotify.com/feed/", pillar_hints: [learning]}
   - {id: databricks-blog, name: Databricks blog, kind: rss, url: "https://www.databricks.com/feed", best_effort: true, pillar_hints: [learning, industry]}
   # Automating business processes (his focus): tools, orchestration, agents at work, and the research on it.
-  - {id: langchain-blog, name: LangChain blog, kind: rss, url: "https://blog.langchain.com/rss/", best_effort: true, pillar_hints: [learning]}
+  - {id: langchain-blog, name: LangChain (news), kind: gnews, query: '(LangChain OR LangGraph OR LangSmith) when:7d', best_effort: true, pillar_hints: [learning]}
   - {id: n8n-blog, name: n8n blog, kind: rss, url: "https://blog.n8n.io/rss/", best_effort: true, pillar_hints: [learning, receipts]}
   - {id: zapier-blog, name: Zapier blog, kind: rss, url: "https://zapier.com/blog/feeds/latest/", best_effort: true, pillar_hints: [receipts]}
   - {id: camunda-blog, name: Camunda blog, kind: rss, url: "https://camunda.com/feed/", best_effort: true, pillar_hints: [receipts, learning]}
@@ -84,7 +83,7 @@ tech:
     max_items: 20
     pillar_hints: [research, receipts]
   # The week in AI as people in the field recap it (AINews is a daily digest of what AI people on X discussed).
-  - {id: ainews, name: "AINews (the day on AI Twitter, recapped)", kind: rss, url: "https://news.smol.ai/rss.xml", best_effort: true, pillar_hints: [industry, research]}
+  - {id: ainews, name: "AINews (inside Latent Space: the day on AI Twitter, recapped)", kind: rss, url: "https://latent.space/feeds/news.xml", best_effort: true, pillar_hints: [industry, research]}
   - {id: tldr-ai, name: TLDR AI, kind: rss, url: "https://tldr.tech/api/rss/ai", best_effort: true, pillar_hints: [industry, learning]}
   - {id: last-week-in-ai, name: Last Week in AI, kind: rss, url: "https://lastweekin.ai/feed", best_effort: true, pillar_hints: [industry]}
   - {id: top-ai-papers, name: "Top AI Papers of the Week (DAIR.AI)", kind: rss, url: "https://nlp.elvissaravia.com/feed", best_effort: true, pillar_hints: [research]}
@@ -101,40 +100,100 @@ tech:
   - {id: stackoverflow-blog, name: Stack Overflow blog, kind: rss, url: "https://stackoverflow.blog/feed/", best_effort: true, pillar_hints: [learning, industry]}
   - {id: thoughtworks-insights, name: Thoughtworks insights, kind: rss, url: "https://www.thoughtworks.com/rss/insights.xml", best_effort: true, pillar_hints: [learning, receipts]}
   # Arguments and numbers: the sceptics, the analysts and the surveys a practitioner can agree or disagree with.
-  - {id: gary-marcus, name: "Gary Marcus (Marcus on AI)", kind: rss, url: "https://garymarcus.substack.com/feed", best_effort: true, pillar_hints: [industry]}
+  - {id: gary-marcus, name: "Gary Marcus (Marcus on AI)", kind: gnews, query: 'site:garymarcus.substack.com when:7d', best_effort: true, pillar_hints: [industry]}
   - {id: ai-normal-technology, name: AI as Normal Technology, kind: rss, url: "https://www.normaltech.ai/feed", best_effort: true, pillar_hints: [industry, research]}
   - {id: benedict-evans, name: Benedict Evans, kind: rss, url: "https://www.ben-evans.com/benedictevans?format=rss", best_effort: true, pillar_hints: [industry]}
   - {id: stratechery, name: Stratechery, kind: rss, url: "https://stratechery.com/feed/", best_effort: true, pillar_hints: [industry]}
   - {id: mit-sloan-review, name: MIT Sloan Management Review, kind: rss, url: "https://sloanreview.mit.edu/feed/", best_effort: true, pillar_hints: [receipts, industry]}
-  - {id: hbr, name: Harvard Business Review, kind: rss, url: "https://feeds.hbr.org/harvardbusiness", best_effort: true, pillar_hints: [receipts, industry]}
+  - {id: hbr, name: Harvard Business Review, kind: gnews, query: 'site:hbr.org (AI OR automation OR "generative AI") when:14d', best_effort: true, pillar_hints: [receipts, industry]}
   - {id: gnews-gartner-ai, name: "Google News: Gartner on AI and automation", kind: gnews, query: 'Gartner (AI OR automation OR agents) survey OR forecast OR predicts OR "hype cycle" when:7d', best_effort: true, pillar_hints: [receipts, industry]}
   - {id: gnews-ai-surveys, name: "Google News: AI surveys and reports", kind: gnews, query: '(McKinsey OR BCG OR Deloitte OR Stanford OR MIT) ("generative AI" OR "AI agents") survey OR report OR study when:7d', best_effort: true, pillar_hints: [receipts, industry]}
   - {id: reddit-localllama, name: r/LocalLLaMA, kind: reddit, url: "https://www.reddit.com/r/LocalLLaMA/top/.rss?t=day", best_effort: true, pillar_hints: [learning, research]}
   - {id: reddit-machinelearning, name: r/MachineLearning, kind: reddit, url: "https://www.reddit.com/r/MachineLearning/top/.rss?t=day", best_effort: true, pillar_hints: [research]}
+  # November 2026 source round (his sheet, 18 Nov): labs and AI companies' own posts. Several come from a community
+  # project that rebuilds feeds for sites without one (Olshansk/rss-feeds); if it stops, they show as failing.
+  - {id: openai-developer-blog, name: "OpenAI Developer Blog", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_openai_developer.xml", pillar_hints: [industry, learning]}
+  - {id: claude-code-changelog, name: "Claude Code changelog", kind: rss, url: "https://code.claude.com/docs/en/changelog/rss.xml", pillar_hints: [industry, learning]}
+  - {id: claude-blog, name: "Claude Blog (claude.com articles)", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_claude.xml", pillar_hints: [industry, learning]}
+  - {id: openai-engineering, name: "OpenAI Engineering", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_openai_engineering.xml", pillar_hints: [industry, learning]}
+  - {id: mistral-news, name: "Mistral AI News (primary feed)", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_mistral.xml", pillar_hints: [industry, learning]}
+  - {id: cohere-blog, name: "Cohere blog", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_cohere.xml", pillar_hints: [industry, learning]}
+  - {id: anthropic-red-team, name: "Anthropic Frontier Red Team", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_red.xml", pillar_hints: [industry, learning]}
+  - {id: google-developers-ai, name: "Google Developers Blog: AI (Gemini API)", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_google_ai.xml", pillar_hints: [industry, learning]}
+  - {id: thinking-machines, name: "Thinking Machines Lab", kind: gnews, query: 'site:thinkingmachines.ai when:30d', best_effort: true, pillar_hints: [industry, learning]}
+  - {id: cursor-blog, name: "Cursor blog", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_cursor.xml", pillar_hints: [industry, learning]}
+  - {id: meta-ai-blog, name: "AI at Meta blog (primary feed)", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_meta_ai.xml", pillar_hints: [industry, learning]}
+  - {id: uk-aisi-blog, name: "UK AI Security Institute blog", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_aisi.xml", pillar_hints: [industry, learning]}
+  - {id: ollama-blog, name: "Ollama blog", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_ollama.xml", pillar_hints: [industry, learning]}
+  - {id: codex-cli-releases, name: "OpenAI Codex CLI releases", kind: rss, url: "https://github.com/openai/codex/releases.atom", pillar_hints: [industry, learning]}
+  - {id: gemini-cli-releases, name: "Gemini CLI releases", kind: rss, url: "https://github.com/google-gemini/gemini-cli/releases.atom", pillar_hints: [industry, learning]}
+  - {id: n8n-releases, name: "n8n releases", kind: rss, url: "https://github.com/n8n-io/n8n/releases.atom", pillar_hints: [industry, learning]}
+  # Measurement: evals, benchmarks, forecasts and the economics of AI at work.
+  - {id: epoch-ai, name: "Epoch AI (Gradient Updates and Data Insights)", kind: gnews, query: '(site:epoch.ai OR site:epochai.substack.com) when:14d', best_effort: true, pillar_hints: [research, industry]}
+  - {id: gnews-metr, name: "METR (time horizons, developer-productivity studies)", kind: gnews, query: 'site:metr.org OR "METR" "time horizon" when:14d', pillar_hints: [research, industry]}
+  - {id: ramp-econ-lab, name: "Ramp AI Index (Ramp Econ Lab)", kind: gnews, query: '(site:econlab.substack.com OR "Ramp AI Index") when:30d', best_effort: true, pillar_hints: [research, industry]}
+  - {id: indeed-hiring-lab-au, name: "Indeed Hiring Lab Australia", kind: rss, url: "https://www.hiringlab.org/au/feed/", pillar_hints: [research, industry], best_effort: true}
+  - {id: gnews-artificial-analysis, name: "Artificial Analysis", kind: gnews, query: '"Artificial Analysis" (benchmark OR index OR leaderboard) when:7d', pillar_hints: [research, industry]}
+  - {id: gnews-stanford-hai, name: "Stanford HAI (AI Index and research)", kind: gnews, query: 'site:hai.stanford.edu when:14d', pillar_hints: [research, industry]}
+  - {id: gnews-lmarena, name: "LMArena / Arena leaderboard", kind: gnews, query: '(LMArena OR "Arena leaderboard") when:7d', pillar_hints: [research, industry]}
+  - {id: ai-futures-project, name: "AI Futures Project (AI 2027 authors)", kind: rss, url: "https://blog.aifutures.org/feed", pillar_hints: [research, industry]}
+  # People whose writing practitioners read and share.
+  - {id: karpathy-bearblog, name: "Andrej Karpathy (Bear blog)", kind: rss, url: "https://karpathy.bearblog.dev/feed/", pillar_hints: [learning, research]}
+  - {id: karpathy-github-blog, name: "Andrej Karpathy (GitHub blog)", kind: rss, url: "https://karpathy.github.io/feed.xml", pillar_hints: [learning, research]}
+  - {id: dwarkesh, name: "Dwarkesh Patel (podcast and essays)", kind: rss, url: "https://www.dwarkesh.com/feed", pillar_hints: [learning, research]}
+  - {id: zvi, name: "Don't Worry About the Vase (Zvi Mowshowitz)", kind: gnews, query: 'site:thezvi.substack.com when:7d', best_effort: true, pillar_hints: [learning, research]}
+  - {id: understanding-ai, name: "Understanding AI (Timothy B. Lee)", kind: rss, url: "https://www.understandingai.org/feed", pillar_hints: [learning, research]}
+  - {id: exponential-view, name: "Exponential View (Azeem Azhar)", kind: rss, url: "https://www.exponentialview.co/feed", pillar_hints: [learning, research]}
+  - {id: armin-ronacher, name: "Armin Ronacher", kind: rss, url: "https://lucumr.pocoo.org/feed.atom", pillar_hints: [learning, research]}
+  - {id: lilian-weng, name: "Lil'Log (Lilian Weng)", kind: rss, url: "https://lilianweng.github.io/index.xml", pillar_hints: [learning, research]}
+  - {id: embrace-the-red, name: "Embrace The Red (Johann Rehberger)", kind: rss, url: "https://embracethered.com/blog/index.xml", pillar_hints: [learning, research]}
+  - {id: phil-schmid, name: "Phil Schmid", kind: rss, url: "https://www.philschmid.de/rss", pillar_hints: [learning, research], best_effort: true}
+  - {id: addy-osmani, name: "Elevate (Addy Osmani)", kind: gnews, query: 'site:addyo.substack.com when:14d', best_effort: true, pillar_hints: [learning, research]}
+  - {id: interconnected, name: "Interconnected (Matt Webb)", kind: rss, url: "https://interconnected.org/home/feed", pillar_hints: [learning, research]}
+  - {id: semianalysis, name: "SemiAnalysis", kind: rss, url: "https://semianalysis.com/feed/", pillar_hints: [learning, research], best_effort: true}
+  - {id: platformer, name: "Platformer (Casey Newton)", kind: rss, url: "https://www.platformer.news/feed", pillar_hints: [learning, research], best_effort: true}
+  - {id: big-technology, name: "Big Technology (Alex Kantrowitz)", kind: rss, url: "https://www.bigtechnology.com/feed", pillar_hints: [learning, research]}
+  - {id: gnews-the-information, name: "The Information (headlines)", kind: gnews, query: 'site:theinformation.com AI when:2d', pillar_hints: [learning, research]}
+  # Automation at work, and Australia (where he lives).
+  - {id: gnews-hfs-research, name: "HFS Research (Phil Fersht)", kind: gnews, query: '(site:hfsresearch.com OR site:horsesforsources.com) when:14d', pillar_hints: [industry, receipts]}
+  - {id: gnews-automation-anywhere, name: "Automation Anywhere (primary)", kind: gnews, query: 'site:automationanywhere.com when:14d', pillar_hints: [industry, receipts]}
+  - {id: gnews-apra-asic-ai, name: "APRA and ASIC on AI", kind: gnews, query: '(site:apra.gov.au OR site:asic.gov.au) (AI OR "artificial intelligence") when:30d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [industry, receipts]}
+  - {id: gnews-uipath, name: "UiPath (primary)", kind: gnews, query: 'site:uipath.com (blog OR newsroom) when:14d', pillar_hints: [industry, receipts]}
+  - {id: gnews-power-platform, name: "Microsoft Power Platform blog", kind: gnews, query: 'site:microsoft.com/en-us/power-platform/blog when:14d', pillar_hints: [industry, receipts]}
+  - {id: gnews-au-banks-ai, name: "Australian banks and super funds on AI", kind: gnews, query: '(CBA OR ANZ OR NAB OR Westpac OR "super fund") ("AI agents" OR automation OR "generative AI") when:7d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [industry, receipts]}
+  - {id: gnews-process-mining, name: "Celonis and process mining", kind: gnews, query: '(Celonis OR "process mining") when:14d', pillar_hints: [industry, receipts]}
+  - {id: gnews-servicenow-ai, name: "ServiceNow AI agents", kind: gnews, query: 'ServiceNow ("AI agents" OR "Now Assist") when:7d', pillar_hints: [industry, receipts]}
+  - {id: gnews-itnews, name: "iTnews", kind: gnews, query: 'site:itnews.com.au when:2d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [industry]}
+  - {id: gnews-innovationaus, name: "InnovationAus", kind: gnews, query: 'site:innovationaus.com when:3d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [industry]}
+  - {id: acs-information-age, name: "ACS Information Age", kind: rss, url: "https://ia.acs.org.au/articles.rss", pillar_hints: [industry]}
+  - {id: conversation-au-tech, name: "The Conversation AU: Science + Tech", kind: rss, url: "https://theconversation.com/au/technology/articles.atom", pillar_hints: [industry], best_effort: true}
+  - {id: gnews-afr-tech, name: "AFR Technology (headlines)", kind: gnews, query: 'site:afr.com (AI OR technology OR "artificial intelligence") when:2d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [industry]}
+  - {id: gnews-au-national-ai, name: "National AI Centre / National AI Plan", kind: gnews, query: '("National AI Centre" OR "National AI Plan") Australia when:14d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [industry]}
+  - {id: rest-of-world, name: "Rest of World", kind: rss, url: "https://restofworld.org/feed/latest", pillar_hints: [industry]}
+  - {id: gnews-et-tech, name: "ET Tech", kind: gnews, query: 'site:economictimes.indiatimes.com/tech when:1d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [industry]}
+  - {id: yt-ai-engineer, name: "AI Engineer (YouTube)", kind: rss, url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCONWr2M0moA8wsGHb3zUn_w", pillar_hints: [learning]}
+  - {id: yt-karpathy, name: "Andrej Karpathy (YouTube)", kind: rss, url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCYO_jab_esuFRV4b17AJtAw", pillar_hints: [learning, research]}
+  - {id: yt-ai-explained, name: "AI Explained (YouTube)", kind: rss, url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCNJ1Ymd5yFuUPtn21xtRbbw", pillar_hints: [learning, research]}
+  - {id: pod-ai-daily-brief, name: "The AI Daily Brief (podcast)", kind: rss, url: "https://anchor.fm/s/f7cac464/podcast/rss", pillar_hints: [industry]}
 
 affairs:
   - {id: bbc-world, name: BBC World, kind: rss, url: "https://feeds.bbci.co.uk/news/world/rss.xml", tier: world}
   - {id: aljazeera, name: Al Jazeera, kind: rss, url: "https://www.aljazeera.com/xml/rss/all.xml", tier: world}
   - {id: guardian-world, name: The Guardian World, kind: rss, url: "https://www.theguardian.com/world/rss", tier: world}
   - {id: npr-world, name: NPR World, kind: rss, url: "https://feeds.npr.org/1004/rss.xml", tier: world}
-  - {id: gnews-world, name: "Google News: World", kind: gnews, topic: WORLD, hl: en-IN, gl: IN, ceid: "IN:en", tier: world}
   - {id: the-hindu-national, name: The Hindu (National), kind: rss, url: "https://www.thehindu.com/news/national/feeder/default.rss", tier: india}
-  - {id: indian-express-india, name: "Google News: Indian Express", kind: gnews, query: 'site:indianexpress.com India when:1d', hl: en-IN, gl: IN, ceid: "IN:en", tier: india}
-  - {id: ht-india, name: Hindustan Times (India), kind: rss, url: "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml", tier: india}
-  - {id: theprint, name: "Google News: ThePrint", kind: gnews, query: 'site:theprint.in when:1d', hl: en-IN, gl: IN, ceid: "IN:en", tier: india}
   - {id: livemint-economy, name: Mint (Economy), kind: rss, url: "https://www.livemint.com/rss/economy", tier: india}
-  - {id: pib-releases, name: "Google News: PIB releases", kind: gnews, query: 'site:pib.gov.in when:2d', hl: en-IN, gl: IN, ceid: "IN:en", tier: india, best_effort: true}
-  - {id: gnews-india-nation, name: "Google News: India", kind: gnews, topic: NATION, hl: en-IN, gl: IN, ceid: "IN:en", tier: india}
-  - {id: gnews-bihar-en, name: "Google News: Bihar", kind: gnews, query: "Bihar when:2d", hl: en-IN, gl: IN, ceid: "IN:en", tier: bihar}
   - {id: gnews-bihar-development, name: "Google News: Bihar development", kind: gnews, query: 'Bihar economy OR investment OR infrastructure OR scheme when:7d', hl: en-IN, gl: IN, ceid: "IN:en", tier: bihar}
-  - {id: gnews-bihar-hi, name: "Google News: बिहार", kind: gnews, query: "बिहार when:2d", hl: hi, gl: IN, ceid: "IN:hi", lang: hi, tier: bihar}
-  - {id: gnews-patna-hi, name: "Google News: पटना", kind: gnews, query: "पटना when:2d", hl: hi, gl: IN, ceid: "IN:hi", lang: hi, tier: bihar}
   - {id: ht-patna, name: Hindustan Times (Patna), kind: rss, url: "https://www.hindustantimes.com/feeds/rss/cities/patna-news/rssfeed.xml", tier: bihar}
   - {id: toi-patna, name: Times of India (Patna), kind: rss, url: "https://timesofindia.indiatimes.com/rssfeeds/-2128817995.cms", tier: bihar, best_effort: true}
-  - {id: livehindustan-bihar, name: Live Hindustan (Bihar), kind: rss, url: "https://api.livehindustan.com/feeds/rss/bihar/rssfeed.xml", tier: bihar, lang: hi, best_effort: true}
   - {id: wikipedia-otd, name: Wikipedia — on this day, kind: wikipedia_otd, tier: world}
   # Bihar beyond this week's news: a few articles a day from ancient Magadha to today's Bihar (story_pools.yaml).
   - {id: wikipedia-bihar-stories, name: "Wikipedia: Bihar, history to now", kind: wikipedia_pool, query: bihar, tier: bihar, max_items: 3}
+  # November 2026: explainers and analysis rather than more headline feeds (most cut sources were headlines).
+  - {id: gnews-scroll, name: "Scroll", kind: gnews, query: 'site:scroll.in when:1d', hl: en-IN, gl: IN, ceid: "IN:en", tier: india}
+  - {id: gnews-ideas-for-india, name: "Ideas for India", kind: gnews, query: 'site:ideasforindia.in when:30d', hl: en-IN, gl: IN, ceid: "IN:en", tier: india}
+  - {id: economist-world-this-week, name: "The Economist (headlines)", kind: rss, url: "https://www.economist.com/the-world-this-week/rss.xml", tier: world, best_effort: true}
+  - {id: pod-seen-and-unseen, name: "The Seen and the Unseen (Amit Varma)", kind: rss, url: "https://rss.libsyn.com/shows/91647/destinations/458496.xml", tier: india}
 
 startups:
   - {id: techcrunch-startups, name: TechCrunch Startups, kind: rss, url: "https://techcrunch.com/category/startups/feed/", pillar_hints: [startups, industry]}
@@ -146,6 +205,36 @@ startups:
   - {id: hn-show, name: Show HN, kind: hn_show, url: "https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&numericFilters=points%3E40&hitsPerPage=40", pillar_hints: [startups, learning]}
   - {id: gnews-india-startups, name: "Google News: Indian startups", kind: gnews, query: 'Indian startup funding OR raises when:2d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [startups]}
   - {id: gnews-ai-startups, name: "Google News: AI startup funding", kind: gnews, query: '"AI startup" raises OR funding when:2d', pillar_hints: [startups, industry]}
+  # November 2026: Australian startups, and the investors and founders practitioners quote.
+  - {id: tomasz-tunguz, name: "Tomasz Tunguz", kind: rss, url: "https://tomtunguz.com/index.xml", pillar_hints: [startups, industry], best_effort: true}
+  - {id: startup-daily, name: "Startup Daily", kind: rss, url: "https://www.startupdaily.net/feed", pillar_hints: [startups]}
+  - {id: gnews-smartcompany, name: "SmartCompany", kind: gnews, query: 'site:smartcompany.com.au (AI OR technology) when:3d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [startups]}
+  - {id: paul-graham, name: "Paul Graham essays", kind: rss, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_paulgraham.xml", pillar_hints: [startups]}
+  - {id: lennys-newsletter, name: "Lenny's Newsletter", kind: rss, url: "https://www.lennysnewsletter.com/feed", pillar_hints: [startups]}
+  - {id: gnews-ycombinator, name: "Y Combinator (blog and launches)", kind: gnews, query: 'site:ycombinator.com (blog OR launches) when:7d', pillar_hints: [startups]}
+  - {id: gnews-a16z, name: "a16z on AI", kind: gnews, query: 'site:a16z.com AI when:14d', pillar_hints: [startups]}
+  - {id: gnews-first-round, name: "First Round Review", kind: gnews, query: 'site:review.firstround.com when:30d', pillar_hints: [startups]}
+  - {id: gnews-cut-through-venture, name: "Cut Through Venture (Australian funding data)", kind: gnews, query: '"Cut Through Venture" when:30d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [startups]}
+  # The startup pack (Appendix B of the brief), all marked Yes.
+  - {id: gnews-carta-data, name: "Carta data (Peter Walker)", kind: gnews, query: '"Carta" (data OR report OR "Peter Walker") startups when:14d', pillar_hints: [startups]}
+  - {id: gnews-capital-brief, name: "Capital Brief (Australian startups and VC)", kind: gnews, query: 'site:capitalbrief.com (startup OR startups OR venture OR founder) when:3d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [startups]}
+  - {id: andrew-chen, name: "Andrew Chen", kind: gnews, query: 'site:andrewchen.substack.com when:30d', best_effort: true, pillar_hints: [startups]}
+  - {id: not-boring, name: "Not Boring (Packy McCormick)", kind: rss, url: "https://www.notboring.co/feed", pillar_hints: [startups]}
+  - {id: newcomer, name: "Newcomer (Eric Newcomer)", kind: rss, url: "https://www.newcomer.co/feed", pillar_hints: [startups]}
+  - {id: elad-gil, name: "Elad Gil", kind: rss, url: "https://blog.eladgil.com/feed", pillar_hints: [startups]}
+  - {id: the-signal-india-funding, name: "The Signal (Pivotal Research)", kind: gnews, query: 'site:thesignalbypivotalresearch.substack.com when:14d', best_effort: true, pillar_hints: [startups]}
+  - {id: gnews-blume-indus-valley, name: "Blume Indus Valley report and Sajith Pai", kind: gnews, query: '("Indus Valley" Blume) OR "Sajith Pai" when:30d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [startups]}
+  - {id: gnews-innovation-victoria, name: "Innovation Victoria (formerly LaunchVic)", kind: gnews, query: '("Innovation Victoria" OR LaunchVic) startup when:14d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [startups]}
+  - {id: gnews-indie-hackers, name: "Indie Hackers", kind: gnews, query: 'site:indiehackers.com when:7d', pillar_hints: [startups]}
+  # No Priors' directory feed stopped in 2023: its episodes are found through Google News instead.
+  - {id: pod-no-priors, name: "No Priors (Sarah Guo, Elad Gil)", kind: gnews, query: '"No Priors" (podcast OR episode) (AI OR "Sarah Guo" OR "Elad Gil") when:30d', best_effort: true, pillar_hints: [startups]}
+  - {id: pod-acquired, name: "Acquired (podcast)", kind: rss, url: "https://feeds.transistor.fm/acquired", pillar_hints: [startups]}
+  - {id: pod-20vc, name: "20VC (Harry Stebbings)", kind: rss, url: "https://rss.libsyn.com/shows/61840/destinations/240976.xml", pillar_hints: [startups]}
+  - {id: saastr, name: "SaaStr (Jason Lemkin)", kind: rss, url: "https://www.saastr.com/feed/", pillar_hints: [startups], best_effort: true}
+  - {id: gnews-the-ken, name: "The Ken (headlines)", kind: gnews, query: 'site:the-ken.com when:3d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [startups]}
+  - {id: gnews-pitchbook, name: "PitchBook news", kind: gnews, query: 'site:pitchbook.com/news when:3d', pillar_hints: [startups]}
+  - {id: gnews-nfx, name: "NFX", kind: gnews, query: 'site:nfx.com when:30d', pillar_hints: [startups]}
+  - {id: gnews-au-vc-firms, name: "Australian VC firms (Blackbird, AirTree, Square Peg)", kind: gnews, query: '(Blackbird OR AirTree OR "Square Peg") (startup OR fund OR raises) Australia when:14d', hl: en-AU, gl: AU, ceid: "AU:en", pillar_hints: [startups]}
 
 # What people are talking about beyond the news and the papers: tech communities, odd, funny and bizarre tech
 # stories, and what's trending. How much a story is discussed (Reddit score and comments, Hacker News comments,
@@ -155,33 +244,25 @@ startups:
 buzz:
   # Once a day, a Google search (through Gemini) of public LinkedIn and X posts on your topics: the conversations
   # taking off and why they work (pbs/pulse.py; settings `pulse`). Pause it here to stop it.
+  # Its own item count stays at 0: what it finds is stored under the feeds it reads, so check its status on
+  # Insights → What's working, not this count.
   - {id: social-pulse, name: "Social pulse: what's working on LinkedIn and X", kind: pulse, best_effort: true}
-  - {id: reddit-technology, name: r/technology, kind: reddit_json, url: "https://www.reddit.com/r/technology/top.json?t=day&limit=30", best_effort: true, min_score: 1500, pillar_hints: [industry]}
-  - {id: reddit-programming, name: r/programming, kind: reddit_json, url: "https://www.reddit.com/r/programming/top.json?t=day&limit=30", best_effort: true, min_score: 250, pillar_hints: [learning]}
-  - {id: reddit-programmerhumor, name: r/ProgrammerHumor, kind: reddit_json, url: "https://www.reddit.com/r/ProgrammerHumor/top.json?t=day&limit=30", best_effort: true, min_score: 1500, pillar_hints: [humor]}
-  - {id: reddit-linkedinlunatics, name: r/LinkedInLunatics, kind: reddit_json, url: "https://www.reddit.com/r/LinkedInLunatics/top.json?t=day&limit=30", best_effort: true, min_score: 800, pillar_hints: [humor]}
-  - {id: reddit-singularity, name: r/singularity, kind: reddit_json, url: "https://www.reddit.com/r/singularity/top.json?t=day&limit=30", best_effort: true, min_score: 300, pillar_hints: [industry, research]}
-  - {id: reddit-chatgpt, name: r/ChatGPT, kind: reddit_json, url: "https://www.reddit.com/r/ChatGPT/top.json?t=day&limit=30", best_effort: true, min_score: 800, pillar_hints: [humor, industry]}
-  - {id: reddit-openai, name: r/OpenAI, kind: reddit_json, url: "https://www.reddit.com/r/OpenAI/top.json?t=day&limit=30", best_effort: true, min_score: 300, pillar_hints: [industry]}
-  - {id: reddit-artificial, name: r/artificial, kind: reddit_json, url: "https://www.reddit.com/r/artificial/top.json?t=day&limit=30", best_effort: true, min_score: 150, pillar_hints: [industry]}
-  - {id: reddit-developersindia, name: r/developersIndia, kind: reddit_json, url: "https://www.reddit.com/r/developersIndia/top.json?t=day&limit=30", best_effort: true, min_score: 200, pillar_hints: [humor, industry]}
-  - {id: reddit-cscareerquestions, name: r/cscareerquestions, kind: reddit_json, url: "https://www.reddit.com/r/cscareerquestions/top.json?t=day&limit=30", best_effort: true, min_score: 300, pillar_hints: [humor]}
+  - {id: reddit-programmerhumor, name: r/ProgrammerHumor, kind: reddit, url: "https://www.reddit.com/r/ProgrammerHumor/top/.rss?t=day", best_effort: true, pillar_hints: [humor]}
+  - {id: reddit-linkedinlunatics, name: r/LinkedInLunatics, kind: reddit, url: "https://www.reddit.com/r/LinkedInLunatics/top/.rss?t=day", best_effort: true, pillar_hints: [humor]}
+  - {id: reddit-developersindia, name: r/developersIndia, kind: reddit, url: "https://www.reddit.com/r/developersIndia/top/.rss?t=day", best_effort: true, pillar_hints: [humor, industry]}
   # Where practitioners in his fields argue and compare notes (scores and comment counts are observed).
-  - {id: reddit-ai-agents, name: r/AI_Agents, kind: reddit_json, url: "https://www.reddit.com/r/AI_Agents/top.json?t=day&limit=30", best_effort: true, min_score: 80, pillar_hints: [learning, industry]}
-  - {id: reddit-llmdevs, name: r/LLMDevs, kind: reddit_json, url: "https://www.reddit.com/r/LLMDevs/top.json?t=day&limit=30", best_effort: true, min_score: 50, pillar_hints: [learning]}
-  - {id: reddit-experienceddevs, name: r/ExperiencedDevs, kind: reddit_json, url: "https://www.reddit.com/r/ExperiencedDevs/top.json?t=day&limit=30", best_effort: true, min_score: 250, pillar_hints: [learning, industry]}
-  - {id: reddit-dataengineering, name: r/dataengineering, kind: reddit_json, url: "https://www.reddit.com/r/dataengineering/top.json?t=day&limit=30", best_effort: true, min_score: 120, pillar_hints: [learning]}
-  - {id: reddit-rpa, name: r/rpa, kind: reddit_json, url: "https://www.reddit.com/r/rpa/top.json?t=week&limit=20", best_effort: true, min_score: 15, pillar_hints: [receipts, learning]}
+  - {id: reddit-ai-agents, name: r/AI_Agents, kind: reddit, url: "https://www.reddit.com/r/AI_Agents/top/.rss?t=day", best_effort: true, pillar_hints: [learning, industry]}
+  - {id: reddit-llmdevs, name: r/LLMDevs, kind: reddit, url: "https://www.reddit.com/r/LLMDevs/top/.rss?t=day", best_effort: true, pillar_hints: [learning]}
+  - {id: reddit-rpa, name: r/rpa, kind: reddit, url: "https://www.reddit.com/r/rpa/top/.rss?t=week", best_effort: true, pillar_hints: [receipts, learning]}
   - {id: hn-ask, name: Ask HN, kind: hn_ask, url: "https://hn.algolia.com/api/v1/search_by_date?tags=ask_hn&numericFilters=points%3E40&hitsPerPage=30", pillar_hints: [learning, industry]}
   - {id: hn-heated, name: "Hacker News: most discussed", kind: hn_front, url: "https://hn.algolia.com/api/v1/search_by_date?tags=story&numericFilters=num_comments%3E250&hitsPerPage=30", pillar_hints: [industry]}
   - {id: techmeme, name: Techmeme, kind: rss, url: "https://www.techmeme.com/feed.xml", pillar_hints: [industry]}
-  - {id: lobsters, name: Lobsters, kind: rss, url: "https://lobste.rs/hottest.rss", pillar_hints: [learning]}
+  - {id: lobsters, name: Lobsters, kind: rss, url: "https://lobste.rs/rss", pillar_hints: [learning]}
   - {id: product-hunt, name: Product Hunt, kind: rss, url: "https://www.producthunt.com/feed", best_effort: true, pillar_hints: [startups]}
   - {id: github-trending, name: GitHub trending, kind: rss, url: "https://mshibanami.github.io/GitHubTrendingRSS/daily/all.xml", best_effort: true, pillar_hints: [learning]}
   - {id: the-register, name: The Register, kind: rss, url: "https://www.theregister.com/headlines.atom", pillar_hints: [industry, humor]}
   - {id: 404-media, name: 404 Media, kind: rss, url: "https://www.404media.co/rss/", pillar_hints: [industry]}
   - {id: futurism, name: Futurism, kind: rss, url: "https://futurism.com/feed", pillar_hints: [industry, humor]}
-  - {id: gizmodo, name: Gizmodo, kind: rss, url: "https://gizmodo.com/feed", pillar_hints: [industry]}
   - {id: ars-technica, name: Ars Technica, kind: rss, url: "https://feeds.arstechnica.com/arstechnica/index", pillar_hints: [industry, research]}
   - {id: hackaday, name: Hackaday, kind: rss, url: "https://hackaday.com/blog/feed/", pillar_hints: [learning]}
   - {id: slashdot, name: Slashdot, kind: rss, url: "https://rss.slashdot.org/Slashdot/slashdotMain", pillar_hints: [industry]}
@@ -193,9 +274,6 @@ buzz:
   - {id: gtrends-australia, name: "Google Trends: Australia", kind: gtrends, url: "https://trends.google.com/trending/rss?geo=AU", best_effort: true, geo: Australia}
   - {id: gtrends-us, name: "Google Trends: United States", kind: gtrends, url: "https://trends.google.com/trending/rss?geo=US", best_effort: true, geo: the US}
   - {id: mastodon-links, name: "Mastodon: trending links", kind: mastodon_links, url: "https://mastodon.social/api/v1/trends/links?limit=40", best_effort: true}
-  - {id: trends24-india, name: "X trends: India (trends24)", kind: trends24, url: "https://trends24.in/india/", best_effort: true, region: India}
-  - {id: trends24-australia, name: "X trends: Australia (trends24)", kind: trends24, url: "https://trends24.in/australia/", best_effort: true, region: Australia}
-  - {id: trends24-world, name: "X trends: worldwide (trends24)", kind: trends24, url: "https://trends24.in/", best_effort: true, region: worldwide}
   - {id: bsky-trends, name: "Bluesky: trending topics", kind: bsky_trends, url: "https://public.api.bsky.app/xrpc/app.bsky.unspecced.getTrendingTopics?limit=25", best_effort: true}
 
   # Public indexed LinkedIn/X coverage: discovery only, never a claim of measured engagement.
@@ -214,15 +292,39 @@ buzz:
   # Researchers who post publicly on Bluesky as well as X: their posts come with real counts.
   - {id: bsky-emollick, name: "Bluesky: Ethan Mollick", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=emollick.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
   - {id: bsky-natolambert, name: "Bluesky: Nathan Lambert", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=natolambert.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
-  - {id: bsky-fchollet, name: "Bluesky: François Chollet", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=fchollet.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
   - {id: bsky-engineering-posts, name: "Bluesky: Simon Willison's public AI posts", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=simonwillison.net&limit=25&filter=posts_no_replies', best_effort: true, max_items: 15}
+  # November 2026: AI failures worth a wry post, how LinkedIn and X themselves are changing, and more researchers'
+  # public Bluesky posts (each handle checked when the change was built; any that didn't resolve was left out).
+  - {id: ai-incident-database, name: "AI Incident Database", kind: rss, url: "https://incidentdatabase.ai/rss.xml", pillar_hints: [humor, industry], best_effort: true}
+  - {id: gnews-social-media-today, name: "Social Media Today (LinkedIn and X changes)", kind: gnews, query: 'site:socialmediatoday.com (LinkedIn OR "X") when:3d', pillar_hints: [industry]}
+  - {id: gnews-linkedin-engineering, name: "LinkedIn Engineering blog", kind: gnews, query: 'site:linkedin.com/blog/engineering when:30d', pillar_hints: [industry]}
+  - {id: gnews-x-engineering, name: "X Engineering blog", kind: gnews, query: 'site:blog.x.com when:30d', pillar_hints: [industry]}
+  - {id: bsky-hamel, name: "Bluesky: Hamel Husain", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=hamel.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
+  - {id: bsky-rasbt, name: "Bluesky: Sebastian Raschka", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=rasbt.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
+  - {id: bsky-bcherny, name: "Bluesky: Boris Cherny", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=bcherny.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
+  - {id: bsky-randomwalker, name: "Bluesky: Arvind Narayanan", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=randomwalker.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
+  - {id: bsky-timkellogg, name: "Bluesky: Tim Kellogg", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=timkellogg.me&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
+  - {id: bsky-melaniemitchell, name: "Bluesky: Melanie Mitchell", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=melaniemitchell.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
+  - {id: bsky-ai2, name: "Bluesky: Ai2", kind: bsky_feed, url: 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=ai2.bsky.social&limit=25&filter=posts_no_replies', best_effort: true, max_items: 10}
 
-life: []
+life:
+  # The X life lane asks for his take (interview mode): a cricket story becomes questions, not a finished draft.
+  - {id: gnews-cricket, name: "Cricket: India and Australia", kind: gnews, query: '(India OR Australia) cricket when:1d', hl: en-AU, gl: AU, ceid: "AU:en"}
 
 # Funny takes on the news come from every scout (triage picks them) and relatable premises from humor_pools.yaml.
 # A feed added here (a humour or satire site you like) is ranked for the humour lanes.
-humor: []
+humor:
+  - {id: pivot-to-ai, name: "Pivot to AI (David Gerard)", kind: rss, url: "https://pivot-to-ai.com/feed/", pillar_hints: [humor, industry]}
+  - {id: daily-wtf, name: "The Daily WTF", kind: rss, url: "https://thedailywtf.com/rss", pillar_hints: [humor], best_effort: true}
+  - {id: the-shovel, name: "The Shovel (Melbourne satire)", kind: rss, url: "https://www.theshovel.com.au/feed/", pillar_hints: [humor]}
+  - {id: betoota-advocate, name: "The Betoota Advocate", kind: gnews, query: 'site:betootaadvocate.com when:7d', hl: en-AU, gl: AU, ceid: "AU:en", best_effort: true, pillar_hints: [humor]}
+  - {id: xkcd, name: "xkcd", kind: rss, url: "https://xkcd.com/rss.xml", pillar_hints: [humor]}
+  - {id: gnews-the-fauxy, name: "The Fauxy (Indian satire)", kind: gnews, query: 'site:thefauxy.com when:7d', hl: en-IN, gl: IN, ceid: "IN:en", pillar_hints: [humor]}
 
 ideas:
   # Quotes for X: a few a day from quote_pools.yaml, each checked word for word against the author's Wikiquote page.
   - {id: wikiquote-quotes, name: "Wikiquote: quotes worth sharing", kind: wikiquote_pool, query: quotes, max_items: 6, pillar_hints: [ideas]}
+  - {id: farnam-street, name: "Farnam Street", kind: rss, url: "https://fs.blog/feed/", pillar_hints: [ideas]}
+  - {id: cal-newport, name: "Cal Newport", kind: rss, url: "https://calnewport.com/feed/", pillar_hints: [ideas]}
+  - {id: seth-godin, name: "Seth Godin", kind: rss, url: "https://seths.blog/feed/", pillar_hints: [ideas]}
+

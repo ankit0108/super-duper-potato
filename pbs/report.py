@@ -182,11 +182,8 @@ def plan_actions(ctx: Ctx, sections: dict[str, Any]) -> list[dict[str, Any]]:
 def apply_actions(ctx: Ctx, actions: list[dict[str, Any]]) -> list[dict[str, Any]]:
     applied = []
     for a in actions:
-        if a["type"] == "pause_source":
-            ctx.store.update("sources", a["source_id"], active=False, paused_reason=a["reason"],
-                             updated_at=timeutil.now_iso())
-            applied.append(a)
-        elif a["type"] in ("candidates_per_scout", "explore_rate"):
+        # Sources are never paused here: only he removes or pauses a source (the weekly source review asks him).
+        if a["type"] in ("candidates_per_scout", "explore_rate"):
             patch = ({"scouting": {"candidates_per_scout": {a["scout"]: a["to"]}}} if a["type"] == "candidates_per_scout"
                      else {"learning": {"explore_rate": a["to"]}})
             current = dict(ctx.store.get_setting("overrides", {}) or {})
@@ -202,6 +199,57 @@ def apply_actions(ctx: Ctx, actions: list[dict[str, Any]]) -> list[dict[str, Any
 
 
 PLATFORM = {"linkedin": "LinkedIn", "x": "X"}
+KEPT_KEY = "source_review_kept"  # {source_id: {"on": "YYYY-MM-DD", "failing": bool}}: kept in a review
+
+
+def source_review(ctx: Ctx, sections: dict[str, Any]) -> str | None:
+    """The weekly question: which of these sources should go? Nothing is ever paused or removed without him, so a
+    source that fails for a week, stays empty for four, or brings many items and no picked story is listed with its
+    numbers, and he chooses Keep or Remove for each (Insights → Proposals). A source he keeps isn't listed again for
+    `review_keep_weeks`, unless it starts failing. Returns the proposal id, or None when there's nothing to ask."""
+    sc = ctx.settings.scouting
+    if ctx.store.count("proposals", "kind = 'source_review' AND status = 'pending'"):
+        return None  # last week's is still waiting for him
+    now = timeutil.now()
+    kept = ctx.store.get_setting(KEPT_KEY, {}) or {}
+    yields = {y["source_id"]: y for y in sections.get("source_yield", [])}
+    rows: list[dict[str, Any]] = []
+    for src in ctx.store.select("sources", "active = 1"):
+        if src.get("kind") in ("pulse", "websearch"):
+            continue  # searches, not feeds: their own counts stay at 0
+        y = yields.get(src["id"], {})
+        created = timeutil.parse(src.get("created_at")) or now
+        old_enough = now - created >= dt.timedelta(weeks=sc.pause_after_zero_yield_weeks)
+        last_ok = timeutil.parse(src.get("last_success_at")) or created
+        failing_days = (now - last_ok).days
+        failing = int(src.get("consecutive_failures") or 0) >= 3 and failing_days >= sc.pause_after_failure_days
+        items, picked = int(y.get("items_28d") or 0), int(y.get("picked_items_28d") or 0)
+        empty = old_enough and not failing and items == 0
+        quiet = old_enough and not failing and items >= 10 and picked == 0
+        if not (failing or empty or quiet):
+            continue
+        was = kept.get(src["id"]) or {}
+        kept_on = timeutil.parse(f"{was['on']}T00:00:00Z") if was.get("on") else None
+        if kept_on and now - kept_on < dt.timedelta(weeks=sc.review_keep_weeks) and not (failing and not was.get("failing")):
+            continue  # he kept it recently, and nothing has changed for the worse
+        if failing:
+            why = f"Failing for {failing_days} days ({src.get('last_error') or 'error'})"
+        elif empty:
+            why = "No items in 28 days"
+        else:
+            why = f"{items} items in 28 days, none in a card you picked"
+        rows.append({"id": src["id"], "name": src.get("name") or src["id"], "scout": src.get("scout"), "why": why,
+                     "items_28d": items, "picked_28d": picked, "failing": failing,
+                     "order": (0 if failing else 1 if empty else 2, -items)})
+    if not rows:
+        return None
+    rows.sort(key=lambda r: r.pop("order"))
+    rows = rows[:sc.review_max]
+    return playbook.create_proposal(
+        ctx, kind="source_review", title=f"Keep or remove {len(rows)} source{'s' if len(rows) != 1 else ''}?",
+        detail="Nothing is removed unless you choose Remove. Each one is still fetched every day; a source you keep "
+               f"isn't asked about again for {sc.review_keep_weeks} weeks, unless it starts failing.",
+        payload={"review": rows}, confidence="medium", source="report")
 
 
 def health_proposals(ctx: Ctx, sections: dict[str, Any]) -> tuple[list[str], list[dict[str, str]]]:
@@ -210,12 +258,9 @@ def health_proposals(ctx: Ctx, sections: dict[str, Any]) -> tuple[list[str], lis
     under "Waiting for you" changes something. Returns (proposal ids, advice)."""
     ids: list[str] = []
     advice: list[dict[str, str]] = []
-    quiet = [y for y in sections.get("source_yield", [])
-             if y["active"] and not y["failing"] and y["items_28d"] >= 10 and y["picked_items_28d"] == 0]
-    if quiet:
-        advice.append({"title": f"{len(quiet)} sources had no picked stories in 28 days",
-                       "detail": "They stay active. Their stories may never have reached the board: "
-                                 + ", ".join(y["source_id"] for y in quiet[:12]) + "."})
+    review = source_review(ctx, sections)
+    if review:
+        ids.append(review)
     dq = sections["drafter_quality"]
     week_ago = timeutil.iso(timeutil.now() - dt.timedelta(days=7))
     for pl in ("linkedin", "x"):

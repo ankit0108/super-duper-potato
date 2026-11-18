@@ -138,6 +138,22 @@ and *Carousel*.
 ("Understood as: …"); if it's off, say what you mean in the notes and ask again. Stances: record or change a
 view; your wording shows under **Your stance** once saved.
 
+### Sources: only you remove them
+
+- **Nothing is paused or removed automatically.** Every source you haven't paused or removed on the Sources page is
+  fetched on every run. A failing one is tried again each time, and its error shows on the Sources page.
+- **The weekly source review asks you.** With the weekly review, **Insights → Proposals** lists up to 15 sources:
+  failing for a week, empty for 28 days, or many items and no story you picked. Choose **Keep** or **Remove** for
+  each (Keep is the default), then **Remove N, keep the rest**. Remove does what deleting on the Sources page does.
+  A source you keep isn't asked about again for 12 weeks, unless it starts failing. **Ask me next week** leaves them
+  all as they are.
+- **X accounts with no feed.** People who post only on X are searched by the X scout, 10 a day in turn from
+  `agents.watch_probes.handles` (each one every other day, about 300 searches a month). Only their own posts count;
+  a day with nothing from them is normal.
+- **Adding sources in code.** A pull request that changes `pbs/defaults/sources.yaml` runs the **sources-check**
+  workflow: it fetches every new or changed source from GitHub's servers and resolves YouTube and podcast feeds.
+  Its log lists each one as OK or FAIL.
+
 ### The scouts (LinkedIn and X)
 
 Each morning, before the set is chosen, a LinkedIn scout and an X scout read the day's best stories and write a
@@ -159,6 +175,22 @@ ran. A scout's marks move a story up or down inside your lanes; the lane mix and
 - **When models are short**, the day's drafts come first: the report is then the ranking with its evidence, and
   says so. The scouts judge plain posts only, not funny takes, quotes, excerpts, thoughts or your question cards.
 
+### The editors (LinkedIn and X)
+
+After the ranking picks the morning set (your lane mix, the learner, exploration and reply slots) and before the
+writers plan, a LinkedIn editor and an X editor each decide what is worth your time today:
+
+- **They order your board.** Each card shows the editor's one-line reason ("Editor: …"); the card page has it under
+  **Editor's pick**.
+- **They can swap a pick for a stronger story, in the same lane only**, so your mix doesn't change. Exploration picks
+  stay (the learner needs them), reply slots stay replies, and question cards, funny posts, quotes and thoughts can
+  be moved but not swapped.
+- **Also on the editor's list:** up to 5 runner-ups per platform on the board, not drafted. **Draft this** writes one
+  in a few minutes; nothing is spent until you tap it.
+- The Scouts page and the weekly review say whether your posts come from the top half of the editors' order.
+- Two model calls a morning (eight for all six agents). When the drafts need the budget, the set stays as the
+  ranking made it and the runner-ups are the best alternatives.
+
 ### The writers (LinkedIn and X)
 
 After the morning set is chosen and before it is drafted, a LinkedIn writer and an X writer each read their
@@ -166,8 +198,6 @@ scout's report and the picks, and plan every plain post: the one job it has, whi
 shape, the facts that carry it, how it ends and what to avoid. The plan goes to the model that writes the draft
 and shows on the card as **Writer's plan**.
 
-- **One swap at most a morning.** A writer can replace a pick it has nothing specific to say about with a
-  stronger story from the scout's report, only in the same lane; the card says which story it replaced and why.
 - **Another model reviews.** The writers start on Groq, the scouts on Gemini, so a report isn't reviewed by the
   model that wrote it.
 - **Checks after each draft.** Code looks for the platform's basics: a LinkedIn opening past the fold (about 210

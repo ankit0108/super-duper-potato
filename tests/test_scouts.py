@@ -175,3 +175,41 @@ def test_trending_models_parser_reads_the_hubs_counts():
     assert rows[0]["signals"] == {"hf_model_likes": 1840, "hf_model_rank": 1}
     assert "1,840 likes" in rows[0]["summary"] and "text generation" in rows[0]["title"]
     assert parse({"kind": "hf_models"}, b"<html>") == []
+
+
+def test_the_x_scout_searches_its_watchlist_in_turn(make_ctx, web, monkeypatch):
+    monkeypatch.setenv("TAVILY_API_KEY", "tvly-test")
+    own = "https://x.com/levelsio/status/1990000000000000001"
+    _search_world(web, {"results": [
+        {"url": own, "title": "Shipped a new thing", "content": "Revenue numbers for the month.",
+         "published_date": "2026-09-27T08:00:00Z"},
+        {"url": "https://x.com/someone_else/status/1990000000000000002", "title": "levelsio said", "content": "x"},
+        {"url": "https://x.com/levelsio", "title": "levelsio profile", "content": "x"}]})
+    ctx = make_ctx()
+    spec = ctx.settings.agents.watch_probes
+    spec.handles = ["levelsio", "deedydas", "kunalb11"]
+    spec.per_day = 2
+    first = scouts.watch_probes(ctx)
+    assert [p["q"] for p in first] == ["levelsio", "deedydas"] and all(p["where"] == "x" and p["days"] == 1 for p in first)
+    assert [p["q"] for p in scouts.watch_probes(ctx)] == ["kunalb11", "levelsio"], "the rotation wraps round"
+    assert scouts.plan_probes(ctx, "linkedin") == [] or all(not p.get("watch") for p in scouts.plan_probes(ctx, "linkedin"))
+    ctx.settings.agents.probes = 0
+    ctx.store.set_setting(scouts.WATCH_CURSOR, 0)
+    done = scouts.run_probes(ctx, "x")
+    assert [d["query"] for d in done] == ["levelsio", "deedydas"]
+    kept = ctx.store.select("items", "source_id = ?", ("scout-x",))
+    assert [i["url"] for i in kept] == [own], "only the account's own posts count"
+    assert kept[0]["signals"]["watch_handle"] == "levelsio"
+    assert done[1]["found"] == 0, "nothing of theirs today is normal, not a failure"
+
+
+def test_watch_searches_wait_when_the_month_cant_cover_them(make_ctx, monkeypatch):
+    from pbs.scout import websearch
+
+    monkeypatch.setenv("TAVILY_API_KEY", "tvly-test")
+    ctx = make_ctx()
+    ctx.settings.websearch.monthly_cap = 15
+    ctx.store.set_setting(websearch.USAGE_KEY, {"month": ctx.local_date_str()[:7], "count": 6, "error": None})
+    assert websearch.remaining(ctx) == 9 < ctx.settings.agents.watch_probes.per_day
+    assert scouts.watch_probes(ctx) == []
+    assert int(ctx.store.get_setting(scouts.WATCH_CURSOR, 0) or 0) == 0, "the turn isn't lost"

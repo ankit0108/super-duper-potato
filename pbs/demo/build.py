@@ -689,7 +689,8 @@ class Simulation:
         li_next = next((c for c in cards["linkedin"] if c["status"] == "suggested" and c is not skip
                         and c is not li_top), None)
         move = next((c for c in reversed(cards["x"]) if c["status"] == "suggested" and c is not x_top
-                     and c["format"] in ("x_single", "x_thread") and c.get("mode") != "interview"), None)
+                     and c["format"] in ("x_single", "x_thread") and c.get("mode") != "interview"
+                     and not c.get("post_type")), None)  # a story too big for X, not a quote or a thought
         illustrate = next((c for c in cards["x"] if c["status"] == "suggested" and c is not x_top and c is not move
                            and c["format"] == "x_single" and c.get("draft")), None)
         events: list[dict[str, Any]] = []

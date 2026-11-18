@@ -172,6 +172,8 @@ def _week_input(ctx: Ctx, start: dt.datetime, end: dt.datetime) -> dict[str, Any
             # Whether the scouts' scores match what he posted: the average score of posted cards against skipped
             # or expired ones (an observation over a week's cards, not a verdict).
             "scout_scores": stats.scout_calibration(cards),
+            # Whether his posts come from the top half of the editors' order (an observation, not a verdict).
+            "editor_order": stats.editor_calibration(cards),
             "post_ids": [p["id"] for p in posts]}
 
 

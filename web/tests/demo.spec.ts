@@ -180,9 +180,11 @@ test("“Not written well” asks what was off, and says the topic isn't marked 
 
 test("“Other…” asks why on a tap, from the card page too", async ({ page }, testInfo) => {
   const press = (l: ReturnType<Page["locator"]>) => (testInfo.project.name === "mobile" ? l.tap() : l.click());
-  await press(todaySection(page).locator("[data-tile]").nth(1).locator("h3"));
-  await page.waitForURL(/#\/card\//); // the card page, not the board's greeting, has the title
-  const title = (await page.getByRole("heading", { level: 1 }).textContent())!;
+  // The title comes from the tile: right after the tap, the page can still be showing the board's greeting.
+  const tileTitle = todaySection(page).locator("[data-tile]").nth(1).locator("h3");
+  const title = (await tileTitle.textContent())!;
+  await press(tileTitle);
+  await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
   await press(page.getByRole("button", { name: "Skip", exact: true }));
   await press(page.getByRole("menuitem", { name: /^Other…/ }));
   const dialog = page.getByRole("dialog", { name: "Why skip it?" });

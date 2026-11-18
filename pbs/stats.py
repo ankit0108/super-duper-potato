@@ -118,7 +118,14 @@ def compute(ctx: Ctx) -> dict[str, Any]:
             "crossposts": _crossposts(ctx),
             "visuals": _visuals(ctx),
             "writing": _writing(ctx, cards, posts, list(weeks), lday),
-            "scouts": scout_calibration(cards)}
+            "scouts": scout_calibration(cards),
+            "editors": editor_calibration(cards)}
+
+
+def editor_calibration(cards: list[dict[str, Any]]) -> dict[str, Any]:
+    from .agents import editor
+
+    return editor.calibration(cards)
 
 
 def scout_calibration(cards: list[dict[str, Any]]) -> dict[str, Any]:

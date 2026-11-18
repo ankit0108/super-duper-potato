@@ -227,6 +227,13 @@ class WriterPlan(_Out):
     by: str | None = None
 
 
+class EditorNote(_Out):
+    """The platform editor's read of a card (pbs/agents/editor.py)."""
+    why: str = Field("", description="Why it's worth his time today")
+    rank: int | None = None
+    swapped_for: str | None = Field(None, description="The pick the editor replaced with this story, same lane")
+
+
 class Saved(_Out):
     at: str
     remind_on: str | None = Field(None, description="The day he wants to post it (his local date)")
@@ -317,6 +324,7 @@ class Card(_Out):
     saved: Saved | None = Field(None, description="Saved to post later: it never expires while this is set")
     scout: ScoutNote | None = None
     brief: WriterPlan | None = None
+    editor: EditorNote | None = None
     created_at: str
     updated_at: str | None = None
     revision: int = 0
@@ -733,6 +741,41 @@ class ScoutProbe(_Out):
     found: int = 0
 
 
+class EditorRunner(_Out):
+    id: str = Field(description="The topic")
+    title: str
+    lane: str | None = None
+    format: str | None = None
+    angle: str = ""
+    why: str = ""
+    score: float | None = None
+    evidence: list[str] = []
+    evidence_level: str | None = None
+    card_id: str | None = Field(None, description="The card drafted from it, if any")
+
+
+class EditorPick(_Out):
+    id: str
+    title: str
+    why: str = ""
+
+
+class EditorSlate(_Out):
+    """One editor's morning: the picks in board order, and the runner-ups shown on the board."""
+    id: str
+    platform: PlatformName
+    delivery_id: str | None = None
+    local_date: str
+    created_at: str
+    status: Literal["ok", "fallback", "skipped"] = "ok"
+    model: str | None = None
+    provider: str | None = None
+    swaps: int = 0
+    picks: list[EditorPick] = []
+    runners_up: list[EditorRunner] = []
+    error: str | None = None
+
+
 class SearchStatus(_Out):
     """The scouts' web search (pbs/scout/websearch.py): whether the key is set and how much of the month is used."""
     available: bool = False
@@ -812,6 +855,7 @@ class DeskState(_Out):
     pulse: PulseInfo | None = None
     performance: PerformanceInfo | None = None
     scouts: list[ScoutReport] = Field([], description="The scouts' reports from the last few days, newest first")
+    editor_slates: list[EditorSlate] = Field([], description="The editors' sets from the last two days, newest first")
     scout_search: SearchStatus | None = None
 
 
@@ -888,6 +932,13 @@ class CardSaveEvent(_Event):
     card_id: str
     saved: bool = True
     remind_on: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
+class EditorDraftEvent(_Event):
+    """Draft one of an editor's runner-ups."""
+    type: Literal["editor.draft"]
+    slate_id: str
+    topic_id: str
 
 
 class ScoutDraftEvent(_Event):
@@ -1131,6 +1182,8 @@ class ProposalDecideEvent(_Event):
     proposal_id: str
     decision: Literal["approve", "reject"]
     note: str | None = Field(None, max_length=1000)
+    choices: dict[str, Literal["keep", "remove"]] | None = Field(
+        None, description="A source review: his choice for each source it listed (one not named is kept)")
 
 
 class PlaybookRuleEvent(_Event):
@@ -1161,7 +1214,7 @@ InboxEvent = Annotated[
     | MetricsUploadEvent | MetricsReviewEvent | AccountStatsEvent | RequestCreateEvent | RequestCancelEvent
     | StanceUpsertEvent | StanceDeleteEvent | StanceProposeEvent | SourceUpsertEvent | SourceDeleteEvent
     | SettingsUpdateEvent | ProfileUpdateEvent | ProposalDecideEvent | PlaybookRuleEvent | RunRequestEvent
-    | StudioSaveEvent | ScoutDraftEvent,
+    | StudioSaveEvent | ScoutDraftEvent | EditorDraftEvent,
     Field(discriminator="type"),
 ]
 
