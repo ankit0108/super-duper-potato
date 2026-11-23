@@ -153,10 +153,12 @@ def build_demo(out: Path, data_dir: Path | None = None) -> Path:
         out.mkdir(parents=True, exist_ok=True)
         path = out / "desk.json"
         path.write_text(json.dumps(desk, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-        # The AI images the demo's visuals use: the desk loads them from ./demo/media/ai/.
+        # The pictures the demo's cards use (AI images, pictures from the sources): the desk loads them from
+        # ./demo/media/.
         shutil.rmtree(out / "media", ignore_errors=True)
-        if (root / "media" / "ai").is_dir():
-            shutil.copytree(root / "media" / "ai", out / "media" / "ai")
+        for sub in ("ai", "sources", "uploads"):
+            if (root / "media" / sub).is_dir():
+                shutil.copytree(root / "media" / sub, out / "media" / sub)
         log.info(f"demo: {len(desk.get('cards', []))} cards, {len(desk.get('posts', []))} posts -> {path}")
         return path
 

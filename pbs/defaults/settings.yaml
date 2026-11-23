@@ -388,6 +388,20 @@ images:
   providers: [cloudflare, gemini_image, xai]
   daily_limit: 20
 
+media:
+  # Pictures from the sources a draft was written from (charts, diagrams, graphs, tables, screenshots, photos):
+  # looked for once per new draft, in its top sources' feeds and article pages. Up to per_card go with the post
+  # (charts and diagrams first, then what he keeps most); `extra` more wait under "Also in the sources". The free
+  # vision model says what each picture is and writes its alt text (at most vision_per_day calls, after the drafts).
+  enabled: true
+  per_card: 4
+  extra: 2
+  max_sources: 3
+  vision_per_day: 15
+  # A kind of picture he has removed drop_after times, keeping drop_rate or less, is no longer attached by itself.
+  drop_after: 8
+  drop_rate: 0.15
+
 drafting:
   # Cards that ask for his experience arrive already drafted from recent sources; the questions are optional,
   # and answering redrafts the post from his answers plus the sources.
@@ -526,6 +540,7 @@ llm:
     analysis: [gemini_pro, gemini, groq, cerebras, gemini_lite, openrouter, ollama]
     voice: [groq, cerebras, gemini, gemini_lite, ollama]
     vision: [gemini, gemini_lite]
+    media_vision: [gemini, gemini_lite]
     search: [gemini]
     pulse: [gemini]
     # The scouts: a cheap model plans the searches, the strongest one free writes the report.
@@ -547,7 +562,8 @@ llm:
   # minutes. Search with grounding and the weekly review get longer.
   timeouts: {default: 90, draft: 50, draft_personal: 50, edit: 40, triage: 75, translate: 45, questions: 45,
              visual: 60, search_plan: 40, search_rerank: 40, humor_write: 60, humor_judge: 45, pulse: 150, search: 120,
-             analysis: 180, reflect: 150, scout: 90, scout_probes: 40, brief: 75, editor: 75}
+             analysis: 180, reflect: 150, scout: 90, scout_probes: 40, brief: 75, editor: 75,
+             media_vision: 60}
   temperature:
     translate: 0.1
     triage: 0.2
@@ -559,6 +575,7 @@ llm:
     analysis: 0.3
     voice: 0.3
     vision: 0.0
+    media_vision: 0.1
     search: 0.2
     pulse: 0.3
     scout: 0.3

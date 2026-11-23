@@ -122,6 +122,13 @@ def compute(ctx: Ctx) -> dict[str, Any]:
             "editors": editor_calibration(cards)}
 
 
+def media_kept(ctx: Ctx) -> dict[str, Any]:
+    """The pictures from the sources, per kind over 90 days: posted with, removed, his keep rate."""
+    from . import source_media
+
+    return source_media.summary(ctx)
+
+
 def editor_calibration(cards: list[dict[str, Any]]) -> dict[str, Any]:
     from .agents import editor
 

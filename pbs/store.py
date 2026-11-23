@@ -66,10 +66,11 @@ TABLES: dict[str, Table] = {
            "why_now angle format_note draft draft_original hooks hook_type hashtags sources claims flags questions "
            "answers status rank score score_parts explore experiment_id arm versions llm work working skip "
            "rewrite_count delivered_at expires_at status_changed_at post_id draft_state draft_basis crosspost_of "
-           "visual attachments trending story discussion_url humor alternatives saved scout brief editor created_at "
-           "updated_at revision",
+           "visual attachments source_media trending story discussion_url humor alternatives saved scout brief editor "
+           "created_at updated_at revision",
            json_cols="draft draft_original hooks hashtags sources claims flags questions answers score_parts "
-                     "versions llm work working skip visual attachments trending humor alternatives saved scout brief editor",
+                     "versions llm work working skip visual attachments source_media trending humor alternatives "
+                     "saved scout brief editor",
            bool_cols="explore", shard="created_at", indexes="status platform topic_id delivery_id request_id"),
         _t("posts",
            "card_id platform pillar format final_text final_posts hashtags posted_at post_url edit_ratio edit_stats "

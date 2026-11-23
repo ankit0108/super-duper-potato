@@ -223,7 +223,7 @@ test("a newer deployed desk is noticed and offered as a reload, and System shows
   await expect(page.getByText("The desk was updated. Reload to get the new version (your edits are kept).")).toBeVisible();
 });
 
-type DemoCard = { title: string; platform: string; status: string; mode?: string; draft?: unknown; brief?: { job?: string } | null; questions?: unknown[]; delivery_id?: string | null; post_type?: string | null; alternatives?: string[]; trending?: { on: string } | null; llm?: { edit?: { kept?: boolean; before?: number } | null } | null };
+type DemoCard = { title: string; platform: string; status: string; mode?: string; draft?: unknown; brief?: { job?: string } | null; questions?: unknown[]; delivery_id?: string | null; post_type?: string | null; alternatives?: string[]; trending?: { on: string } | null; llm?: { edit?: { kept?: boolean; before?: number } | null } | null; attachments?: Array<{ origin?: string; kind?: string }> };
 /** The demo's own data (the pipeline's output), to find a card by what happened to it rather than by its title. */
 const demoDesk = () => JSON.parse(readFileSync("public/demo/desk.json", "utf-8")) as { delivery?: { id: string }; cards: DemoCard[] };
 
@@ -776,6 +776,37 @@ test("a planned card shows the writer's plan: the post's job, its opening and wh
   await expect(page.getByText("Writer's plan").filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByText(planned!.brief!.job!).filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByText(/^Avoid:/).filter({ visible: true }).first()).toBeVisible();
+});
+
+// A 1x1 PNG, for the upload.
+const TINY_PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+
+test("a draft carries the pictures from its sources: remove, add back, move and upload, and the credit follows", async ({ page }) => {
+  const desk = demoDesk();
+  const pictured = desk.cards.find(
+    (c) => c.platform === "linkedin" && c.delivery_id === desk.delivery?.id && c.status === "suggested" && (c.attachments ?? []).filter((a) => a.origin === "source").length >= 2,
+  );
+  expect(pictured, "the demo's morning has a LinkedIn card with pictures from its sources").toBeTruthy();
+  const tile = todaySection(page).getByRole("article", { name: `LinkedIn card: ${pictured!.title}`, exact: true });
+  await expect(tile.getByText(`${pictured!.attachments!.length} pictures`)).toBeVisible();
+  await tile.click();
+  const pics = page.getByRole("region", { name: "Pictures" });
+  await expect(pics.getByRole("listitem", { name: /^Picture 1: Chart · / })).toBeVisible();
+  await expect(pics.getByRole("listitem", { name: /^Picture 2: Diagram · / })).toBeVisible();
+  await expect(pics.locator("img").first()).toBeVisible(); // loaded from the data repo (the demo's media folder)
+  await expect(page.getByText(/Figures: example\.dev/).filter({ visible: true }).first()).toBeVisible();
+  // Remove the diagram: the credit says "Chart" now, and the diagram waits under "Also available".
+  await pics.getByRole("button", { name: "Remove picture 2" }).click();
+  await expect(pics.getByRole("listitem", { name: /^Picture 2/ })).toHaveCount(0);
+  await expect(page.getByText(/Chart: example\.dev/).filter({ visible: true }).first()).toBeVisible();
+  await pics.getByRole("button", { name: /^Add Diagram/ }).click();
+  await expect(pics.getByRole("listitem", { name: /^Picture 2: Diagram/ })).toBeVisible();
+  // Move it first, then upload one of his own.
+  await pics.getByRole("button", { name: "Move picture 2 earlier" }).click();
+  await expect(pics.getByRole("listitem", { name: /^Picture 1: Diagram/ })).toBeVisible();
+  await pics.getByTestId("picture-upload").setInputFiles({ name: "mine.png", mimeType: "image/png", buffer: TINY_PNG });
+  await expect(pics.getByRole("listitem", { name: "Picture 3: Your upload" })).toBeVisible();
+  await noSidewaysScroll(page);
 });
 
 test("the Studio's key is checked with Gemini straight from the browser (the page may call it)", async ({ page }) => {

@@ -191,6 +191,34 @@ writers plan, a LinkedIn editor and an X editor each decide what is worth your t
 - Two model calls a morning (eight for all six agents). When the drafts need the budget, the set stays as the
   ranking made it and the runner-ups are the best alternatives.
 
+### Pictures from the sources
+
+When a draft is written from articles with pictures in them (charts, graphs, diagrams, tables, screenshots, photos),
+the pictures come with it:
+
+- **Where they come from.** After the run's drafts, PBS looks once at each new draft's top three sources: the pictures
+  their feeds carried, and the ones on the article page (its preview image, figures with their captions, pictures in
+  the article). Google News links are redirects with no page to read; an arXiv paper's figures come from its web
+  version. Logos, ads, author photos and icons are left out.
+- **What goes with the post.** Up to four (X's maximum), charts and diagrams first, then the kinds you keep most. Up to
+  two more wait under **Also available** on the card. X replies, quote-posts and quote cards get none.
+- **On the card page**, under **Pictures to post with it**: remove a picture, move it, add one back, or upload your
+  own (it's shrunk on the phone first). Each has alt text, written by the free vision model (the `media_vision`
+  route, at most `media.vision_per_day` calls, after the drafts) or taken from the caption; edit it and paste it into
+  LinkedIn or X when you post. Download and Share work as before. Board tiles show "2 pictures".
+- **The credit.** The first comment (X: the reply with the link) ends with a line like "Chart: Epoch AI" or
+  "Images: The Verge, Epoch AI". It follows the pictures as you change them, and survives a rewrite.
+- **It learns what you keep.** Each removal, add-back and upload is logged with the picture's kind, and so are the
+  pictures still on a card when you post it. Kinds you keep come first. A kind you've removed 8 times while keeping 15%
+  or less (`media.drop_after`, `media.drop_rate`) is no longer attached by itself: it waits under Also available. The
+  weekly review reports what you kept.
+- **Storage.** Pictures are resized to 1600 px and saved in `pbs-data` under `media/sources/<card>/` (yours under
+  `media/uploads/<card>/`), a few MB a day. They're deleted with the card's other media: 14 days after a skip or
+  expiry, 120 days after posting. Git history keeps them, so the data repo grows by roughly 1 to 2 GB a year; the
+  data checkout is shallow, so runs aren't slowed. Turn the whole feature off with `media.enabled: false`.
+- Some sites refuse GitHub's servers; those stories get only their feed's pictures, or none. The run log has a
+  `pictures:` line (cards looked at, pictures kept and attached, vision calls).
+
 ### The writers (LinkedIn and X)
 
 After the morning set is chosen and before it is drafted, a LinkedIn writer and an X writer each read their

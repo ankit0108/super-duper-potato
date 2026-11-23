@@ -263,6 +263,19 @@ def _vision(req: LLMRequest, data: Any) -> Any:
     return {"platform": "linkedin", "kind": "post_analytics", "posts": [], "account": {}}
 
 
+def _media_vision(req: LLMRequest, data: Any) -> Any:
+    """What each source picture is, from its caption and the page's alt text (the fake can't see)."""
+    out = []
+    for p in (data or {}).get("pictures") or []:
+        words = f"{p.get('caption') or ''} {p.get('page_alt') or ''}".lower()
+        kind = ("logo" if "logo" in words else "chart" if any(w in words for w in ("chart", "graph", "benchmark", "%"))
+                else "diagram" if any(w in words for w in ("diagram", "architecture", "flow")) else
+                "screenshot" if "screenshot" in words else "photo")
+        alt = f"{kind.title()}: {p.get('caption') or p.get('page_alt') or p.get('source') or 'from the article'}"
+        out.append({"index": p.get("index", 0), "kind": kind, "alt": alt[:200], "about_story": "unrelated" not in words})
+    return {"images": out}
+
+
 def _stances(req: LLMRequest, data: Any) -> Any:
     return {"issues": [
         {"key": "sample-issue", "issue": "Sample recurring issue", "tier": "india",
@@ -498,6 +511,7 @@ DEFAULT_HANDLERS: dict[str, Handler] = {
     "reflect": _reflect,
     "voice": _voice,
     "vision": _vision,
+    "media_vision": _media_vision,
     "stances": _stances,
     "evergreen": _evergreen,
     "search": _search,

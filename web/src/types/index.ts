@@ -42,6 +42,7 @@ export type DoctorReport = NonNullable<DeskState["doctor"]>;
 export type ImagesStatus = NonNullable<DeskState["images"]>;
 export type StudioKit = NonNullable<DeskState["studio"]>;
 export type Attachment = Item<Card["attachments"]>;
+export type MediaItemIn = Item<Extract<InboxEvent, { type: "card.media" }>["items"]>;
 
 export type Platform = Card["platform"];
 export type CardStatus = Card["status"];

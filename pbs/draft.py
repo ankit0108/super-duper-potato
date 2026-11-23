@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from . import editing, guardrails, hashtags, ids, log, posttypes, prompting, textutil, timeutil
+from . import editing, guardrails, hashtags, ids, log, posttypes, prompting, source_media, textutil, timeutil
 from .bandit import arm_id
 from .context import Ctx
 from .llm.base import BudgetExhausted, LLMRequest, LLMResponse, json_rows, why_unavailable
@@ -528,6 +528,7 @@ def _apply(ctx: Ctx, card: dict[str, Any], norm: dict[str, Any], resp: LLMRespon
     card.update(norm)
     if card.get("draft_original") is None:
         card["draft_original"] = norm["draft"]
+    source_media.apply_credit(card)  # the pictures going with the post keep their credit through a rewrite
     card["versions"] = {"playbook": style.playbook_version, "prompt": prompt_version, "voice": style.voice_version}
     card["llm"] = {"provider": resp.provider, "model": resp.model, **({"edit": edit} if edit else {})}
     card["draft_state"] = "full"

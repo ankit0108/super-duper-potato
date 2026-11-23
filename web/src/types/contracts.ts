@@ -349,6 +349,19 @@ export type Id31 = string;
 export type SlateId = string;
 export type TopicId1 = string;
 export type Type32 = "editor.draft";
+export type At32 = string;
+export type CardId13 = string;
+export type Id32 = string;
+export type Alt = string | null;
+/**
+ * A picture on the card, or an upload under inbox/blobs/
+ */
+export type Path1 = string;
+/**
+ * @maxItems 4
+ */
+export type Items2 = MediaItemIn[];
+export type Type33 = "card.media";
 export type Events = (
   | CardStatusEvent
   | CardEditEvent
@@ -382,12 +395,13 @@ export type Events = (
   | StudioSaveEvent
   | ScoutDraftEvent
   | EditorDraftEvent
+  | CardMediaEvent
 )[];
-export type Id32 = string;
+export type Id33 = string;
 export type V = 1;
 export type Date1 = string;
 export type Followers1 = number | null;
-export type Id33 = string;
+export type Id34 = string;
 export type Platform3 = "linkedin" | "x";
 export type ProfileViews2 = number | null;
 export type Source = string | null;
@@ -396,7 +410,7 @@ export type ArchiveMonths = string[];
 export type Alpha = number;
 export type Beta = number;
 export type Format1 = string;
-export type Id34 = string;
+export type Id35 = string;
 export type Mean = number;
 export type NObs = number;
 export type Pillar2 = string;
@@ -410,19 +424,43 @@ export type AffairsType = string | null;
 export type Alternatives = string[];
 export type Angle = string | null;
 export type Answer2 = string;
-export type At32 = string | null;
+export type At33 = string | null;
 export type QuestionId1 = string;
 export type Answers1 = Answer1[];
 export type Arm1 = string | null;
+/**
+ * Alt text to paste when posting (written by the vision model, or his)
+ */
+export type Alt1 = string | null;
+/**
+ * The caption the article gave it
+ */
+export type Caption2 = string | null;
 export type ContentType = string;
 export type Height1 = number | null;
 /**
- * File in the data repo, like media/studio/<card id>/1.jpg
+ * chart, graph, diagram, table, screenshot, photo, illustration or other
  */
-export type Path1 = string;
+export type Kind4 = string | null;
+/**
+ * Where the picture came from
+ */
+export type Origin = "source" | "upload" | "studio";
+/**
+ * File in the data repo, like media/sources/<card id>/1.jpg
+ */
+export type Path2 = string;
+/**
+ * Who it belongs to (credited in the first comment)
+ */
+export type Publisher = string | null;
+/**
+ * The article it was found in
+ */
+export type SourceUrl = string | null;
 export type Width1 = number | null;
 /**
- * Pictures from the Studio that go with the post
+ * Pictures that go with the post, in order
  */
 export type Attachments = Attachment[];
 export type Avoid = string;
@@ -461,6 +499,10 @@ export type DiscussionUrl = string | null;
  * Posted right after (LinkedIn comment / X reply): the link
  */
 export type FirstComment1 = string | null;
+/**
+ * The credit line for the source pictures, at the end of first_comment (replaced when the pictures change)
+ */
+export type MediaCredit = string | null;
 export type Posts4 = string[];
 export type QuoteUrl = string | null;
 export type Accounts = string[];
@@ -487,7 +529,7 @@ export type Explore = boolean;
 /**
  * contrast, reveal, opener, closer, dashes, emoji_bullets, staccato, questions, filler or rhythm
  */
-export type Kind4 = string;
+export type Kind5 = string;
 /**
  * The sentence it's in (or a count, for dashes and rhythm)
  */
@@ -520,15 +562,15 @@ export type FormatNote = string | null;
 export type Hashtags3 = string[];
 export type HookType = string | null;
 export type Text13 = string;
-export type Type33 = string;
+export type Type34 = string;
 export type Hooks2 = Hook[];
 export type Device1 = string | null;
 export type Note6 = string | null;
 export type Options = number;
 export type Verdict = ("strong" | "ok" | "weak") | null;
-export type Id35 = string;
+export type Id36 = string;
 export type IssueKey = string | null;
-export type Kind5 = "news" | "evergreen" | "interview" | "request" | "adapt" | "studio";
+export type Kind6 = "news" | "evergreen" | "interview" | "request" | "adapt" | "studio";
 /**
  * AI tells left (the same as before when the edit wasn't kept)
  */
@@ -561,8 +603,8 @@ export type PostId3 = string | null;
  * A humour or ideas pillar's kind of post: funny_take, observation, quote, excerpt or thought (labels in the pillar's post_types)
  */
 export type PostType1 = string | null;
-export type Id36 = string;
-export type Kind6 = string | null;
+export type Id37 = string;
+export type Kind7 = string | null;
 export type Q = string;
 export type Why1 = string | null;
 export type Questions = Question[];
@@ -570,7 +612,7 @@ export type Rank1 = number | null;
 export type RequestId2 = string | null;
 export type Revision = number;
 export type RewriteCount = number;
-export type At33 = string;
+export type At34 = string;
 /**
  * The day he wants to post it (his local date)
  */
@@ -596,7 +638,7 @@ export type Visual = string | null;
  */
 export type Why2 = string;
 export type Window = ("today" | "this_week" | "evergreen") | null;
-export type At34 = string | null;
+export type At35 = string | null;
 export type Note7 = string | null;
 export type Reason3 =
   | "not_interesting"
@@ -608,10 +650,14 @@ export type Reason3 =
   | "wrong_platform"
   | "not_funny"
   | "poorly_written";
+/**
+ * Every picture the card can use (found in its sources, or uploaded); null until the sources have been looked at
+ */
+export type SourceMedia = Attachment[] | null;
 export type Lang1 = string;
 export type OrigTitle = string | null;
 export type PublishedAt = string | null;
-export type Publisher = string | null;
+export type Publisher1 = string | null;
 export type Summary = string | null;
 export type Title5 = string;
 export type Url2 = string;
@@ -636,7 +682,7 @@ export type AltText2 = string;
 /**
  * Source line at the bottom
  */
-export type Caption2 = string | null;
+export type Caption3 = string | null;
 export type CreatedAt2 = string | null;
 export type ContentType1 = string;
 export type CreatedAt3 = string | null;
@@ -645,7 +691,7 @@ export type Model2 = string | null;
 /**
  * File in the data repo, like media/ai/<card id>/<stamp>.jpg
  */
-export type Path2 = string;
+export type Path3 = string;
 export type Provider2 = string;
 export type Width2 = number;
 /**
@@ -656,8 +702,8 @@ export type Body1 = string;
  * Slide or step heading, column name, the figure, or who is quoted
  */
 export type Title7 = string;
-export type Items2 = VisualItem[];
-export type Kind7 = "carousel" | "flow" | "compare" | "list" | "stat" | "quote" | "image";
+export type Items3 = VisualItem[];
+export type Kind8 = "carousel" | "flow" | "compare" | "list" | "stat" | "quote" | "image";
 /**
  * Indexes of the card's sources it draws on
  */
@@ -673,7 +719,7 @@ export type AiBackground1 = boolean | null;
 export type Attempts = number;
 export type Chips1 = string[];
 export type Crosspost = ("both" | "switch") | null;
-export type Kind8 = "draft" | "rewrite" | "questions" | "visual";
+export type Kind9 = "draft" | "rewrite" | "questions" | "visual";
 export type LastError = string | null;
 export type Note8 = string | null;
 export type RequestedAt = string | null;
@@ -695,8 +741,8 @@ export type UpdatedAt1 = string | null;
 export type Cards = Card[];
 export type Degraded = string | null;
 export type DeliveredAt1 = string | null;
-export type Id37 = string;
-export type Kind9 = string | null;
+export type Id38 = string;
+export type Kind10 = string | null;
 export type LocalDate = string;
 export type Notes2 = string[];
 export type Detail = string | null;
@@ -704,14 +750,14 @@ export type Name1 = string;
 export type Status3 = "ok" | "warn" | "fail" | "skip";
 export type Checks = DoctorCheck[];
 export type CreatedAt4 = string;
-export type Id38 = string;
+export type Id39 = string;
 export type CreatedAt5 = string;
 export type DeliveryId1 = string | null;
 export type Error = string | null;
-export type Id39 = string;
+export type Id40 = string;
 export type LocalDate1 = string;
 export type Model3 = string | null;
-export type Id40 = string;
+export type Id41 = string;
 export type Title9 = string;
 export type Why4 = string;
 export type Picks = EditorPick[];
@@ -721,14 +767,14 @@ export type Angle1 = string;
 /**
  * The card drafted from it, if any
  */
-export type CardId13 = string | null;
+export type CardId14 = string | null;
 export type Evidence2 = string[];
 export type EvidenceLevel1 = string | null;
 export type Format3 = string | null;
 /**
  * The topic
  */
-export type Id41 = string;
+export type Id42 = string;
 export type Lane = string | null;
 export type Score2 = number | null;
 export type Title10 = string;
@@ -742,7 +788,7 @@ export type Swaps = number;
 export type EditorSlates = EditorSlate[];
 export type CreatedAt6 = string;
 export type Hypothesis = string | null;
-export type Id42 = string;
+export type Id43 = string;
 export type Instruction = string;
 export type Picks1 = number;
 export type Pillar4 = string | null;
@@ -771,7 +817,7 @@ export type CreatedAt7 = string | null;
 export type Engagements = number | null;
 export type ExtractionConfidence = number | null;
 export type FollowersGained1 = number | null;
-export type Id43 = string;
+export type Id44 = string;
 export type Impressions1 = number | null;
 export type LinkClicks1 = number | null;
 export type MatchConfidence = number | null;
@@ -791,7 +837,7 @@ export type Source2 = "manual" | "screenshot" | "csv" | "file";
 export type Status6 = "confirmed" | "needs_review" | "rejected" | "history";
 export type UploadId1 = string | null;
 export type Metrics = Metric[];
-export type At35 = string;
+export type At36 = string;
 export type Audience = string;
 export type Caveats = string[];
 export type LatestCapture = string | null;
@@ -839,11 +885,11 @@ export type Changes = {
 }[];
 export type CreatedAt8 = string;
 export type Experiments1 = string[];
-export type Id44 = string;
+export type Id45 = string;
 export type AddedIn = string | null;
 export type Confidence = "low" | "medium" | "high";
 export type Evidence4 = string[];
-export type Id45 = string;
+export type Id46 = string;
 export type Pillar5 = string | null;
 export type Platform9 = ("linkedin" | "x") | null;
 export type Reversal = string | null;
@@ -855,7 +901,7 @@ export type Status8 = "active" | "retired";
 export type Summary2 = string | null;
 export type Version = number;
 export type PlaybookHistory = Playbook1[];
-export type CardId14 = string;
+export type CardId15 = string;
 export type EditRatio = number | null;
 export type EditingSeconds1 = number | null;
 export type FinalPosts = string[];
@@ -865,7 +911,7 @@ export type Hashtags5 = string[];
 export type HookUsed = {
   [k: string]: unknown;
 } | null;
-export type Id46 = string;
+export type Id47 = string;
 export type Pillar6 = string | null;
 export type Platform10 = "linkedin" | "x";
 export type PostUrl2 = string | null;
@@ -885,8 +931,8 @@ export type Detail2 = string | null;
  */
 export type Error2 = string | null;
 export type Evidence5 = string[];
-export type Id47 = string;
-export type Kind10 = string;
+export type Id48 = string;
+export type Kind11 = string;
 export type Source5 = string | null;
 /**
  * noted: approved, with nothing to change automatically; failed: its change couldn't be made (see error), and it can be approved again or dismissed; expired: closed by the system because approving it couldn't change anything (see error)
@@ -910,7 +956,7 @@ export type Conversations = PulseConversation[];
  */
 export type Engines = string[];
 export type Paused = boolean;
-export type At36 = string;
+export type At37 = string;
 /**
  * The model that searched
  */
@@ -931,16 +977,16 @@ export type Requests = number;
 export type TokensIn = number;
 export type TokensOut = number;
 export type Quota = Quota1[];
-export type At37 = string | null;
+export type At38 = string | null;
 export type Error4 = string | null;
-export type Id48 = string;
-export type Type34 = string | null;
+export type Id49 = string;
+export type Type35 = string | null;
 export type RejectedEvents = RejectedEvent[];
 export type Actions = {
   [k: string]: unknown;
 }[];
 export type CreatedAt10 = string;
-export type Id49 = string;
+export type Id50 = string;
 export type Proposals1 = string[];
 export type Week1 = string;
 export type ReportsIndex = {
@@ -950,7 +996,7 @@ export type CardIds = string[];
 export type CompletedAt = string | null;
 export type CreatedAt11 = string | null;
 export type Error5 = string | null;
-export type Id50 = string;
+export type Id51 = string;
 export type Notes4 = string | null;
 export type Query2 = string;
 /**
@@ -963,12 +1009,12 @@ export type Status10 = "queued" | "running" | "done" | "partial" | "failed" | "c
 export type Requests1 = Request[];
 export type Degraded1 = string | null;
 export type EndedAt = string | null;
-export type At38 = string | null;
+export type At39 = string | null;
 export type Message = string | null;
-export type Type35 = string;
+export type Type36 = string;
 export type Where = string;
 export type Errors = RunError[];
-export type Id51 = string;
+export type Id52 = string;
 export type Notes5 = string[];
 export type StartedAt = string;
 export type Status11 = "running" | "ok" | "partial" | "failed";
@@ -984,7 +1030,7 @@ export type Error6 = string | null;
 export type Used = number;
 export type CreatedAt12 = string;
 export type Error7 = string | null;
-export type Id52 = string;
+export type Id53 = string;
 export type LocalDate2 = string;
 export type Model6 = string | null;
 export type Note9 = string;
@@ -992,14 +1038,14 @@ export type Angle3 = string;
 /**
  * The card drafted from it, if any
  */
-export type CardId15 = string | null;
+export type CardId16 = string | null;
 export type Evidence7 = string[];
 export type EvidenceLevel2 = "observed" | "indexed" | "hypothesis";
 export type Format5 = string | null;
 /**
  * The topic
  */
-export type Id53 = string;
+export type Id54 = string;
 export type Lane1 = string | null;
 export type Opening2 = string;
 /**
@@ -1021,7 +1067,7 @@ export type Visual2 = string | null;
 export type Why7 = string;
 export type Window1 = ("today" | "this_week" | "evergreen") | null;
 export type Opportunities = ScoutOpportunity[];
-export type Id54 = string;
+export type Id55 = string;
 export type Reason4 = string;
 export type Title15 = string;
 export type Passed = ScoutPass[];
@@ -1046,8 +1092,8 @@ export type ItemsTotal = number | null;
 export type LastError3 = string | null;
 export type LastFetchAt = string | null;
 export type LastSuccessAt = string | null;
-export type Id55 = string;
-export type Kind11 = string;
+export type Id56 = string;
+export type Kind12 = string;
 export type Lang2 = string;
 export type Name2 = string;
 export type PausedReason = string | null;
@@ -1060,7 +1106,7 @@ export type CustomText1 = string | null;
 export type PositionKey = string | null;
 export type Context2 = string | null;
 export type CreatedBy = string | null;
-export type Id56 = string;
+export type Id57 = string;
 export type Issue2 = string;
 export type Keywords1 = string[];
 export type Key1 = string;
@@ -1080,7 +1126,7 @@ export type Version1 = string;
 export type XLimit = number;
 export type CreatedAt13 = string | null;
 export type Error8 = string | null;
-export type Id57 = string;
+export type Id58 = string;
 export type Note10 = string | null;
 export type Paths1 = string[];
 export type ProcessedAt = string | null;
@@ -1098,11 +1144,11 @@ export type CreatedAt14 = string;
 export type CutPhrases = {
   [k: string]: unknown;
 }[];
-export type Id58 = string;
+export type Id59 = string;
 export type Rules1 = string[];
 export type Summary3 = string | null;
 export type Version2 = number;
-export type At39 = string | null;
+export type At40 = string | null;
 export type Code = string;
 export type Level = "info" | "warn" | "error";
 export type Message1 = string;
@@ -1120,7 +1166,7 @@ export interface InboxBatch {
   created_at: CreatedAt;
   device?: Device;
   events: Events;
-  id: Id32;
+  id: Id33;
   v?: V;
 }
 /**
@@ -1665,6 +1711,27 @@ export interface EditorDraftEvent {
   type: Type32;
 }
 /**
+ * The pictures that go with the post, in order: kept, removed, moved, added back or uploaded.
+ *
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "CardMediaEvent".
+ */
+export interface CardMediaEvent {
+  at: At32;
+  card_id: CardId13;
+  id: Id32;
+  items?: Items2;
+  type: Type33;
+}
+/**
+ * This interface was referenced by `Contracts`'s JSON-Schema
+ * via the `definition` "MediaItemIn".
+ */
+export interface MediaItemIn {
+  alt?: Alt;
+  path: Path1;
+}
+/**
  * This interface was referenced by `Contracts`'s JSON-Schema
  * via the `definition` "DeskState".
  */
@@ -1713,7 +1780,7 @@ export interface DeskState {
 export interface AccountStat {
   date: Date1;
   followers?: Followers1;
-  id: Id33;
+  id: Id34;
   platform: Platform3;
   profile_views?: ProfileViews2;
   source?: Source;
@@ -1726,7 +1793,7 @@ export interface Arm {
   alpha: Alpha;
   beta: Beta;
   format: Format1;
-  id: Id34;
+  id: Id35;
   mean: Mean;
   n_obs: NObs;
   pillar: Pillar2;
@@ -1766,9 +1833,9 @@ export interface Card {
   hook_type?: HookType;
   hooks?: Hooks2;
   humor?: HumorInfo | null;
-  id: Id35;
+  id: Id36;
   issue_key?: IssueKey;
-  kind?: Kind5;
+  kind?: Kind6;
   llm?: LLMInfo | null;
   mode?: Mode1;
   pillar: Pillar3;
@@ -1788,6 +1855,7 @@ export interface Card {
   score_parts?: ScoreParts;
   scout?: ScoutNote | null;
   skip?: Skip | null;
+  source_media?: SourceMedia;
   sources?: Sources1;
   status: Status2;
   status_changed_at?: StatusChangedAt;
@@ -1808,19 +1876,26 @@ export interface Card {
  */
 export interface Answer1 {
   answer: Answer2;
-  at?: At32;
+  at?: At33;
   question_id: QuestionId1;
 }
 /**
- * A picture shared in the Studio and kept with the post (to post alongside it).
+ * A picture that goes with the post: from the sources the draft was written from, uploaded on the desk, or
+ * shared in the Studio.
  *
  * This interface was referenced by `Contracts`'s JSON-Schema
  * via the `definition` "Attachment".
  */
 export interface Attachment {
+  alt?: Alt1;
+  caption?: Caption2;
   content_type?: ContentType;
   height?: Height1;
-  path: Path1;
+  kind?: Kind4;
+  origin?: Origin;
+  path: Path2;
+  publisher?: Publisher;
+  source_url?: SourceUrl;
   width?: Width1;
 }
 /**
@@ -1854,6 +1929,7 @@ export interface Claim {
  */
 export interface Draft {
   first_comment?: FirstComment1;
+  media_credit?: MediaCredit;
   posts?: Posts4;
   quote_url?: QuoteUrl;
   reply?: ReplyTarget | null;
@@ -1900,7 +1976,7 @@ export interface Flags {
  * via the `definition` "AiTell".
  */
 export interface AiTell {
-  kind: Kind4;
+  kind: Kind5;
   text: Text12;
 }
 /**
@@ -1909,7 +1985,7 @@ export interface AiTell {
  */
 export interface Hook {
   text: Text13;
-  type?: Type33;
+  type?: Type34;
 }
 /**
  * How a funny post was written (pbs/humor.py): the writers' room's options and the critic's verdict.
@@ -1952,8 +2028,8 @@ export interface EditInfo {
  * via the `definition` "Question".
  */
 export interface Question {
-  id: Id36;
-  kind?: Kind6;
+  id: Id37;
+  kind?: Kind7;
   q: Q;
   why?: Why1;
 }
@@ -1962,7 +2038,7 @@ export interface Question {
  * via the `definition` "Saved".
  */
 export interface Saved1 {
-  at: At33;
+  at: At34;
   remind_on?: RemindOn1;
   reminded?: Reminded;
 }
@@ -1996,7 +2072,7 @@ export interface Marks {
  * via the `definition` "Skip".
  */
 export interface Skip {
-  at?: At34;
+  at?: At35;
   note?: Note7;
   reason: Reason3;
 }
@@ -2008,7 +2084,7 @@ export interface SourceRef {
   lang?: Lang1;
   orig_title?: OrigTitle;
   published_at?: PublishedAt;
-  publisher?: Publisher;
+  publisher?: Publisher1;
   summary?: Summary;
   title?: Title5;
   url: Url2;
@@ -2038,11 +2114,11 @@ export interface Versions {
  */
 export interface Visual1 {
   alt_text?: AltText2;
-  caption?: Caption2;
+  caption?: Caption3;
   created_at?: CreatedAt2;
   image?: VisualImage | null;
-  items?: Items2;
-  kind: Kind7;
+  items?: Items3;
+  kind: Kind8;
   sources?: Sources2;
   subtitle?: Subtitle2;
   title?: Title8;
@@ -2060,7 +2136,7 @@ export interface VisualImage {
   created_at?: CreatedAt3;
   height: Height2;
   model?: Model2;
-  path: Path2;
+  path: Path3;
   provider: Provider2;
   width: Width2;
 }
@@ -2081,7 +2157,7 @@ export interface Work {
   attempts?: Attempts;
   chips?: Chips1;
   crosspost?: Crosspost;
-  kind: Kind8;
+  kind: Kind9;
   last_error?: LastError;
   note?: Note8;
   requested_at?: RequestedAt;
@@ -2113,8 +2189,8 @@ export interface DeliveryInfo {
   counts?: Counts;
   degraded?: Degraded;
   delivered_at?: DeliveredAt1;
-  id: Id37;
-  kind?: Kind9;
+  id: Id38;
+  kind?: Kind10;
   local_date: LocalDate;
   notes?: Notes2;
 }
@@ -2128,7 +2204,7 @@ export interface Counts {
 export interface DoctorReport {
   checks?: Checks;
   created_at: CreatedAt4;
-  id: Id38;
+  id: Id39;
   summary?: Summary1;
 }
 /**
@@ -2153,7 +2229,7 @@ export interface EditorSlate {
   created_at: CreatedAt5;
   delivery_id?: DeliveryId1;
   error?: Error;
-  id: Id39;
+  id: Id40;
   local_date: LocalDate1;
   model?: Model3;
   picks?: Picks;
@@ -2168,7 +2244,7 @@ export interface EditorSlate {
  * via the `definition` "EditorPick".
  */
 export interface EditorPick {
-  id: Id40;
+  id: Id41;
   title: Title9;
   why?: Why4;
 }
@@ -2178,11 +2254,11 @@ export interface EditorPick {
  */
 export interface EditorRunner {
   angle?: Angle1;
-  card_id?: CardId13;
+  card_id?: CardId14;
   evidence?: Evidence2;
   evidence_level?: EvidenceLevel1;
   format?: Format3;
-  id: Id41;
+  id: Id42;
   lane?: Lane;
   score?: Score2;
   title: Title10;
@@ -2195,7 +2271,7 @@ export interface EditorRunner {
 export interface Experiment {
   created_at: CreatedAt6;
   hypothesis?: Hypothesis;
-  id: Id42;
+  id: Id43;
   instruction: Instruction;
   picks?: Picks1;
   pillar?: Pillar4;
@@ -2244,7 +2320,7 @@ export interface Metric {
   engagements?: Engagements;
   extraction_confidence?: ExtractionConfidence;
   followers_gained?: FollowersGained1;
-  id: Id43;
+  id: Id44;
   impressions?: Impressions1;
   link_clicks?: LinkClicks1;
   match_confidence?: MatchConfidence;
@@ -2269,7 +2345,7 @@ export interface Metric {
  * via the `definition` "PerformanceInfo".
  */
 export interface PerformanceInfo {
-  at: At35;
+  at: At36;
   audience?: Audience;
   caveats?: Caveats;
   coverage?: Coverage;
@@ -2320,7 +2396,7 @@ export interface Playbook1 {
   changes?: Changes;
   created_at: CreatedAt8;
   experiments?: Experiments1;
-  id: Id44;
+  id: Id45;
   rules?: Rules;
   source?: Source4;
   status?: Status8;
@@ -2335,7 +2411,7 @@ export interface PlaybookRule {
   added_in?: AddedIn;
   confidence?: Confidence;
   evidence?: Evidence4;
-  id: Id45;
+  id: Id46;
   pillar?: Pillar5;
   platform?: Platform9;
   reversal?: Reversal;
@@ -2347,7 +2423,7 @@ export interface PlaybookRule {
  * via the `definition` "Post".
  */
 export interface Post {
-  card_id: CardId14;
+  card_id: CardId15;
   edit_ratio?: EditRatio;
   edit_stats?: EditStats;
   editing_seconds?: EditingSeconds1;
@@ -2358,7 +2434,7 @@ export interface Post {
   guard?: Guard;
   hashtags?: Hashtags5;
   hook_used?: HookUsed;
-  id: Id46;
+  id: Id47;
   latest_metrics?: Metric | null;
   pillar?: Pillar6;
   platform: Platform10;
@@ -2393,8 +2469,8 @@ export interface Proposal {
   detail?: Detail2;
   error?: Error2;
   evidence?: Evidence5;
-  id: Id47;
-  kind: Kind10;
+  id: Id48;
+  kind: Kind11;
   payload?: Payload;
   source?: Source5;
   status?: Status9;
@@ -2441,7 +2517,7 @@ export interface Metrics1 {
  * via the `definition` "PulseStatus".
  */
 export interface PulseStatus {
-  at: At36;
+  at: At37;
   engine?: Engine;
   error?: Error3;
   found?: Found;
@@ -2469,10 +2545,10 @@ export interface Quota1 {
  * via the `definition` "RejectedEvent".
  */
 export interface RejectedEvent {
-  at?: At37;
+  at?: At38;
   error?: Error4;
-  id: Id48;
-  type?: Type34;
+  id: Id49;
+  type?: Type35;
 }
 /**
  * This interface was referenced by `Contracts`'s JSON-Schema
@@ -2481,7 +2557,7 @@ export interface RejectedEvent {
 export interface SystemReport {
   actions?: Actions;
   created_at: CreatedAt10;
-  id: Id49;
+  id: Id50;
   period?: Period1;
   proposals?: Proposals1;
   sections?: Sections;
@@ -2502,7 +2578,7 @@ export interface Request {
   completed_at?: CompletedAt;
   created_at?: CreatedAt11;
   error?: Error5;
-  id: Id50;
+  id: Id51;
   notes?: Notes4;
   platforms?: Platforms3;
   query: Query2;
@@ -2520,7 +2596,7 @@ export interface Run {
   degraded?: Degraded1;
   ended_at?: EndedAt;
   errors?: Errors;
-  id: Id51;
+  id: Id52;
   llm?: Llm;
   notes?: Notes5;
   started_at: StartedAt;
@@ -2534,9 +2610,9 @@ export interface Run {
  * via the `definition` "RunError".
  */
 export interface RunError {
-  at?: At38;
+  at?: At39;
   message?: Message;
-  type: Type35;
+  type: Type36;
   where: Where;
 }
 export interface Llm {
@@ -2563,7 +2639,7 @@ export interface SearchStatus {
 export interface ScoutReport {
   created_at: CreatedAt12;
   error?: Error7;
-  id: Id52;
+  id: Id53;
   local_date: LocalDate2;
   model?: Model6;
   note?: Note9;
@@ -2581,11 +2657,11 @@ export interface ScoutReport {
  */
 export interface ScoutOpportunity {
   angle?: Angle3;
-  card_id?: CardId15;
+  card_id?: CardId16;
   evidence?: Evidence7;
   evidence_level?: EvidenceLevel2;
   format?: Format5;
-  id: Id53;
+  id: Id54;
   lane?: Lane1;
   marks?: Marks1;
   opening?: Opening2;
@@ -2607,7 +2683,7 @@ export interface Marks1 {
  * via the `definition` "ScoutPass".
  */
 export interface ScoutPass {
-  id: Id54;
+  id: Id55;
   reason?: Reason4;
   title: Title15;
 }
@@ -2635,8 +2711,8 @@ export interface Source6 {
   added_by?: AddedBy;
   best_effort?: BestEffort;
   health?: SourceHealth;
-  id: Id55;
-  kind: Kind11;
+  id: Id56;
+  kind: Kind12;
   lang?: Lang2;
   name: Name2;
   paused_reason?: PausedReason;
@@ -2665,7 +2741,7 @@ export interface Stance {
   chosen?: StanceChoice | null;
   context?: Context2;
   created_by?: CreatedBy;
-  id: Id56;
+  id: Id57;
   issue: Issue2;
   keywords?: Keywords1;
   positions?: Positions1;
@@ -2722,7 +2798,7 @@ export interface Pillars {
 export interface MetricUpload {
   created_at?: CreatedAt13;
   error?: Error8;
-  id: Id57;
+  id: Id58;
   note?: Note10;
   paths?: Paths1;
   processed_at?: ProcessedAt;
@@ -2740,7 +2816,7 @@ export interface VoiceProfile {
   created_at: CreatedAt14;
   cut_phrases?: CutPhrases;
   examples?: Examples;
-  id: Id58;
+  id: Id59;
   rules?: Rules1;
   stats?: Stats2;
   summary?: Summary3;
@@ -2757,7 +2833,7 @@ export interface Stats2 {
  * via the `definition` "DeskWarning".
  */
 export interface DeskWarning {
-  at?: At39;
+  at?: At40;
   code: Code;
   level?: Level;
   message: Message1;

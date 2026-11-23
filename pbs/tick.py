@@ -28,6 +28,7 @@ from . import (
     pulse,
     reflect,
     requests,
+    source_media,
     stances,
     voice,
 )
@@ -128,6 +129,10 @@ def run(data_root: str | Path, *, trigger: str = "manual", hints: set[str] | Non
         # morning set, so a slow review never holds it up; a review that waited for quota is tried again.
         with ctx.run.step("analysis") as s:
             s["result"] = performance.run(ctx)
+    if ctx.settings.media.enabled:
+        # After every draft of the run (the morning set, Draft this, requests): the pictures in their sources.
+        with ctx.run.step("pictures") as s:
+            s["stats"] = source_media.collect(ctx)
     with ctx.run.step("learn"):
         learn.update_rewards(ctx)
         voice.update_voice(ctx, weekly=False)

@@ -64,7 +64,7 @@ your browser. Actions show instantly and work offline; the pipeline confirms the
 Board · **Studio**, a chat that writes your posts in seconds: ask anything, add pictures or a post shared from
 the LinkedIn or X app (Android share sheet), and get editable LinkedIn and X posts, threads, carousels and other
 visuals in your voice, researched with Google Search, to copy, share or save to the board (it calls Gemini from
-the browser with a key kept on the device; the pipeline exports the style it follows) · card editor (editable hooks, hashtag chips, the first comment, visuals with PNG and PDF download, live
+the browser with a key kept on the device; the pipeline exports the style it follows) · card editor (editable hooks, hashtag chips, the first comment, the pictures from the sources (charts, diagrams, photos) to keep, remove, reorder or add your own, visuals with PNG and PDF download, live
 checks and platform tips, thread tools, rewrite, cross-post or move to the other platform, optional questions,
 dictation) · Requests (the search
 says what it understood) · **Scouts** (a LinkedIn scout and an X scout report each morning what's worth posting, with the

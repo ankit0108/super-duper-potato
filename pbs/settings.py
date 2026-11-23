@@ -271,6 +271,26 @@ class Images(_Strict):
                        "limited palette, generous empty space, modern and professional", max_length=400)
 
 
+class Media(_Strict):
+    """Pictures from the sources a draft was written from (pbs/source_media.py): found once per card, attached up to
+    per_card (X takes four), a few more kept to add back; the vision model says what each is."""
+    enabled: bool = True
+    per_card: int = Field(4, ge=0, le=4)
+    extra: int = Field(2, ge=0, le=6)
+    max_sources: int = Field(3, ge=1, le=6)
+    max_cards_per_run: int = Field(12, ge=0, le=40)
+    max_age_days: int = Field(3, ge=1, le=14)
+    page_bytes: int = Field(2_000_000, ge=100_000, le=10_000_000)
+    image_bytes: int = Field(5_000_000, ge=200_000, le=20_000_000)
+    max_side: int = Field(1600, ge=640, le=4096)
+    timeout_seconds: float = Field(12, ge=3, le=60)
+    vision: bool = True
+    vision_per_day: int = Field(15, ge=0, le=100)
+    # A kind he removes this often (and keeps this rarely) stops being attached: it waits under "Also in the sources".
+    drop_after: int = Field(8, ge=2, le=100)
+    drop_rate: float = Field(0.15, ge=0, le=1)
+
+
 class Drafting(_Strict):
     interview_draft_now: bool = True
     questions_per_card: int = Field(2, ge=1, le=3)
@@ -380,6 +400,7 @@ class Settings(BaseModel):
     posting: Posting = Posting()
     visuals: Visuals = Visuals()
     images: Images = Images()
+    media: Media = Media()
     weekly_batch: WeeklyBatch
     llm: LLM
     notify: Notify = Notify()

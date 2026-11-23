@@ -98,6 +98,11 @@ def _parse_feed(source: dict[str, Any], content: bytes) -> list[RawItem]:
             link = link.replace("http://", "https://")
         published = _struct_to_iso(entry.get("published_parsed") or entry.get("updated_parsed"))
         lang = source.get("lang") or textutil.detect_lang(title)
+        signals: dict[str, Any] = {}
+        if (source.get("extra") or {}).get("social_platform"):
+            signals["discovery_platform"] = source["extra"]["social_platform"]
+        if kind != "gnews" and (images := feed_entry_images(entry)):
+            signals["images"] = images
         items.append({
             "url": link,
             "title": title,
@@ -105,10 +110,43 @@ def _parse_feed(source: dict[str, Any], content: bytes) -> list[RawItem]:
             "published_at": published,
             "lang": lang if lang in ("en", "hi") else textutil.detect_lang(title),
             "publisher": publisher,
-            "signals": {"discovery_platform": (source.get("extra") or {}).get("social_platform")}
-            if (source.get("extra") or {}).get("social_platform") else {},
+            "signals": signals,
         })
     return items
+
+
+_IMG_TAG = re.compile(r"<img\b[^>]*>", re.I)
+_ATTR = re.compile(r"""([a-zA-Z-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
+
+
+def feed_entry_images(entry: Any, limit: int = 4) -> list[dict[str, Any]]:
+    """The pictures a feed entry carries: media:content and media:thumbnail, image enclosures, and <img> tags in
+    its HTML (read before the HTML is stripped). Kept on the item so a draft from it can carry them."""
+    from ..source_media import junk
+
+    found: list[dict[str, Any]] = []
+
+    def add(url: Any, alt: Any = None, width: Any = None, height: Any = None) -> None:
+        url = (url or "").strip() if isinstance(url, str) else ""
+        if url and url not in {f["url"] for f in found} and not junk(url, width, height):
+            found.append({"url": url, "alt": (alt or "").strip()[:300] or None})
+
+    for m in entry.get("media_content") or []:
+        medium = (m.get("medium") or "").lower()
+        if medium == "image" or (m.get("type") or "").startswith("image/") or (not medium and not m.get("type")):
+            add(m.get("url"), None, m.get("width"), m.get("height"))
+    for m in entry.get("media_thumbnail") or []:
+        add(m.get("url"), None, m.get("width"), m.get("height"))
+    for e in entry.get("enclosures") or []:
+        if (e.get("type") or "").startswith("image/"):
+            add(e.get("href") or e.get("url"))
+    html = " ".join([entry.get("summary") or "", *((c.get("value") or "") for c in entry.get("content") or [])])
+    for tag in _IMG_TAG.findall(html):
+        attrs = {k.lower(): a or b for k, a, b in _ATTR.findall(tag)}
+        src = attrs.get("src") or attrs.get("data-src")
+        if src and not src.startswith("data:"):
+            add(src, attrs.get("alt"), attrs.get("width"), attrs.get("height"))
+    return found[:limit]
 
 
 def _parse_hf(content: bytes) -> list[RawItem]:

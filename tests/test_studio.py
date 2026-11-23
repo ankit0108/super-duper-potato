@@ -70,7 +70,8 @@ def test_a_studio_post_saved_to_the_board_becomes_a_card_with_its_pictures(make_
     assert card["llm"] == {"provider": "studio", "model": "gemini-flash-latest"}
     # The picture moved out of inbox/ to the card's media folder, and sits behind the carousel cover.
     kept = "media/studio/crd_20260928_studio1/1.jpg"
-    assert card["attachments"] == [{"path": kept, "content_type": "image/jpeg", "width": 1200, "height": 900}]
+    assert card["attachments"] == [{"path": kept, "content_type": "image/jpeg", "width": 1200, "height": 900,
+                                    "origin": "studio"}]
     assert (ctx.data_root / kept).exists() and not (ctx.data_root / path).exists()
     assert card["visual"]["image"]["path"] == kept and card["visual"]["image"]["provider"] == "your photo"
     assert len(card["visual"]["items"]) == 3

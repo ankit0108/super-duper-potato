@@ -476,9 +476,19 @@ def _file_time(name: str) -> dt.datetime | None:
 
 
 def prune_media(ctx: Ctx) -> int:
-    """Delete images nothing needs: replaced by a newer visual (after a day), of cards skipped, expired or failed
-    for 14 days, posted over 120 days ago, or of cards that no longer exist."""
-    root = ctx.data_root / MEDIA_DIR
+    """Delete images nothing needs: AI images replaced by a newer visual (after a day); source pictures and his
+    uploads no card refers to; and every picture of cards skipped, expired or failed for 14 days, posted over 120
+    days ago, or of cards that no longer exist. (media/studio and media/metrics are never touched.)"""
+    removed = 0
+    for top in (MEDIA_DIR, "media/sources", "media/uploads"):
+        removed += _prune_dir(ctx, top)
+    if removed:
+        log.info(f"images: pruned {removed} file(s)")
+    return removed
+
+
+def _prune_dir(ctx: Ctx, top: str) -> int:
+    root = ctx.data_root / top
     if not root.is_dir():
         return 0
     now = timeutil.now()
@@ -490,6 +500,10 @@ def prune_media(ctx: Ctx) -> int:
             for v in (card.get("visual"), (card.get("working") or {}).get("visual")):
                 if isinstance(v, dict) and isinstance(v.get("image"), dict):
                     keep.add(Path(v["image"].get("path") or "").name)
+            pictures = [*(card.get("attachments") or []), *(card.get("source_media") or [])]
+            refs = {a.get("path") for a in pictures if isinstance(a, dict)}
+            if top != MEDIA_DIR:
+                keep |= {Path(p).name for p in refs if p and p.startswith(f"{top}/{folder.name}/")}
             changed = timeutil.parse(card.get("status_changed_at") or card.get("updated_at") or card.get("created_at"))
             age = (now - changed).days if changed else 0
             gone = (card.get("status") in ("skipped", "expired", "failed") and age >= 14) or \
@@ -498,12 +512,14 @@ def prune_media(ctx: Ctx) -> int:
             gone = True
         for f in sorted(folder.iterdir()):
             made = _file_time(f.name)
-            stale = f.name not in keep and (made is None or now - made > dt.timedelta(days=1))
+            if top == MEDIA_DIR:
+                stale = f.name not in keep and (made is None or now - made > dt.timedelta(days=1))
+            else:
+                # A source picture or an upload is kept while the card can still use it (in its pool).
+                stale = f.name not in keep
             if gone or stale:
                 f.unlink(missing_ok=True)
                 removed += 1
         if not any(folder.iterdir()):
             folder.rmdir()
-    if removed:
-        log.info(f"images: pruned {removed} file(s)")
     return removed
