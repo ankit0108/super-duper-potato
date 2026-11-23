@@ -258,8 +258,34 @@
    "type": "object"
   },
   "Attachment": {
-   "description": "A picture shared in the Studio and kept with the post (to post alongside it).",
+   "description": "A picture that goes with the post: from the sources the draft was written from, uploaded on the desk, or\nshared in the Studio.",
    "properties": {
+    "alt": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Alt text to paste when posting (written by the vision model, or his)",
+     "title": "Alt"
+    },
+    "caption": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The caption the article gave it",
+     "title": "Caption"
+    },
     "content_type": {
      "default": "image/jpeg",
      "title": "Content Type",
@@ -277,10 +303,60 @@
      "default": null,
      "title": "Height"
     },
+    "kind": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "chart, graph, diagram, table, screenshot, photo, illustration or other",
+     "title": "Kind"
+    },
+    "origin": {
+     "default": "studio",
+     "description": "Where the picture came from",
+     "enum": [
+      "source",
+      "upload",
+      "studio"
+     ],
+     "title": "Origin",
+     "type": "string"
+    },
     "path": {
-     "description": "File in the data repo, like media/studio/<card id>/1.jpg",
+     "description": "File in the data repo, like media/sources/<card id>/1.jpg",
      "title": "Path",
      "type": "string"
+    },
+    "publisher": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Who it belongs to (credited in the first comment)",
+     "title": "Publisher"
+    },
+    "source_url": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The article it was found in",
+     "title": "Source Url"
     },
     "width": {
      "anyOf": [
@@ -358,7 +434,7 @@
     },
     "attachments": {
      "default": [],
-     "description": "Pictures from the Studio that go with the post",
+     "description": "Pictures that go with the post, in order",
      "items": {
       "$ref": "#/$defs/Attachment"
      },
@@ -787,6 +863,22 @@
       }
      ],
      "default": null
+    },
+    "source_media": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/Attachment"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Every picture the card can use (found in its sources, or uploaded); null until the sources have been looked at",
+     "title": "Source Media"
     },
     "sources": {
      "default": [],
@@ -1284,6 +1376,48 @@
     "hook_index"
    ],
    "title": "CardHookEvent",
+   "type": "object"
+  },
+  "CardMediaEvent": {
+   "additionalProperties": false,
+   "description": "The pictures that go with the post, in order: kept, removed, moved, added back or uploaded.",
+   "properties": {
+    "at": {
+     "title": "At",
+     "type": "string"
+    },
+    "card_id": {
+     "title": "Card Id",
+     "type": "string"
+    },
+    "id": {
+     "maxLength": 80,
+     "minLength": 1,
+     "title": "Id",
+     "type": "string"
+    },
+    "items": {
+     "default": [],
+     "items": {
+      "$ref": "#/$defs/MediaItemIn"
+     },
+     "maxItems": 4,
+     "title": "Items",
+     "type": "array"
+    },
+    "type": {
+     "const": "card.media",
+     "title": "Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "at",
+    "type",
+    "card_id"
+   ],
+   "title": "CardMediaEvent",
    "type": "object"
   },
   "CardPostedEvent": {
@@ -2366,6 +2500,19 @@
      "description": "Posted right after (LinkedIn comment / X reply): the link",
      "title": "First Comment"
     },
+    "media_credit": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The credit line for the source pictures, at the end of first_comment (replaced when the pictures change)",
+     "title": "Media Credit"
+    },
     "posts": {
      "default": [],
      "items": {
@@ -3165,6 +3312,7 @@
         "card.draft_now": "#/$defs/CardDraftNowEvent",
         "card.edit": "#/$defs/CardEditEvent",
         "card.hook": "#/$defs/CardHookEvent",
+        "card.media": "#/$defs/CardMediaEvent",
         "card.posted": "#/$defs/CardPostedEvent",
         "card.restore": "#/$defs/CardRestoreEvent",
         "card.rewrite": "#/$defs/CardRewriteEvent",
@@ -3290,6 +3438,9 @@
        },
        {
         "$ref": "#/$defs/EditorDraftEvent"
+       },
+       {
+        "$ref": "#/$defs/CardMediaEvent"
        }
       ]
      },
@@ -3354,6 +3505,35 @@
     }
    },
    "title": "LLMInfo",
+   "type": "object"
+  },
+  "MediaItemIn": {
+   "additionalProperties": false,
+   "properties": {
+    "alt": {
+     "anyOf": [
+      {
+       "maxLength": 1000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Alt"
+    },
+    "path": {
+     "description": "A picture on the card, or an upload under inbox/blobs/",
+     "maxLength": 300,
+     "title": "Path",
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ],
+   "title": "MediaItemIn",
    "type": "object"
   },
   "Metric": {

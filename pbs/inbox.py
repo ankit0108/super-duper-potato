@@ -206,6 +206,68 @@ def _card_posted(ctx: Ctx, ev: C.CardPostedEvent) -> None:
     learn.record_post(ctx, card, text=ev.text, posts=ev.posts, post_url=ev.post_url, posted_at=posted_at,
                       editing_seconds=ev.editing_seconds, hook_index=ev.hook_index, tags=ev.hashtags,
                       with_visual=ev.with_visual)
+    kept = [a for a in card.get("attachments") or [] if isinstance(a, dict) and a.get("origin") == "source"]
+    if kept:
+        # What he posted with the pictures still on: the other half of what he keeps (see source_media.preferences).
+        draft.log_interaction(ctx, "media_posted", card, kinds=[a.get("kind") or "other" for a in kept])
+
+
+def _card_media(ctx: Ctx, ev: C.CardMediaEvent) -> None:
+    """The pictures that go with the post, as he left them: kept, removed, moved, added back or uploaded. Every
+    path must be on the card already, or an upload under inbox/blobs/ (moved to media/uploads/<card>/)."""
+    from . import source_media, studio
+
+    card = _card(ctx, ev.card_id)
+    at = _event_time(ev)
+    if card["status"] == "posted":
+        raise Reject("card is already posted")
+    pool = [*(card.get("source_media") or []), *(card.get("attachments") or [])]
+    known = {a["path"]: a for a in pool if isinstance(a, dict) and a.get("path")}
+    before = [a["path"] for a in card.get("attachments") or [] if isinstance(a, dict)]
+    uploads_dir = ctx.data_root / source_media.UPLOADS_DIR / card["id"]
+    n = max((int(p.stem) for p in uploads_dir.iterdir() if p.stem.isdigit()), default=0) if uploads_dir.is_dir() else 0
+    out: list[dict[str, Any]] = []
+    uploaded: list[dict[str, Any]] = []
+    for item in ev.items:
+        if any(a["path"] == item.path for a in out):
+            continue
+        if item.path in known:
+            att = dict(known[item.path])
+        elif item.path.startswith("inbox/blobs/"):
+            try:
+                moved = studio._keep_blob(ctx, card["id"], item.path, n, folder=source_media.UPLOADS_DIR)
+            except ValueError as exc:
+                raise Reject(str(exc)) from exc
+            n += 1
+            dims = images.dimensions((ctx.data_root / moved["path"]).read_bytes()) or (None, None)
+            att = {**moved, "width": dims[0], "height": dims[1], "origin": "upload"}
+            uploaded.append(att)
+        else:
+            raise Reject(f"{item.path} isn't one of this card's pictures")
+        if item.alt is not None:
+            att["alt"] = item.alt.strip()[:1000] or None
+        out.append(att)
+    card["attachments"] = out
+    # Every picture stays in the card's pool (with his alt text), so a removed one can be added back.
+    by_path = {a["path"]: a for a in out}
+    pool_out = [by_path.get(path, a) for path, a in known.items()]
+    pool_out += [a for a in uploaded if a["path"] not in known]
+    card["source_media"] = pool_out
+    source_media.apply_credit(card)
+    _touch(card, at)
+    draft.save_card(ctx, card)
+    after = [a["path"] for a in out]
+    for path in before:
+        if path not in after and path in known:
+            a = known[path]
+            draft.log_interaction(ctx, "media_removed", card, kind=a.get("kind") or "other",
+                                  publisher=a.get("publisher"), origin=a.get("origin") or "studio")
+    for a in out:
+        if a["path"] not in before and a not in uploaded:
+            draft.log_interaction(ctx, "media_added", card, kind=a.get("kind") or "other",
+                                  publisher=a.get("publisher"), origin=a.get("origin") or "studio")
+    for a in uploaded:
+        draft.log_interaction(ctx, "media_uploaded", card, path=a["path"])
 
 
 def _card_skip(ctx: Ctx, ev: C.CardSkipEvent) -> None:
@@ -758,6 +820,7 @@ APPLY = {
     "card.restore": _card_restore,
     "card.draft_now": _card_draft_now,
     "card.hook": _card_hook,
+    "card.media": _card_media,
     "scout.draft": _scout_draft,
     "editor.draft": _editor_draft,
     "post.update": _post_update,

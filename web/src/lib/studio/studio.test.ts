@@ -210,7 +210,7 @@ describe("saving a Studio post to the board", () => {
     const made = out.cards!.find((c) => c.id === "crd_studio")!;
     expect(made).toMatchObject({ kind: "studio", status: "suggested", draft: { text: "The demo took a week.", posts: [] }, hashtags: ["#AI"] });
     expect(made.hooks).toEqual([{ type: "observation", text: "Other opening" }]);
-    expect(made.attachments).toEqual([{ path: "inbox/blobs/crd_studio_1.jpg", content_type: "image/jpeg", width: 800, height: 600 }]);
+    expect(made.attachments).toEqual([{ path: "inbox/blobs/crd_studio_1.jpg", content_type: "image/jpeg", width: 800, height: 600, origin: "studio" }]);
     expect(made.visual?.image).toMatchObject({ path: "inbox/blobs/crd_studio_1.jpg", provider: "your photo" });
     expect(pending.cards.has("crd_studio")).toBe(true);
     // Sent twice (a retry): still one card.

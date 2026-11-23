@@ -443,7 +443,10 @@ function CardView({ card }: { card: Card }) {
               </div>
             </Panel>
           ) : card.status === "posted" ? (
-            <PostedSummary card={card} post={post} tz={tz} onCrosspost={() => setCrossposting(true)} />
+            <>
+              <PostedSummary card={card} post={post} tz={tz} onCrosspost={() => setCrossposting(true)} />
+              {!!card.attachments?.length && <Attachments card={card} slug={fileSlug(card.title)} />}
+            </>
           ) : ["skipped", "expired", "failed"].includes(card.status) ? (
             <Panel
               title={card.status === "skipped" ? "Skipped" : card.status === "failed" ? "Drafting failed" : "Expired"}
@@ -495,7 +498,7 @@ function CardView({ card }: { card: Card }) {
                 </section>
               )}
               {card.draft?.first_comment && <FirstComment platform={card.platform} text={card.draft.first_comment} />}
-              {!!card.attachments?.length && <Attachments items={card.attachments} slug={fileSlug(card.title)} />}
+              <Attachments card={card} slug={fileSlug(card.title)} />
               {(visualsOn || visual) && (
                 <VisualPanel
                   card={card}

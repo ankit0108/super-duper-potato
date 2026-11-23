@@ -4,6 +4,7 @@ import type { Card, DeskState, InboxEvent, Post, Stance } from "@/types";
 import { draftText } from "./format";
 import { withoutHashtags } from "./hashtags";
 import { editRatio } from "./text";
+import { applyMedia } from "./media";
 
 export type Pending = {
   cards: Set<string>;
@@ -50,7 +51,7 @@ export function studioCard(ev: Extract<InboxEvent, { type: "studio.save" }>): Ca
   const posts = thread ? (ev.posts ?? []).filter((p) => p.trim()) : [];
   const text = thread ? "" : (ev.text ?? "").trim();
   const draft = { text, posts, first_comment: ev.first_comment?.trim() || null };
-  const attachments = (ev.images ?? []).map((img) => ({ path: img.path, content_type: "image/jpeg", width: img.width ?? null, height: img.height ?? null }));
+  const attachments = (ev.images ?? []).map((img) => ({ path: img.path, content_type: "image/jpeg", width: img.width ?? null, height: img.height ?? null, origin: "studio" as const }));
   const photo = ev.visual?.photo != null ? attachments[ev.visual.photo] : undefined;
   return {
     id: ev.card_id,
@@ -182,6 +183,9 @@ export function applyEvents(desk: DeskState, events: InboxEvent[]): { desk: Desk
           status_changed_at: ev.at,
           work: null,
         }));
+        break;
+      case "card.media":
+        updateCard(ev.card_id, (c) => applyMedia(c, ev.items ?? []));
         break;
       case "card.save":
         updateCard(ev.card_id, (c) =>

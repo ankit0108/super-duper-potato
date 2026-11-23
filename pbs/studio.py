@@ -87,8 +87,8 @@ def save(ctx: Ctx, ev: Any) -> dict[str, Any]:
     sources = [{"url": s.url, "title": s.title or s.url, "publisher": textutil.url_host(s.url) or None, "lang": "en"}
                for s in ev.sources or [] if s.url.startswith(("http://", "https://"))][:8]
     tags = hashtags.clean(ev.hashtags or [], 10, [], ctx.blocklist)
-    attachments = [{**_keep_blob(ctx, card_id, img.path, i), "width": img.width, "height": img.height}
-                   for i, img in enumerate(ev.images or [])]
+    attachments = [{**_keep_blob(ctx, card_id, img.path, i), "width": img.width, "height": img.height,
+                    "origin": "studio"} for i, img in enumerate(ev.images or [])]
     visual: dict[str, Any] | None = None
     if ev.visual:
         v = ev.visual
@@ -128,6 +128,8 @@ def save(ctx: Ctx, ev: Any) -> dict[str, Any]:
         "llm": {"provider": "studio", "model": ev.model or "gemini"},
         "visual": visual,
         "attachments": attachments,
+        # His own pictures: the sources aren't searched for more, and these can be added back after a removal.
+        "source_media": list(attachments),
         "created_at": now,
         "updated_at": now,
         "delivered_at": now,
@@ -147,13 +149,13 @@ def save(ctx: Ctx, ev: Any) -> dict[str, Any]:
     return card
 
 
-def _keep_blob(ctx: Ctx, card_id: str, path: str, n: int) -> dict[str, Any]:
+def _keep_blob(ctx: Ctx, card_id: str, path: str, n: int, folder: str = "media/studio") -> dict[str, Any]:
     """Move a picture the desk uploaded (inbox/blobs/…) to the card's media folder."""
     if not re.fullmatch(r"inbox/blobs/[A-Za-z0-9_-][A-Za-z0-9_.-]*", path) or ".." in path:
         raise ValueError(f"pictures must be uploaded under inbox/blobs/ ({path})")
     src = ctx.data_root / path
     suffix = src.suffix.lower() if src.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp") else ".jpg"
-    rel = f"media/studio/{card_id}/{n + 1}{suffix}"
+    rel = f"{folder}/{card_id}/{n + 1}{suffix}"
     dest = ctx.data_root / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
     if src.exists():

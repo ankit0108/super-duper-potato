@@ -33,6 +33,7 @@ export const STARTS_RUN: Record<InboxEvent["type"], boolean> = {
   "card.restore": false,
   "card.draft_now": true,
   "card.hook": false,
+  "card.media": false,
   "scout.draft": true,
   "editor.draft": true,
   "post.update": false,

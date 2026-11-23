@@ -233,6 +233,92 @@ def wikiquote_answer(url: str) -> dict[str, Any]:
     return {"batchcomplete": True, "query": {"pages": pages}}
 
 
+# Article pages with pictures (source_media reads them): a chart, a diagram, photos, and a logo it must leave out.
+IMG_HOST = "https://img.demo.example"
+ARTICLES: dict[str, list[dict[str, str]]] = {
+    "example.dev/blog/evals-production": [
+        {"via": "figure", "src": f"{IMG_HOST}/chart/eval-scores.png",
+         "caption": "Benchmark chart: task success on the public benchmark vs in production (%)"},
+        {"via": "figure", "src": f"{IMG_HOST}/diagram/eval-loop.png",
+         "caption": "Diagram: the evaluation loop, from traces to graded cases to fixes"},
+        {"via": "article", "src": f"{IMG_HOST}/brand/example-dev-logo.png", "alt": "example.dev"},
+    ],
+    "huggingface.co/papers/2609.01234": [
+        {"via": "figure", "src": f"{IMG_HOST}/diagram/agentbench-tasks.png",
+         "caption": "Figure 1: overview of the AgentBench-Enterprise task families and the environment"},
+    ],
+    "en.wikipedia.org/wiki/Champaran_Satyagraha": [
+        {"via": "og", "src": f"{IMG_HOST}/photo/champaran-1917.jpg"},
+    ],
+    "techcrunch.com/2026/09/27/openai-agent-platform-enterprise": [
+        {"via": "og", "src": f"{IMG_HOST}/photo/openai-platform.jpg"},
+        {"via": "figure", "src": f"{IMG_HOST}/chart/agent-pilots.png",
+         "caption": "Chart: share of enterprises piloting AI agents, 2024 to 2026 (%)"},
+        {"via": "article", "src": f"{IMG_HOST}/brand/techcrunch-logo.png", "alt": "TechCrunch"},
+    ],
+    "theverge.com/2026/9/27/openai-agents-enterprise": [
+        {"via": "figure", "src": f"{IMG_HOST}/diagram/approval-flow.png",
+         "caption": "Architecture diagram: how approval steps and audit logs sit between agents and internal tools"},
+    ],
+    "theverge.com/2026/9/26/ai-agents-legacy-systems": [
+        {"via": "og", "src": f"{IMG_HOST}/photo/mainframe-room.jpg"},
+    ],
+    "techcrunch.com/2026/09/26/uipath-agentic-orchestration": [
+        {"via": "figure", "src": f"{IMG_HOST}/chart/orchestration-benchmark.png",
+         "caption": "Benchmark chart: exceptions handled per hour, bots alone vs bots with agents"},
+    ],
+}
+
+
+def article_page(url: str) -> str | None:
+    for frag, pics in ARTICLES.items():
+        if frag in url:
+            meta = "".join(f'<meta property="og:image" content="{p["src"]}">' for p in pics if p["via"] == "og")
+            body = "".join(
+                f'<figure><img src="{p["src"]}" width="1200" height="800"><figcaption>{escape(p["caption"])}'
+                f"</figcaption></figure>" if p["via"] == "figure" else
+                f'<p><img src="{p["src"]}" alt="{escape(p.get("alt") or "")}" width="640" height="400"></p>'
+                for p in pics if p["via"] != "og")
+            return (f"<!doctype html><html><head><title>Article</title>{meta}</head><body><article><h1>Article</h1>"
+                    f"<p>The story, in words.</p>{body}</article></body></html>")
+    return None
+
+
+def demo_figure(url: str) -> tuple[bytes, str]:
+    """A stand-in picture for the demo's articles, drawn with Pillow: bars for a chart, boxes and arrows for a
+    diagram, a soft gradient for a photo."""
+    import io
+
+    from PIL import Image, ImageDraw
+
+    seed = ids.short_hash(url)
+    kind = url.split("/")[3] if url.count("/") >= 4 else "photo"
+    if kind == "photo":
+        im = Image.open(io.BytesIO(demo_png(seed, 240, 150))).convert("RGB").resize((960, 600))
+        out = io.BytesIO()
+        im.save(out, "JPEG", quality=80)
+        return out.getvalue(), "image/jpeg"
+    im = Image.new("RGB", (1200, 800), (250, 250, 252))
+    d = ImageDraw.Draw(im)
+    if kind == "chart":
+        d.line([(120, 700), (1120, 700)], fill=(120, 120, 130), width=3)
+        for i, v in enumerate((180, 260, 340, 470, 560)):
+            x = 170 + i * 190
+            d.rounded_rectangle([x, 700 - v, x + 110, 700], radius=6, fill=(79, 70, 229))
+    elif kind == "diagram":
+        for i, x in enumerate((100, 470, 840)):
+            d.rounded_rectangle([x, 330, x + 260, 470], radius=16, outline=(79, 70, 229), width=5,
+                                fill=(238, 242, 255))
+            if i < 2:
+                d.line([(x + 260, 400), (x + 370, 400)], fill=(60, 60, 70), width=5)
+                d.polygon([(x + 370, 400), (x + 350, 388), (x + 350, 412)], fill=(60, 60, 70))
+    else:
+        d.ellipse([500, 300, 700, 500], fill=(30, 30, 30))
+    out = io.BytesIO()
+    im.save(out, "PNG")
+    return out.getvalue(), "image/png"
+
+
 class MockWeb:
     """httpx transport serving `build_world()`. Unknown URLs get an empty feed (or empty JSON for APIs).
 
@@ -260,6 +346,11 @@ class MockWeb:
             return httpx.Response(200, json=wikiquote_answer(url))
         if hit is None and (image := self._image(request, url)) is not None:
             return image
+        if hit is None and url.startswith(IMG_HOST):
+            data, ctype = demo_figure(url)
+            return httpx.Response(200, headers={"content-type": ctype}, content=data)
+        if hit is None and (page := article_page(url)) is not None:
+            return httpx.Response(200, headers={"content-type": "text/html"}, text=page)
         if hit is None:
             if "algolia" in url or "api/" in url:
                 return httpx.Response(200, json={"hits": [], "events": []})

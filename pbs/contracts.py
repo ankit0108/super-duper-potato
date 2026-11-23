@@ -72,6 +72,8 @@ class Draft(_Out):
     quote_url: str | None = None
     reply: ReplyTarget | None = None
     first_comment: str | None = Field(None, description="Posted right after (LinkedIn comment / X reply): the link")
+    media_credit: str | None = Field(None, description="The credit line for the source pictures, at the end of "
+                                                       "first_comment (replaced when the pictures change)")
 
 
 class AiTell(_Out):
@@ -148,11 +150,19 @@ StoryKind = Literal["news", "conversation", "bizarre", "funny", "launch", "resea
 
 
 class Attachment(_Out):
-    """A picture shared in the Studio and kept with the post (to post alongside it)."""
-    path: str = Field(description="File in the data repo, like media/studio/<card id>/1.jpg")
+    """A picture that goes with the post: from the sources the draft was written from, uploaded on the desk, or
+    shared in the Studio."""
+    path: str = Field(description="File in the data repo, like media/sources/<card id>/1.jpg")
     content_type: str = "image/jpeg"
     width: int | None = None
     height: int | None = None
+    origin: Literal["source", "upload", "studio"] = Field("studio", description="Where the picture came from")
+    source_url: str | None = Field(None, description="The article it was found in")
+    publisher: str | None = Field(None, description="Who it belongs to (credited in the first comment)")
+    caption: str | None = Field(None, description="The caption the article gave it")
+    alt: str | None = Field(None, description="Alt text to paste when posting (written by the vision model, or his)")
+    kind: str | None = Field(None, description="chart, graph, diagram, table, screenshot, photo, illustration or "
+                                               "other")
 
 
 class Visual(_Out):
@@ -315,7 +325,10 @@ class Card(_Out):
         None, description="What the current draft was written from: recent sources, or his answers (plus sources)")
     crosspost_of: str | None = Field(None, description="The card this one was made from for the other platform")
     visual: Visual | None = None
-    attachments: list[Attachment] = Field([], description="Pictures from the Studio that go with the post")
+    attachments: list[Attachment] = Field([], description="Pictures that go with the post, in order")
+    source_media: list[Attachment] | None = Field(
+        None, description="Every picture the card can use (found in its sources, or uploaded); null until the "
+                          "sources have been looked at")
     trending: TrendInfo | None = None
     story: StoryKind | None = Field(None, description="What kind of story triage says it is")
     humor: HumorInfo | None = None
@@ -934,6 +947,18 @@ class CardSaveEvent(_Event):
     remind_on: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
+class MediaItemIn(_In):
+    path: str = Field(max_length=300, description="A picture on the card, or an upload under inbox/blobs/")
+    alt: str | None = Field(None, max_length=1000)
+
+
+class CardMediaEvent(_Event):
+    """The pictures that go with the post, in order: kept, removed, moved, added back or uploaded."""
+    type: Literal["card.media"]
+    card_id: str
+    items: list[MediaItemIn] = Field([], max_length=4)
+
+
 class EditorDraftEvent(_Event):
     """Draft one of an editor's runner-ups."""
     type: Literal["editor.draft"]
@@ -1214,7 +1239,7 @@ InboxEvent = Annotated[
     | MetricsUploadEvent | MetricsReviewEvent | AccountStatsEvent | RequestCreateEvent | RequestCancelEvent
     | StanceUpsertEvent | StanceDeleteEvent | StanceProposeEvent | SourceUpsertEvent | SourceDeleteEvent
     | SettingsUpdateEvent | ProfileUpdateEvent | ProposalDecideEvent | PlaybookRuleEvent | RunRequestEvent
-    | StudioSaveEvent | ScoutDraftEvent | EditorDraftEvent,
+    | StudioSaveEvent | ScoutDraftEvent | EditorDraftEvent | CardMediaEvent,
     Field(discriminator="type"),
 ]
 

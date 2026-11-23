@@ -174,6 +174,8 @@ def _week_input(ctx: Ctx, start: dt.datetime, end: dt.datetime) -> dict[str, Any
             "scout_scores": stats.scout_calibration(cards),
             # Whether his posts come from the top half of the editors' order (an observation, not a verdict).
             "editor_order": stats.editor_calibration(cards),
+            # The pictures from the sources: what he kept of each kind, and kinds no longer attached by themselves.
+            "pictures": stats.media_kept(ctx),
             "post_ids": [p["id"] for p in posts]}
 
 

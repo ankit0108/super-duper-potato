@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent, type ReactNode } from "react";
-import { Bookmark, BookmarkCheck, Bot, Compass, FlaskConical, Loader2, MessageCircleQuestion, OctagonAlert, Quote, ShieldAlert, Sigma, UserRound, HeartHandshake, Ruler } from "lucide-react";
+import { Bookmark, BookmarkCheck, Bot, ImageIcon, Compass, FlaskConical, Loader2, MessageCircleQuestion, OctagonAlert, Quote, ShieldAlert, Sigma, UserRound, HeartHandshake, Ruler } from "lucide-react";
 import type { Card } from "@/types";
 import { FORMAT_LABEL, MENU_SKIP_REASONS, PLATFORM_LABEL, STORY_LABEL, TREND_PLACE, draftText, postTypeLabel } from "@/lib/format";
 import { tellSummary } from "@/lib/guard";
@@ -217,6 +217,11 @@ export function CardTile({ card, pending }: { card: Card; pending?: boolean }) {
         {isSaved(card) && (
           <Badge tone="accent" icon={<BookmarkCheck className="size-3" />}>
             {savedLabel(card, today)}
+          </Badge>
+        )}
+        {!!card.attachments?.length && (
+          <Badge tone="neutral" icon={<ImageIcon className="size-3" />} title="Pictures that go with the post">
+            {card.attachments.length === 1 ? "1 picture" : `${card.attachments.length} pictures`}
           </Badge>
         )}
         {pending && <Badge tone="neutral">Syncing</Badge>}

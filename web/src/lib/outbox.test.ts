@@ -35,6 +35,7 @@ describe("outbox", () => {
       event("card.restore", { card_id: "c1" }),
       event("card.draft_now", { card_id: "c1" }),
       event("card.hook", { card_id: "c1", hook_index: 0 }),
+      event("card.media", { card_id: "c1", items: [] }),
     ];
     const waiting: string[] = [];
     for (const ev of samples) {
@@ -47,7 +48,7 @@ describe("outbox", () => {
     }
     expect(new Set(waiting)).toEqual(new Set(["card.rewrite", "card.crosspost", "card.visual", "card.answers", "card.draft_now"]));
     // Every event type is classified (the Record type enforces it; this guards the runtime map too).
-    expect(Object.keys(STARTS_RUN)).toHaveLength(32);
+    expect(Object.keys(STARTS_RUN)).toHaveLength(33);
   });
 
   it("writes batches under inbox/ with a safe device name", () => {
